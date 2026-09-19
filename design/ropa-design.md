@@ -1,6 +1,8 @@
 # RoPA Service: Design Strawman (v0.1, for discussion)
 
 > Status: draft to react to, not a decision record. Open questions are in §9.
+>
+> **Superseded in part:** the entity model (§6) and decisions 1–5 (§9) are replaced by `ropa-data-model.md`, which reflects what `ropa-story.md` revealed.
 
 ## 1. Where RoPA sits in the program
 
