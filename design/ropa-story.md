@@ -6,7 +6,7 @@
 
 ## Cast
 
-**Hireloop B.V.** (Amsterdam, 58 employees) sells an applicant tracking system (ATS) to European employers. Recruiters at client companies post jobs, candidates apply through Hireloop-hosted career pages, and recruiters review CVs and interview notes. Everything runs on **Render, Frankfurt region**.
+**Hireloop B.V.** (Amsterdam, 58 employees) sells an **applicant tracking system (ATS)** to European employers. An ATS is hiring software: employers use it to post job openings, collect applications and CVs, move candidates through stages (screening, interviews, offer), share interview notes, and email candidates. Recruiters at client companies post jobs, candidates apply through Hireloop-hosted career pages, and recruiters review CVs and interview notes. Everything runs on **Render, Frankfurt region**.
 
 | Person | Role in the story |
 |---|---|
@@ -14,7 +14,7 @@
 | **Tomás Herrera** | Platform engineer. Ships services on Render. |
 | **Ines Duarte** | Head of Customer Success. Fields procurement questionnaires. |
 | **Jonas Weber** | CTO. Wants AI CV parsing. |
-| **Marc Lentz** | Vendor-risk analyst at Aurelia Bank (a client). |
+| **Marc Lentz** | Vendor-risk analyst at Aurelia Bank (a prospect that becomes a client in Chapter 4). |
 | **Lena Vogel** | A candidate who applied to Northwind via Hireloop. |
 | **Kees de Vries** | A former Hireloop employee. |
 
@@ -24,7 +24,7 @@
 |---|---|---|
 | Northwind Logistics B.V. (NL) | Standard DPA v3 | General authorization for subprocessors, 30-day notice |
 | Fjord Outdoor AS (NO) | Standard DPA v3 | Same |
-| Aurelia Bank S.A. (LU) | Bespoke DPA | **Specific** (prior written) authorization, 60-day notice, EU-only processing, uses the Diversity module |
+| Aurelia Bank S.A. (LU) | Bespoke DPA, signed 2026-03-16 (Chapter 4) | **Specific** (prior written) authorization, 60-day notice, EU-only processing, uses the Diversity module. A prospect until then. |
 
 **Vendors**
 
@@ -53,7 +53,7 @@
 
 ## Chapter 1: The spreadsheet (January 2026)
 
-Aurelia Bank is about to sign. Marc Lentz sends Ines a 140-question vendor-risk questionnaire. Question 37: *"Provide the extract of your Record of Processing Activities relevant to our data, and your current list of subprocessors with locations and transfer mechanisms."*
+Aurelia Bank has chosen Hireloop and is weeks away from signing the subscription contract (master services agreement + order form) and its data processing agreement (DPA). First, Aurelia's vendor-risk team runs due diligence. A controller must only use processors that give "sufficient guarantees" (Art. 28(1)), and as a bank Aurelia must also vet technology suppliers before contracting under financial-sector outsourcing rules and DORA. Marc Lentz sends Ines a 140-question vendor-risk questionnaire. Question 37: *"Provide the extract of your Record of Processing Activities relevant to our data, and your current list of subprocessors with locations and transfer mechanisms."*
 
 Ines forwards it to Priya. Priya opens `RoPA_master_v7_FINAL.xlsx`. It was last updated eleven months ago. It lists Heroku (Hireloop left in 2025), doesn't mention Glitchlog, and has one row called "Candidate stuff."
 
@@ -65,7 +65,9 @@ Priya spends four days rebuilding it by interviewing Tomás. Then she asks for a
 
 ## Chapter 2: Hireloop as controller (February 2026)
 
-Priya starts with the data Hireloop decides about itself. These are **Art. 30(1)** records: Hireloop chooses the purposes and the means.
+Priya starts with **Hireloop's own operations**: its staff, its customers' accounts, its sales pipeline and the monitoring of its own service. These are **Art. 30(1)** records, because Hireloop decides why and how this data is processed. None of them is about customers' candidate data.
+
+> **Rule of thumb:** *who decided this processing should happen?* If Hireloop decided, it's a controller record. If a customer decided and Hireloop carries it out, it's a processor record.
 
 ```yaml
 id: act-c2
@@ -87,10 +89,15 @@ securityMeasures: [encryption-at-rest, sso-for-staff, rbac, audit-logging]
 owner: Priya Raman
 ```
 
-She records four controller activities (full list in the appendix): **C1 Employee administration**, **C2 Customer accounts & billing**, **C3 Sales & marketing**, **C4 Service reliability monitoring**.
+She records four controller activities (full list in the appendix):
+- **C1 Hireloop staff administration:** Hireloop's own 58 employees (contracts, payroll, sick leave), managed in Peoplehub.
+- **C2 Customer accounts & billing:** the recruiter logins and billing contacts of Hireloop's customers.
+- **C3 Hireloop sales & marketing (prospective customers):** HR managers at companies that might buy the ATS, from the marketing site, newsletter and demo requests.
+- **C4 Service reliability monitoring:** Hireloop's error tracking and telemetry for its own service.
 
 Things she notices while writing them:
 - **Retention differs per data category** within one activity: billing data 7 years, account data 90 days.
+- **C1 runs entirely outside Render** (in Peoplehub). The record covers everything Hireloop controls, not just what runs on its platform.
 - **C1 includes health data** (sick-leave records): a special category, so it needs an **Art. 9(2)** condition on top of the Art. 6 basis.
 - **Ledgerpay is not Hireloop's processor.** It decides its own fraud-screening purposes, which makes it a *recipient*. It appears in the record but will **not** appear on the subprocessor list.
 - **C4 is a grey zone.** Glitchlog error reports sometimes include candidate emails in stack traces. Is Hireloop processing candidate data *for its own purpose* (security of the service, so controller) or *on behalf of clients* (so processor)? Priya decides controller, documents why, and puts "scrub PII from error payloads" on Tomás's backlog. That later becomes the Redaction service (#2).
@@ -125,30 +132,47 @@ engagements:
   - party: render     role: subprocessor   data: [dc-identity, dc-cv, dc-assessment]   # hosted in Frankfurt
   - party: mailcrest  role: subprocessor   data: [dc-identity]   transfer: {to: US, mechanism: DPF}
   - party: glitchlog  role: subprocessor   data: [dc-identity]   transfer: {to: US, mechanism: SCCs}
-                      excludedFor: [aurelia]      # ← Aurelia requires EU-only processing
 securityMeasures: [encryption-at-rest, tenant-isolation, rbac, audit-logging]
 ```
 
-Then Aurelia complicates things:
-- Aurelia's **bespoke DPA** requires *specific* authorization for any new subprocessor, 60 days' notice, and **EU-only processing**. Glitchlog (US) must not receive Aurelia's candidate data, so Tomás adds tenant-based suppression, and the record shows an **exclusion on that engagement for that client**.
-- Aurelia enables the optional **Diversity & Accommodations module**, which collects ethnicity and disability-accommodation requests. That's **P2**: special-category data, processed *only* for clients who enable it. The Art. 9 condition is Aurelia's to establish, because Aurelia is the controller. Hireloop's record just notes that special categories are processed.
+At this point every client (Northwind, Fjord and the other 398) is on the Standard DPA, so one record covers them all. Priya notices that the terms Hireloop has promised its clients (general authorization for subprocessors, 30 days' notice before a change) aren't properties of the activity. They're written in the **Standard DPA v3**, and every client on that DPA shares them.
 
 > **Model pressure:** the terms that matter (authorization type, notice period, location restrictions) live in the **agreement**, not the activity. The strawman had no `Agreement` entity.
 >
-> **Operations:** `POST /service-offerings`, `POST /activities` (role=processor), engagement exclusions per client.
+> **Operations:** `POST /service-offerings`, `POST /agreements`, `POST /activities` (role=processor).
 
 ---
 
-## Chapter 4: Answering Marc (February 2026)
+## Chapter 4: Answering Marc, and signing Aurelia (February–March 2026)
 
-Ines now answers Question 37 with two calls:
+**Before signing.** Aurelia is still a prospect: there's no Aurelia agreement and none of its candidates' data is processed yet, so RoPA has nothing to say about Aurelia specifically. (RoPA records processing that actually happens. Deals in progress live in Hireloop's CRM. Marc does appear in RoPA, though: his contact details are a *lead* in C3.)
 
-- `GET /report?view=processor&client=aurelia`: the Art. 30(2) extract for Aurelia: P1 and P2, with Glitchlog *absent* (excluded).
-- `GET /subprocessors?client=aurelia`: Render (Frankfurt, hosting) and Mailcrest (US, email, DPF). Ledgerpay isn't there (it never touches client data). Neither is Peoplehub (employee data only).
+So Ines answers Question 37 with the **standard offering** view, which is what any new client on the Standard DPA gets:
 
-Northwind asking the same question gets a list that **includes** Glitchlog. The subprocessor list is a **per-client view** derived from the record, not a static web page.
+- `GET /report?view=processor&offering=off-ats`: the Art. 30(2) extract for the ATS: P1, the categories of processing, transfers and security measures.
+- `GET /subprocessors?offering=off-ats`: Render (Frankfurt, hosting), Mailcrest (US, email, DPF), Glitchlog (US, error tracking, SCCs). Ledgerpay isn't there (it never touches client data). Neither is Peoplehub (employee data only).
 
-> **Checks decisions:** #2 (offering + override), #3 (Party + Engagement roles). **Endpoint:** `/subprocessors` needs a `client` parameter.
+This offering view is the same list Hireloop publishes on its website's subprocessor page. It's also exactly what *other* companies' subprocessor monitors would watch, just as Hireloop's monitor watches Mailcrest's page (Chapter 6).
+
+**The negotiation.** Marc reads the list and pushes back:
+- Glitchlog is in the US. The bank requires **EU-only processing** of candidate data.
+- Aurelia wants **specific** (prior written) authorization for any new subprocessor, not just a notice, and **60 days** to respond.
+- Aurelia wants the optional **Diversity & Accommodations module**, which collects ethnicity and disability-accommodation requests.
+
+Tomás confirms that error reporting can be suppressed per tenant. Legal drafts a bespoke DPA. **Aurelia signs on 2026-03-16.**
+
+**After signing**, Priya records what is now real:
+- Aurelia as a client party, with agreement `agr-aurelia-dpa` (specific authorization, 60 days, EU-only).
+- An **exclusion** on P1's Glitchlog engagement: `excludedFor: [aurelia]`.
+- **P2 Diversity & accommodations module:** special-category data processed *only* for clients who enable it. The Art. 9 condition is Aurelia's to establish, because Aurelia is the controller. Hireloop's record just notes that special categories are processed.
+
+Now the per-client views make sense:
+- `GET /subprocessors?client=aurelia`: Render and Mailcrest. **No Glitchlog.**
+- `GET /subprocessors?client=northwind`: Render, Mailcrest **and** Glitchlog (standard terms).
+
+The subprocessor list is a **view derived from the record**, not a static page. The offering view shows the standard terms before a contract. The client view shows a signed client's actual terms.
+
+> **Checks decisions:** #2 (offering + client override), #3 (Party + Engagement roles). **Endpoints:** `/report` and `/subprocessors` take `offering=` and `client=`.
 
 ---
 
@@ -158,7 +182,11 @@ Jonas ships AI CV parsing. Tomás adds a background worker, `cv-parser`, on Rend
 
 **The architecture notices first.** The nightly Architecture Snapshot finds a new service. `GET /coverage` reports: *`cv-parser` is not linked to any processing activity.* A review item opens for Priya.
 
-Priya drafts **P3 CV parsing**: candidates' CVs go to Scribe AI, which is a new subprocessor with a US transfer (SCCs). She also flags `dpiaRequired: true`, since automated evaluation of job candidates is high-risk under Art. 35.
+Coverage runs both ways, and not every gap is a problem. A system with no activity (`cv-parser`) is a gap. An activity with no Render system (C1, which lives in Peoplehub) is legitimate and must not be flagged.
+
+Priya drafts **P3 CV parsing**: candidates' CVs go to Scribe AI, which is a new subprocessor with a US transfer (SCCs). Automated evaluation of job candidates is high-risk, so under Art. 35 a **Data Protection Impact Assessment (DPIA)** is needed before launch. A DPIA is a documented risk assessment covering the processing, why it's necessary, the risks to people, and the safeguards.
+
+But a DPIA is the *controller's* duty, and for P3 the controllers are Hireloop's clients. Hireloop's job is to help them (Art. 28(3)(f)). Priya prepares a **DPIA support pack** (risk analysis, safeguards, how the model's output is used, Scribe AI's zero-retention terms) that each client can reuse in its own DPIA, and records it on P3 as `dpiaSupportRef`. CV screening is also classed as high-risk under the EU AI Act, which brings its own obligations for Hireloop and its clients.
 
 **This is an outbound subprocessor change.** Because Hireloop is a processor, Art. 28(2) applies:
 - For the **Standard DPA** clients (general authorization), the monitor publishes the updated list and sends notices: *"Scribe AI will be added on 2026-05-15; you may object until then."*
@@ -182,7 +210,7 @@ The monitor calls `GET /parties/mailcrest/impact`:
 | Activity | Hireloop's role | Data at Mailcrest | Consequence |
 |---|---|---|---|
 | C2 Customer accounts | Controller | client-user emails | **Hireloop decides**: accept or object. Record new transfer: India, SCCs via Mailcrest DPA |
-| C3 Sales & marketing | Controller | lead emails | Same |
+| C3 Hireloop sales & marketing | Controller | lead emails | Same |
 | P1 Candidate management | **Processor** | candidate emails | **Hireloop must pass this on to its clients**: it's a new sub-subprocessor in their chain |
 
 The last row is the chain effect. **An inbound change on a processor-role engagement triggers an outbound notification.** And the deadlines collide: Mailcrest gave Hireloop **30 days**, but Hireloop owes Aurelia **60 days** and *prior approval*. Priya can't meet that by accepting. She has to ask Mailcrest to exclude Aurelia's traffic from Helpdesk Partners, or route Aurelia's candidate emails through a different provider.
@@ -222,9 +250,11 @@ Because P1 and P3 are **processor** activities, Hireloop doesn't decide. It **fo
 A candidate complains to the Dutch data protection authority (Autoriteit Persoonsgegevens) about AI screening. The authority invokes Art. 30(4) and asks for:
 1. Hireloop's record **as it stood on 1 March 2026**, and
 2. the current record,
-3. plus the DPIA for CV parsing.
+3. plus the DPIA support documentation Hireloop gave its clients for CV parsing.
 
-Priya runs `GET /report?view=all&asOf=2026-03-01` and `GET /report?view=all`. The diff shows that P3 and the Scribe AI engagement were added on 2026-04-14, with `dpiaRequired: true` and a DPIA reference dated 2026-04-02. The audit-log service shows who changed each record and when.
+(Processors must keep records too, so the authority can rightly ask Hireloop for its record. The DPIAs themselves belong to Northwind and the other clients, and the authority would request those from them.)
+
+Priya runs `GET /report?view=all&asOf=2026-03-01` and `GET /report?view=all`. The diff shows that P3 and the Scribe AI engagement were added on 2026-04-14, with a DPIA support pack (`dpiaSupportRef`) dated 2026-04-02, two weeks before launch. The audit-log service shows who changed each record and when.
 
 > **Checks decision #5:** without versioned records, `asOf` is impossible and Priya would be back to reconstructing history from memory, which is the same failure as the spreadsheet.
 
@@ -265,8 +295,8 @@ Each box now answers *what runs here*, *whose data*, *which activity*, and *wher
 | Scene | Decision tested | Endpoints exercised |
 |---|---|---|
 | Ch2 controller records | #1 role discriminator; retention per data category | `POST /activities`, taxonomy |
-| Ch3 processor records | #2 offering + client override; #3 Party/Engagement | `POST /service-offerings`, exclusions |
-| Ch4 questionnaire | #3; per-client views | `GET /report?client=`, `GET /subprocessors?client=` |
+| Ch3 processor records | #2 offering; Agreement entity | `POST /service-offerings`, `POST /agreements` |
+| Ch4 questionnaire + signing | #2 client override; #3 Party/Engagement; prospects out of scope | `GET /subprocessors?offering=` (pre-contract), exclusions, `GET /subprocessors?client=` (post-contract) |
 | Ch5 new AI vendor | #4 boundaries; #6 Snapshot linkage | `GET /coverage`, `POST /review-items` |
 | Ch6 vendor list change | #4; chain effect | `GET /parties/{id}/impact` |
 | Ch7 DSARs | taxonomy IDs; role → act vs forward | `GET /data-map` |
@@ -277,13 +307,15 @@ Each box now answers *what runs here*, *whose data*, *which activity*, and *wher
 
 1. **Add an `Agreement` entity** (DPA between us and a client, or between us and a vendor): authorization type (general/specific), notice days, location restrictions. Chapters 3, 5 and 6 all depend on it.
 2. **Engagements need client-scoped exclusions** (`excludedFor`): Glitchlog and Scribe for Aurelia.
-3. **`/subprocessors` and `/report` take a `client` parameter.** These are per-client views, not one global list.
+3. **`/subprocessors` and `/report` take `offering=` and `client=`.** The offering view shows the standard terms (pre-contract, and the public subprocessor page). The client view shows a signed client's actual terms.
 4. **Recipients ≠ subprocessors.** Ledgerpay (an independent controller) belongs in the record but not on the list, which confirms the need for a role on the Engagement.
 5. **The chain effect:** an inbound vendor change on a processor-role engagement must create outbound obligations. `impact` should return role plus affected clients and their agreement terms.
 6. **Deadline conflicts** between a vendor's notice period and our commitments to clients are a real, computable risk. The review item should surface both dates.
 7. **The controller/processor grey zone** (C4) is real. The record needs a free-text `roleRationale`.
-8. **DPIA fields** (`dpiaRequired`, `dpiaRef`) belong on the activity.
+8. **DPIA fields depend on role.** Controller activities carry `dpiaRequired` and `dpiaRef` (Hireloop's own DPIA). Processor activities carry `dpiaSupportRef` (the pack Hireloop gives clients for *their* DPIAs, per Art. 28(3)(f)).
 9. **Versioning is not optional** if the regulator scene matters (decision #5 → yes).
+10. **Prospects are not in RoPA.** The record covers processing that actually happens. A prospect's contacts are leads (C3), and its terms arrive when the agreement is signed.
+11. **Coverage is two-directional.** A system with no activity is a gap. An activity with no Render system (C1 in Peoplehub) is legitimate.
 
 ---
 
@@ -297,16 +329,16 @@ Each box now answers *what runs here*, *whose data*, *which activity*, and *wher
 
 | ID | Name | Role | Subjects | Data | Parties |
 |---|---|---|---|---|---|
-| C1 | Employee administration | controller | employees | identity, payroll, health⚠ | Peoplehub (processor) |
+| C1 | Hireloop staff administration | controller | Hireloop employees | identity, payroll, health⚠ | Peoplehub (processor) |
 | C2 | Customer accounts & billing | controller | client users | identity, account, billing | Render, Mailcrest (processors); Ledgerpay (recipient) |
-| C3 | Sales & marketing | controller | leads | identity, marketing | Render, Mailcrest (processors) |
+| C3 | Hireloop sales & marketing (prospective customers) | controller | leads | identity, marketing | Render, Mailcrest (processors) |
 | C4 | Service reliability monitoring | controller | client users, candidates (incidental) | telemetry, identity | Render, Glitchlog (processors) |
 | P1 | Candidate application management | processor | candidates | identity, cv, assessment | Render, Mailcrest, Glitchlog* (subprocessors) |
-| P2 | Diversity & accommodations module | processor | candidates | diversity⚠, health⚠ | Render (subprocessor); Aurelia only |
+| P2 | Diversity & accommodations module (from 2026-03-16) | processor | candidates | diversity⚠, health⚠ | Render (subprocessor); Aurelia only |
 | P3 | CV parsing (from 2026-04-14) | processor | candidates | cv, identity | Render, Scribe AI* (subprocessors) |
 
 \* excluded for Aurelia
 
 **Agreements:** `agr-standard-dpa-v3` (general, 30d), `agr-aurelia-dpa` (specific, 60d, EU-only), plus vendor DPAs for Render, Mailcrest, Glitchlog, Scribe AI, Peoplehub.
 
-**Timeline (for versioning):** 2026-02-10 record created → 2026-04-14 P3 + Scribe added → 2026-06-03 Mailcrest change detected → 2026-07-03 Helpdesk Partners effective → 2026-09 regulator request.
+**Timeline (for versioning):** 2026-01 Aurelia questionnaire → 2026-02-10 record created → 2026-03-16 Aurelia signs (client, agreement, Glitchlog exclusion, P2) → 2026-04-14 P3 + Scribe added → 2026-06-03 Mailcrest change detected → 2026-07-03 Helpdesk Partners effective → 2026-09 regulator request.
