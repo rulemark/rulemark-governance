@@ -1,4 +1,4 @@
-# RoPA Data Model (v0.7)
+# RoPA Data Model (v0.8)
 
 > Entities, relationships and rules for the RoPA service's Postgres store. It builds on `ropa-design.md` (strawman) and is checked against `ropa-story.md` (Hireloop). It replaces §6 of the strawman, and it is the input for the API shapes.
 
@@ -9,7 +9,7 @@ These settle strawman decisions 1–5, based on what the story showed. **Confirm
 | # | Decision | Answer | Story evidence |
 |---|---|---|---|
 | 1 | Role modeling | One `processing_activity` table with a `role` field; required fields vary by role (§5) | Ch2, Ch3 |
-| 2 | Processor granularity | Processor activities belong to an **offering**. Clients are covered through their **agreement** for that offering. Optional modules use **opt-ins**. Per-client differences use **client-scoped engagements** (include or exclude clients) | Ch3, Ch4 |
+| 2 | Processor granularity | Processor activities belong to an **offering**. Clients are covered through their **agreement** for that offering. Each processor activity has a **default coverage** (`all_enrolled` or `opt_in`) with per-client exceptions (opt-outs and opt-ins). Per-client vendor differences use **client-scoped engagements** (include or exclude clients) | Ch3, Ch4 |
 | 3 | Party model | One `party` table (`self` / `client` / `vendor` / `other`) plus a role-bearing `engagement` link from activity to party | Ch2 (Ledgerpay as recipient), Ch4 |
 | 4 | Ownership | RoPA owns parties, agreements, activities and review items. The Monitor owns vendor-list snapshots and outbound client notices. The Snapshot owns systems (RoPA keeps a reference) | Ch5, Ch6 |
 | 5 | Versioning | Yes: an append-only `revision` table holding a full snapshot of each aggregate (§6) | Ch8 |
@@ -26,7 +26,7 @@ erDiagram
     ENGAGEMENT ||--o{ TRANSFER : "transfers via"
     ENGAGEMENT ||--o{ ENGAGEMENT_CLIENT_SCOPE : "scoped to clients"
     PROCESSING_ACTIVITY ||--o{ RETENTION_RULE : "retains per"
-    PROCESSING_ACTIVITY ||--o{ ACTIVITY_OPT_IN : "enabled by"
+    PROCESSING_ACTIVITY ||--o{ ACTIVITY_CLIENT_SCOPE : "scoped to clients"
     AGREEMENT_TERMS ||--o{ AGREEMENT : "governs"
     PARTY ||--o{ AGREEMENT : "signs"
     OFFERING ||--o{ AGREEMENT : "client enrolled in"
@@ -43,7 +43,7 @@ erDiagram
 Groups:
 - **Record core:** `processing_activity`, `engagement`, `transfer`, `retention_rule`
 - **Who:** `party`, `agreement_terms`, `agreement`, `offering`
-- **Client scoping:** `activity_opt_in`, `engagement_client_scope`
+- **Client scoping:** `activity_client_scope`, `engagement_client_scope`
 - **Where:** `system`
 - **Shared vocabulary:** `subject_category`, `data_category`, `security_measure`
 - **Workflow and history:** `review_item`, `revision`, `event_outbox`
@@ -70,7 +70,7 @@ Each record can have up to three identifiers, each with a different job:
 | `slug` | `mailcrest`, `health` | People and machines: URLs, seed files, config | Rarely as a label | Rarely; avoid after publishing | `party`, `agreement_terms`, `offering`, `system`, taxonomies |
 | `name` | "CV parsing" | People: the main label | Yes | Freely (e.g. the C1 rename kept `C1`) | `processing_activity` and every table with a `slug` |
 
-Rows that only exist inside another record (`engagement`, `transfer`, `retention_rule`, `agreement`, opt-ins, client scopes, revisions) have only an `id`. They're identified by the record they belong to.
+Rows that only exist inside another record (`engagement`, `transfer`, `retention_rule`, `agreement`, client scopes, revisions) have only an `id`. They're identified by the record they belong to.
 
 **Code rules**
 - **Assigned by the system, never typed by hand.** Activities get a sequence per role prefix: `C1…Cn` for controller, `P1…Pn` for processor, `J1…Jn` for joint controller (deferred). Review items get `RI-1…RI-n`.
@@ -101,7 +101,7 @@ Rows that only exist inside another record (`engagement`, `transfer`, `retention
 | status | enum `draft` \| `active` \| `retired` | yes | Default `draft`. Only `active` appears in reports |
 | owner | text | yes | Business contact accountable for the activity |
 | offering_id | FK → offering | by role | Processor only |
-| client_coverage | enum `all_enrolled` \| `opt_in` | by role | Processor only. P1 = `all_enrolled`, P2 = `opt_in` |
+| client_coverage | enum `all_enrolled` \| `opt_in` | by role | Processor only. The **default** for which clients the activity applies to; per-client exceptions live in `activity_client_scope` (§3.8). P1 = `all_enrolled`; P2 = `opt_in` (Aurelia opted in); P3 = `all_enrolled` with Aurelia opted out |
 | purposes | text[] | by role | Controller only (Art. 30(1)(b)) |
 | lawful_bases | enum[] `6(1)(a)`…`6(1)(f)` | by role | Controller only |
 | special_conditions | enum[] `9(2)(a)`…`9(2)(j)`, `art10` | if controller and any data category is special | Controller only |
@@ -115,11 +115,11 @@ Rows that only exist inside another record (`engagement`, `transfer`, `retention
 
 **Link tables**
 
-| Table | Left column | Right column |
-|---|---|---|
+| Table                       | Left column                       | Right column                           |
+| --------------------------- | --------------------------------- | -------------------------------------- |
 | `activity_subject_category` | activity_id → processing_activity | subject_category_id → subject_category |
-| `activity_data_category` | activity_id → processing_activity | data_category_id → data_category |
-| `activity_system` | activity_id → processing_activity | system_id → system |
+| `activity_data_category`    | activity_id → processing_activity | data_category_id → data_category       |
+| `activity_system`           | activity_id → processing_activity | system_id → system                     |
 | `activity_security_measure` | activity_id → processing_activity | security_measure_id → security_measure |
 
 ### 3.2 `engagement`: an activity involves a party in a given role
@@ -218,14 +218,30 @@ The set of clients covered by an offering = active outbound agreements for that 
 
 ### 3.8 Client scoping
 
-**`activity_opt_in`**: a client enabled an `opt_in` activity (Aurelia → P2).
+Client scoping works at two levels:
+- **Activity level:** does this processing happen for this client at all? (`client_coverage` + `activity_client_scope`)
+- **Engagement level:** within an activity that does apply, which vendors handle this client's data? (`engagement_client_scope`)
+
+**`activity_client_scope`**: per-client exceptions to the activity's `client_coverage` default.
 
 | Column | Type | Required | Notes |
 |---|---|---|---|
-| activity_id | FK → processing_activity | yes | Must have `client_coverage = opt_in` |
+| activity_id | FK → processing_activity | yes | A processor activity |
 | client_party_id | FK → party | yes | A party of kind `client` |
-| started_at | date | yes | When the client enabled it |
-| ended_at | date | no | When the client disabled it |
+| mode | enum `include` \| `exclude` | yes | Must match the default: `opt_in` activities take only `include` rows (**opt-ins**, e.g. Aurelia → P2); `all_enrolled` activities take only `exclude` rows (**opt-outs**, e.g. Aurelia → P3) |
+| reason | text | no | "Client enabled the module", "Client objected (Aurelia DPA, specific authorization)". Strongly recommended for opt-outs |
+| agreement_id | FK → agreement | no | The agreement that requires the scoping, if any |
+| started_at | date | yes | When the opt-in or opt-out took effect |
+| ended_at | date | no | When it ended (the client switched the module off, or withdrew its objection) |
+
+At most one active row per (activity, client).
+
+| `client_coverage` | Exception rows | Result |
+|---|---|---|
+| `all_enrolled` | none | Every enrolled client (P1) |
+| `all_enrolled` | `exclude` | Every enrolled client **except** the listed ones (P3: not Aurelia) |
+| `opt_in` | none | **No** client yet (a module nobody has enabled) |
+| `opt_in` | `include` | **Only** the listed clients (P2: Aurelia) |
 
 **`engagement_client_scope`**: limits which clients' data an engagement is used for (processor activities only).
 
@@ -233,16 +249,21 @@ The set of clients covered by an offering = active outbound agreements for that 
 |---|---|---|---|
 | engagement_id | FK → engagement | yes | |
 | client_party_id | FK → party | yes | A party of kind `client` |
-| mode | enum `include` \| `exclude` | yes | `exclude`: used for every client **except** this one (Glitchlog, Scribe and Mailcrest US region for Aurelia). `include`: used **only** for the listed clients (Mailcrest EU region for Aurelia) |
+| mode | enum `include` \| `exclude` | yes | `exclude`: used for every client **except** this one (Glitchlog and Mailcrest US region for Aurelia). `include`: used **only** for the listed clients (Mailcrest EU region for Aurelia) |
 | reason | text | yes | "EU-only processing (Aurelia DPA §7)", "Client objected", "EU data region" |
 | agreement_id | FK → agreement | no | The agreement that requires the scoping, if any |
 
 All scope rows on one engagement must use the same `mode`. An engagement with no scope rows applies to every client the activity covers.
 
-**Effective engagements for a client.** Views use this definition throughout (§7). Engagement *E* on processor activity *A* applies to client *X* when all of these hold:
-1. *X* holds an active outbound agreement for *A*'s offering;
-2. *A* covers *X*: `client_coverage = all_enrolled`, or *X* has an active opt-in;
-3. *E* has no scope rows, **or** its rows are `include` and list *X*, **or** its rows are `exclude` and don't list *X*.
+**Covered clients and effective engagements.** Views use these definitions throughout (§7).
+
+Processor activity *A* **covers** client *X* when:
+1. *X* holds an active outbound agreement for *A*'s offering; and
+2. either `client_coverage = all_enrolled` and *X* has no active `exclude` row, **or** `client_coverage = opt_in` and *X* has an active `include` row.
+
+Engagement *E* on *A* is **effective** for *X* when *A* covers *X* and *E* has no scope rows, **or** its rows are `include` and list *X*, **or** its rows are `exclude` and don't list *X*.
+
+Rule of thumb: if a client doesn't get the processing at all, scope the **activity** (P3 for Aurelia). If the client gets the processing but through a different vendor or region, scope the **engagement** (Mailcrest for Aurelia).
 
 ### 3.9 `system`
 
@@ -339,7 +360,7 @@ Events are written here **in the same transaction** as the revision they describ
 
 | Aggregate | Root | Includes | API implication |
 |---|---|---|---|
-| **Activity** | processing_activity | category/system/measure links, retention rules, opt-ins, engagements (+ data categories, transfers, client scopes) | One document per activity. `PUT /activities/{id}` replaces the whole thing. The engagement sub-resource (API §3.5) is a convenience that still versions the whole activity |
+| **Activity** | processing_activity | category/system/measure links, retention rules, client scope, engagements (+ data categories, transfers, client scopes) | One document per activity. `PUT /activities/{id}` replaces the whole thing. The engagement sub-resource (API §3.5) is a convenience that still versions the whole activity |
 | Party | party | — | `/parties` |
 | Agreement terms | agreement_terms | — | `/agreement-terms` |
 | Agreement | agreement | — | `/agreements` |
@@ -361,7 +382,7 @@ Events are written here **in the same transaction** as the revision they describ
 | processing_categories | forbidden | required |
 | dpia_required / dpia_ref | allowed | forbidden |
 | dpia_support_ref | forbidden | allowed |
-| opt-ins | forbidden | only if `client_coverage = opt_in` |
+| activity client scope | forbidden | `include` rows if `opt_in`; `exclude` rows if `all_enrolled` |
 
 **Engagement roles allowed**
 
@@ -372,7 +393,8 @@ Events are written here **in the same transaction** as the revision they describ
 
 **Cross-entity rules**
 - Engagement data categories ⊆ activity data categories.
-- A client scope's client must hold an active outbound agreement for the activity's offering.
+- A client scope's client (activity or engagement level) must hold an active outbound agreement for the activity's offering.
+- An activity client scope's `mode` must match `client_coverage` (§3.8).
 - Client scope rows are only allowed on engagements of processor activities, and all rows on one engagement share one `mode`.
 - Any `processing_countries` entry outside the EEA needs a matching `transfer` row. Missing ones are reported by `/coverage` (as `transfer_missing`) rather than blocked, so drafts can be saved.
 - Exactly one party of kind `self`.
@@ -393,7 +415,7 @@ Events are written here **in the same transaction** as the revision they describ
 
 | View | Derivation | Story |
 |---|---|---|
-| **Subprocessors (offering)** | Active processor activities in the offering with `all_enrolled` coverage → `subprocessor` engagements **without `include` scope** (client-specific engagements aren't part of the standard terms) → party, service, countries, mechanism. Opt-in modules listed separately | Ch4 (pre-contract) |
+| **Subprocessors (offering)** | Active processor activities in the offering with `all_enrolled` coverage (per-client opt-outs ignored: they're exceptions to the standard terms) → `subprocessor` engagements **without `include` scope** (client-specific engagements aren't part of the standard terms) → party, service, countries, mechanism. Opt-in modules listed separately | Ch4 (pre-contract) |
 | **Subprocessors (client)** | The client's **effective engagements** (§3.8) with role `subprocessor`, grouped by party. Aurelia sees Mailcrest in `IE`; Northwind sees Mailcrest in `US` | Ch4 (post-contract) |
 | **Report** | Controller view: `self` party + controller activities with all Art. 30(1) fields. Processor view: offering/client scoping + Art. 30(2) fields. `asOf` via revisions | Ch4, Ch8 |
 | **Impact (party)** | The party's engagements → activities (role, data categories, special flag, countries). For processor activities: affected clients = clients for whom the engagement is effective (§3.8), grouped by agreement terms (authorization type, notice days). Plus the vendor's inbound terms. Flags **notice conflict** when vendor notice < client notice | Ch6 |
@@ -415,8 +437,8 @@ Events are written here **in the same transaction** as the revision they describ
 |---|---|
 | Ch2 controller records | processing_activity (controller), engagement (processor, recipient), retention_rule, data_category.special |
 | Ch3 processor records | offering, agreement_terms (standard), agreement ×N, processing_activity (processor) |
-| Ch4 signing Aurelia | agreement_terms (bespoke, `allowed_regions`) + agreement, engagement_client_scope (exclude: Glitchlog, Mailcrest US; include: Mailcrest EU), activity_opt_in (P2) |
-| Ch5 AI parsing | system (cv-parser) → review_item (snapshot), new activity + engagement + transfer, dpia_support_ref, engagement_client_scope (exclude Scribe) |
+| Ch4 signing Aurelia | agreement_terms (bespoke, `allowed_regions`) + agreement, engagement_client_scope (exclude: Glitchlog, Mailcrest US; include: Mailcrest EU), activity_client_scope (P2 include Aurelia) |
+| Ch5 AI parsing | system (cv-parser) → review_item (snapshot), new activity + engagement + transfer, dpia_support_ref, activity_client_scope (P3 exclude Aurelia) |
 | Ch6 vendor change | review_item (monitor) with deadlines, transfer with `onward_via`, coverage `region_violation` (Aurelia) |
 | Ch7 DSARs | data map over taxonomies, retention_rule.legal_ref |
 | Ch8 regulator | revision (`asOf`), started_at |

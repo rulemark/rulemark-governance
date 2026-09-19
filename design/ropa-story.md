@@ -212,7 +212,7 @@ But a DPIA is the *controller's* duty, and for P3 the controllers are Hireloop's
 - For the **Standard DPA** clients (general authorization), the monitor publishes the updated list and sends notices: *"Scribe AI will be added on 2026-05-15; you may object until then."*
 - For **Aurelia** (specific authorization), a notice isn't enough. Hireloop needs Aurelia's written approval, 60 days ahead.
 
-Marc objects. Result: P3's Scribe engagement is scoped to exclude Aurelia (`clientScope: {exclude: [aurelia]}`), and CV parsing stays off for Aurelia's tenant.
+Marc objects. CV parsing is switched off for Aurelia's tenant altogether, so Priya excludes Aurelia from **P3 as a whole** (`clientScope: {exclude: [aurelia]}` on the activity), not just from the Scribe engagement. P3 stays on for every other client, but Aurelia's processor report no longer lists it, and a data-map request for Aurelia's candidates doesn't point to `cv-parser`, where their CVs never go.
 
 > **Operations:** Snapshot → `/coverage` → `POST /review-items`; `POST /activities` (P3); `GET /subprocessors` changes → monitor diffs our own list → notifications per agreement terms.
 > **Checks decision:** #4 (who owns what). The monitor needs to read **agreements** to know who gets a notice vs. who must approve.
@@ -331,7 +331,7 @@ Each box now answers *what runs here*, *whose data*, *which activity*, and *wher
 ## What the story revealed (changes to the strawman)
 
 1. **Add an `Agreement` entity** (DPA between us and a client, or between us and a vendor): authorization type (general/specific), notice days, location restrictions. Chapters 3, 5 and 6 all depend on it.
-2. **Engagements need a client scope that can include or exclude clients.** Exclude: Glitchlog and Scribe for Aurelia. Include: Mailcrest's EU region *only* for Aurelia. One activity can therefore have several engagements with the same vendor, e.g. one per region.
+2. **Client scoping is needed at two levels.** *Activities:* P2 is opt-in (only Aurelia) and P3 is on for everyone except Aurelia (an opt-out). *Engagements:* exclude Glitchlog for Aurelia. Include: Mailcrest's EU region *only* for Aurelia. One activity can therefore have several engagements with the same vendor, e.g. one per region.
 3. **`/subprocessors` and `/report` take `offering=` and `client=`.** The offering view shows the standard terms (pre-contract, and the public subprocessor page). The client view shows a signed client's actual terms.
 4. **Recipients ≠ subprocessors.** Ledgerpay (an independent controller) belongs in the record but not on the list, which confirms the need for a role on the Engagement.
 5. **The chain effect:** an inbound vendor change on a processor-role engagement must create outbound obligations. `impact` should return role plus affected clients and their agreement terms.
@@ -361,7 +361,7 @@ Each box now answers *what runs here*, *whose data*, *which activity*, and *wher
 | C4 | Service reliability monitoring | controller | client users, candidates (incidental) | telemetry, identity | Render, Glitchlog (processors) |
 | P1 | Candidate application management | processor | candidates | identity, cv, assessment | Render, Mailcrest US region*, Mailcrest EU region (Aurelia only), Glitchlog* (subprocessors) |
 | P2 | Diversity & accommodations module (from 2026-03-16) | processor | candidates | diversity⚠, health⚠ | Render (subprocessor); Aurelia only |
-| P3 | CV parsing (from 2026-04-14) | processor | candidates | cv, identity | Render, Scribe AI* (subprocessors) |
+| P3 | CV parsing (from 2026-04-14) | processor | candidates | cv, identity | Render, Scribe AI (subprocessors); all clients except Aurelia |
 
 \* excluded for Aurelia
 

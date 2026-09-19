@@ -1,4 +1,4 @@
-# RoPA API Design (v0.4)
+# RoPA API Design (v0.5)
 
 > The HTTP API of the RoPA service. It is built on `ropa-data-model.md` (referred to as **DM §n**) and checked against `ropa-story.md` (Hireloop). The OpenAPI document is generated from Zod schemas (Zod-first), so this document describes intent and shapes, not the final schema text.
 
@@ -41,7 +41,7 @@ Activities, parties, agreement terms, agreements, offerings, systems and taxonom
 
 - **Every successful create or update writes a revision** (a full JSON snapshot) in the same transaction and emits a `record.changed` event (§6).
 - **Updates replace the whole aggregate** (`PUT`). There's no `PATCH` in v1: a full document keeps each revision a clean snapshot. The one exception is the engagement sub-resource on activities (§3.5), a convenience that still saves and versions the whole activity.
-- **Nested rows keep their identity.** In a `PUT`, a nested row (engagement, transfer, retention rule, opt-in, client scope entry) sent **with** its `id` is updated. One sent **without** an `id` is created. An existing one that's **left out** is deleted.
+- **Nested rows keep their identity.** In a `PUT`, a nested row (engagement, transfer, retention rule, client scope entry at activity or engagement level) sent **with** its `id` is updated. One sent **without** an `id` is created. An existing one that's **left out** is deleted.
 - **Optimistic concurrency.** See §1.8.
 
 ### 1.5 Validation levels
@@ -164,7 +164,7 @@ In Zod, the activity is a **discriminated union on `role`** (DM §5), which beco
 | Identity & lifecycle | `id`, `code`, `name`, `description`, `role`, `roleRationale`, `status`, `owner`, `supersedes`, `startedAt`, `endedAt`, `reviewDueAt`, `version`, `createdAt`, `updatedAt` | all |
 | Scope | `subjectCategories`, `dataCategories`, `systems`, `securityMeasures` | all |
 | Controller (Art. 30(1)) | `purposes`, `lawfulBases`, `specialConditions`, `retentionRules`, `dpiaRequired`, `dpiaRef` | controller |
-| Processor (Art. 30(2)) | `offering`, `clientCoverage`, `processingCategories`, `optIns`, `dpiaSupportRef` | processor |
+| Processor (Art. 30(2)) | `offering`, `clientCoverage`, `processingCategories`, `clientScope`, `dpiaSupportRef` | processor |
 | Third parties | `engagements[]`, each with `transfers[]` and (processor only) `clientScope`. Several engagements may name the same party, e.g. one per region (DM §3.2) | all |
 
 ### 3.2 Example: create a processor activity (P1, Ch3)
@@ -210,6 +210,20 @@ Response: `201 Created`, `Location: /v1/activities/P1`, `ETag: "1"`, and the ful
   "clients": [{ "client": "aurelia", "reason": "EU-only processing (Aurelia DPA)", "agreement": "9c41…" }]
 }
 ```
+
+The **activity** has a `clientScope` of the same shape (DM §3.8). Its `mode` must match `clientCoverage`: `include` for an `opt_in` activity (opt-ins), `exclude` for an `all_enrolled` one (opt-outs). Activity-level entries also carry `startedAt` and optionally `endedAt`:
+
+```jsonc
+// P2 (clientCoverage: opt_in): Aurelia opted in
+"clientScope": { "mode": "include",
+                 "clients": [{ "client": "aurelia", "reason": "Client enabled the module", "startedAt": "2026-03-16" }] }
+
+// P3 (clientCoverage: all_enrolled): Aurelia opted out
+"clientScope": { "mode": "exclude",
+                 "clients": [{ "client": "aurelia", "reason": "Client objected (Aurelia DPA, specific authorization)", "startedAt": "2026-04-14" }] }
+```
+
+Use the activity scope when a client doesn't get the processing at all, and the engagement scope when the client gets it through a different vendor or region.
 
 In Ch4, after Aurelia signs, Priya `PUT`s P1 keeping every nested `id`, with three changes:
 - the Mailcrest engagement is renamed "Candidate notifications (US region)" and gets `clientScope` `exclude: aurelia`;
@@ -301,7 +315,7 @@ All follow §1.4 (full `PUT`, `If-Match`, revisions). Notes that go beyond the d
 
 | Resource | Notes |
 |---|---|
-| Parties | `name` in responses mirrors `legalName`. `DELETE` → `409` while any engagement, agreement, system, opt-in or client scope references the party. The `self` party can't be deleted |
+| Parties | `name` in responses mirrors `legalName`. `DELETE` → `409` while any engagement, agreement, system or client scope references the party. The `self` party can't be deleted |
 | Agreement terms | `DELETE` → `409` while agreements or offerings use them |
 | Agreements | Identified by `id` only. Ending an agreement is a `PUT` with `endedAt`. `offering` is required for outbound terms. Creating Aurelia's agreement is the "signing" in Ch4 |
 | Offerings | `defaultTerms` must reference outbound terms |
@@ -340,7 +354,7 @@ CSV (one row per activity × engagement) stays in the last build step.
 
 Exactly one of `offering` or `client` is required. `asOf` is optional.
 
-Example: `GET /v1/subprocessors?client=aurelia&asOf=2026-05-01` (after Scribe AI was added and excluded for Aurelia):
+Example: `GET /v1/subprocessors?client=aurelia&asOf=2026-05-01` (after P3 CV parsing was added and switched off for Aurelia):
 
 ```json
 {
@@ -420,7 +434,7 @@ Example: `GET /v1/parties/mailcrest/impact` when Mailcrest announces Helpdesk Pa
 - `requiresApproval`: the client's terms need **specific** authorization (Art. 28(2)), so a notice isn't enough.
 - `noticeConflict`: the vendor's notice (30 days) is shorter than the notice owed to the client (60 days).
 - There is **one entry per engagement**, not per activity, so P1 appears twice: its US-region and EU-region Mailcrest engagements reach different clients.
-- Client groups contain only the clients for whom that engagement is **effective** (DM §3.8): scoped-out clients aren't counted, and opt-in activities only count clients who opted in.
+- Client groups contain only the clients for whom that engagement is **effective** (DM §3.8): opted-out and scoped-out clients aren't counted, and opt-in activities only count clients who opted in.
 - `allowedRegions` is included when the client's terms restrict regions, so the Monitor can see that an onward transfer to India (Helpdesk Partners) would break Aurelia's EU-only clause, even though Mailcrest stores Aurelia's data in Ireland.
 - Small groups (`clientCount` ≤ 10) list their clients by default.
 
@@ -429,7 +443,7 @@ Example: `GET /v1/parties/mailcrest/impact` when Mailcrest announces Helpdesk Pa
 | Parameter | Notes |
 |---|---|
 | `subjectCategory` | Required |
-| `client` | Optional. Scopes **processor** activities to that client's effective engagements (DM §3.8: coverage, opt-ins, client scope). Controller activities that concern the category are always included |
+| `client` | Optional. Scopes **processor** activities to that client's effective engagements (DM §3.8: coverage and client scopes). Controller activities that concern the category are always included |
 
 Example: `GET /v1/data-map?subjectCategory=candidates&client=northwind` (Lena's erasure request, Ch7):
 
@@ -505,8 +519,8 @@ RoPA **pushes** events to its consumers (Q3). Delivery is HTTP `POST` to configu
 | Ch2 controller records | `POST /taxonomy/*`, `POST /parties` (self, vendors), `POST /activities` (C1–C4, role controller), `POST /activities/{ref}/activate` |
 | Ch3 processor records | `POST /agreement-terms` (standard-dpa-v3), `POST /offerings` (ats), `POST /agreements` ×N, `POST /activities` (P1) |
 | Ch4 questionnaire | `GET /subprocessors?offering=ats`, `GET /report?view=processor&offering=ats` |
-| Ch4 signing | `POST /parties` (aurelia), `POST /agreement-terms` (aurelia-dpa), `POST /agreements`, `PUT /activities/P1` (Mailcrest EU-region engagement, client scopes), `POST /activities` (P2, opt-in), `GET /subprocessors?client=aurelia` |
-| Ch5 AI parsing | Snapshot finds `cv-parser` → `POST /systems` → `GET /coverage` → `POST /review-items` · `POST /activities` (P3) → `subprocessors.changed` → Monitor notifies clients · `PUT /activities/P3` (Scribe scoped to exclude Aurelia) |
+| Ch4 signing | `POST /parties` (aurelia), `POST /agreement-terms` (aurelia-dpa), `POST /agreements`, `PUT /activities/P1` (Mailcrest EU-region engagement, client scopes), `POST /activities` (P2, `opt_in` with Aurelia included), `GET /subprocessors?client=aurelia` |
+| Ch5 AI parsing | Snapshot finds `cv-parser` → `POST /systems` → `GET /coverage` → `POST /review-items` · `POST /activities` (P3) → `subprocessors.changed` → Monitor notifies clients · `PUT /activities/P3` (activity client scope: exclude Aurelia) |
 | Ch6 vendor change | Monitor → `GET /parties/mailcrest/impact` → `POST /review-items` ×3 (with deadlines) → later `PUT /activities/{C2,C3,P1}` or, once built, `PUT /activities/{ref}/engagements/{id}` (onward transfer) → `POST /review-items/{ref}/resolve` |
 | Ch7 DSARs | `GET /data-map?subjectCategory=candidates&client=northwind` · `GET /data-map?subjectCategory=employees` |
 | Ch8 regulator | `GET /report?asOf=2026-03-01`, `GET /report`, `GET /changes?from=2026-03-01` |
