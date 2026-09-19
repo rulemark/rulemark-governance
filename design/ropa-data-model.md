@@ -1,4 +1,4 @@
-# RoPA Data Model (v0.3, for review)
+# RoPA Data Model (v0.4)
 
 > Entities, relationships and rules for the RoPA service's Postgres store. It builds on `ropa-design.md` (strawman) and is checked against `ropa-story.md` (Hireloop). It replaces §6 of the strawman, and it is the input for the API shapes.
 
@@ -80,6 +80,12 @@ Rows that only exist inside another record (`engagement`, `transfer`, `retention
 - Lowercase, hyphenated, unique **within its table** (no type prefix: `health`, not `dc-health`).
 - Derived from the name at creation. Changing one after it has been shared breaks URLs and seeds, so avoid it.
 - The story's prefixed identifiers (`act-c2`, `off-ats`, `sc-candidates`, `dc-identity`) are illustrative. In this model they are code `C2`, slug `ats`, slug `candidates` and slug `identity`.
+- A slug may never have the UUID format, so the API can always tell which kind of identifier it received.
+
+**Identifiers in the API** (Q6)
+- **URLs accept any identifier:** `/activities/P3` and `/activities/3f9c…` return the same record, as do `/parties/mailcrest` and `/parties/{uuid}`.
+- **Request bodies may reference records by either**, e.g. `"party": "mailcrest"` or `"party": "3f9c…"`.
+- **Responses always return all of them.** Each record includes `id`, its `code` or `slug`, and `name`. References to other records are returned as small objects, e.g. `"party": {"id": "3f9c…", "slug": "mailcrest", "name": "Mailcrest Inc."}`.
 
 ### 3.1 `processing_activity`: the heart of the record
 
@@ -330,7 +336,7 @@ Append-only: rows are never updated, so there is no `updated_at`.
 
 | Activity role | Allowed engagement roles |
 |---|---|
-| controller | `processor`, `recipient`, `joint_controller` |
+| controller | `processor`, `recipient` (`joint_controller` deferred) |
 | processor | `subprocessor` |
 
 **Cross-entity rules**
@@ -340,6 +346,8 @@ Append-only: rows are never updated, so there is no `updated_at`.
 - Exactly one party of kind `self`.
 - `role` cannot be changed on a saved activity. Changing role = retire the activity and create a new one with `supersedes_id` (§3.0).
 - `supersedes_id` must point to a `retired` activity.
+- `joint_controller` (as an activity role or an engagement role) is rejected as "not yet supported" until its rules are defined (§11, F3).
+- An `external_saas` system used by an activity should have a matching engagement with its hosting party on that activity (Peoplehub HR → Peoplehub as processor on C1). Mismatches are reported by `/coverage`, not blocked.
 - In Zod these become a discriminated union on `role`, which becomes `oneOf` in OpenAPI.
 
 ## 6. Versioning approach
@@ -358,7 +366,7 @@ Append-only: rows are never updated, so there is no `updated_at`.
 | **Report** | Controller view: `self` party + controller activities with all Art. 30(1) fields. Processor view: offering/client scoping + Art. 30(2) fields. `asOf` via revisions | Ch4, Ch8 |
 | **Impact (party)** | The party's engagements → activities (role, data categories, special flag, countries). For processor activities: affected clients = enrolled clients − exclusions (+ opt-ins), each with its terms (authorization type, notice days). Plus the vendor's inbound terms. Flags **notice conflict** when vendor notice < client notice | Ch6 |
 | **Data map** | Subject category (+ optional client) → activities → systems + engagements (data categories ∩), retention rules, and `action: act \| forward` from the activity role | Ch7 |
-| **Coverage** | Render systems with no activity; non-EEA countries with no transfer; review dates passed. Activities with no Render system are **not** flagged | Ch5 |
+| **Coverage** | Render systems with no activity; non-EEA countries with no transfer; `external_saas` systems on an activity with no matching engagement with their hosting party, and vice versa (an engagement with a party that hosts an `external_saas` system the activity doesn't list); review dates passed. Activities with no Render system are **not** flagged | Ch5 |
 
 ## 8. Cross-service references
 
@@ -382,11 +390,21 @@ Append-only: rows are never updated, so there is no `updated_at`.
 | Ch8 regulator | revision (`asOf`), started_at |
 | Ch9 architecture doc | system.render_resource_id + activity_system |
 
-## 10. Open questions
+## 10. Resolved questions (2026-09-19)
 
-1. **Revisions:** full JSON snapshots per aggregate (proposed), or something finer-grained?
-2. **Onward transfers:** keep sub-subprocessors (Helpdesk Partners) as `transfer.onward_via` text (proposed), or make them parties? The Monitor has the full vendor lists either way.
-3. **External SaaS as systems:** should Peoplehub HR be a `system` (kind `external_saas`) as well as a vendor engagement? It makes the data map uniform, but it duplicates the vendor.
-4. **Party with multiple roles:** single `kind` (proposed for the demo), or a set of roles?
-5. **Joint controllers:** keep in the enum but leave out of the story and validation for now?
-6. **IDs in the API:** which identifiers (§3.0) appear in URLs and response bodies: `id` only, `code`/`slug` only, or both (e.g. accept either in URLs, always return all)?
+| # | Question | Decision | Where it shows up |
+|---|---|---|---|
+| Q1 | Revisions | **Full JSON snapshot per aggregate** on every save | §3.12, §6 |
+| Q2 | Onward transfers | **Keep `transfer.onward_via` as text** for now | §3.3; future: F1 |
+| Q3 | External SaaS as systems | **Yes.** Tools like Peoplehub HR are `system` rows (kind `external_saas`) as well as vendor engagements. The duplication is accepted and checked for consistency | §3.9, §5, §7 (coverage) |
+| Q4 | Party with multiple roles | **Single `kind`** for now | §3.5; future: F2 |
+| Q5 | Joint controllers | **Keep in the enums, leave out of the story and validation.** The API rejects `joint_controller` (activity role or engagement role) as "not yet supported" until rules are defined | §3.1, §3.2, §5; future: F3 |
+| Q6 | Identifiers in the API | **Support both; always return all.** URLs accept `id` or `code`/`slug`. Request bodies may reference by either. Responses always include `id`, `code`/`slug` and `name` | §3.0 |
+
+## 11. Future improvements
+
+| # | Improvement | Why it's deferred | What changes |
+|---|---|---|---|
+| F1 | **Onward transfers → parties.** Model sub-subprocessors (e.g. Helpdesk Partners) as `party` rows linked to the vendor, instead of `transfer.onward_via` text | Text is enough for the demo. The Monitor holds the vendor's full list anyway | New party kind or relation (vendor → its subprocessors). `transfer.onward_via` becomes an FK. Impact and data-map views can follow the full chain |
+| F2 | **Party roles as a set.** Replace `party.kind` with a set of roles (`client`, `vendor`, …), so one company can be both a client and a vendor | Rare in the story; a single `kind` keeps validation simple | `party.kind` → `party_role` link table or `roles enum[]`. Rules that check "a party of kind X" check "has role X" instead |
+| F3 | **Joint controllers (Art. 26).** Define validation rules for `joint_controller` activities (J-codes) and engagements: the arrangement between the controllers, each one's responsibilities, the contact point for data subjects | Not needed for the Hireloop story | Role rules in §5, new fields (arrangement reference, responsibility split), a story chapter to test it |
