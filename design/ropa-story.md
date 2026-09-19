@@ -31,7 +31,7 @@
 | Vendor | Country | Does what | Role |
 |---|---|---|---|
 | Render | US (hosting in Frankfurt) | Hosting, Postgres, Key Value | Processor (for Hireloop's own data), **subprocessor** (for client data) |
-| Mailcrest Inc. | US | Transactional + marketing email | Processor / subprocessor |
+| Mailcrest Inc. | US (plus an EU data region in Ireland) | Transactional + marketing email | Processor / subprocessor |
 | Glitchlog Ltd | US | Error tracking | Processor / subprocessor |
 | Peoplehub GmbH | DE | HR system | Processor (employee data only) |
 | Ledgerpay Ltd | IE | Payments | **Independent controller** (recipient, *not* a subprocessor) |
@@ -155,20 +155,40 @@ So Ines answers Question 37 with the **standard offering** view, which is what a
 This offering view is the same list Hireloop publishes on its website's subprocessor page. It's also exactly what *other* companies' subprocessor monitors would watch, just as Hireloop's monitor watches Mailcrest's page (Chapter 6).
 
 **The negotiation.** Marc reads the list and pushes back:
-- Glitchlog is in the US. The bank requires **EU-only processing** of candidate data.
+- The bank requires **EU-only processing** of candidate data. Two subprocessors process in the US: Glitchlog (error tracking) and Mailcrest (candidate emails).
 - Aurelia wants **specific** (prior written) authorization for any new subprocessor, not just a notice, and **60 days** to respond.
 - Aurelia wants the optional **Diversity & Accommodations module**, which collects ethnicity and disability-accommodation requests.
 
-Tomás confirms that error reporting can be suppressed per tenant. Legal drafts a bespoke DPA. **Aurelia signs on 2026-03-16.**
+Tomás looks at both:
+- **Glitchlog** has no EU option, but error reporting can be suppressed for Aurelia's tenant.
+- **Mailcrest** offers an **EU data region** (Ireland). Tomás configures Aurelia's tenant to send candidate emails through it. Every other client stays on Mailcrest's US region.
+
+Legal drafts a bespoke DPA. **Aurelia signs on 2026-03-16.**
 
 **After signing**, Priya records what is now real:
 - Aurelia as a client party, with agreement `agr-aurelia-dpa` (specific authorization, 60 days, EU-only).
-- An **exclusion** on P1's Glitchlog engagement: `excludedFor: [aurelia]`.
+- **Client scoping on P1's engagements.** The same vendor can now appear twice on one activity, once per region, each scoped to different clients:
+
+```yaml
+engagements:
+  - party: mailcrest  role: subprocessor  service: "Candidate notifications (US region)"
+    countries: [US]   transfer: {to: US, mechanism: DPF}
+    clientScope: {exclude: [aurelia]}          # everyone except Aurelia
+  - party: mailcrest  role: subprocessor  service: "Candidate notifications (EU region)"
+    countries: [IE]                            # no third-country transfer
+    clientScope: {include: [aurelia]}          # only Aurelia
+  - party: glitchlog  role: subprocessor  service: "Error tracking"
+    countries: [US]   transfer: {to: US, mechanism: SCCs}
+    clientScope: {exclude: [aurelia]}
+```
 - **P2 Diversity & accommodations module:** special-category data processed *only* for clients who enable it. The Art. 9 condition is Aurelia's to establish, because Aurelia is the controller. Hireloop's record just notes that special categories are processed.
 
 Now the per-client views make sense:
-- `GET /subprocessors?client=aurelia`: Render and Mailcrest. **No Glitchlog.**
-- `GET /subprocessors?client=northwind`: Render, Mailcrest **and** Glitchlog (standard terms).
+- `GET /subprocessors?client=aurelia`: Render (Germany) and Mailcrest (**Ireland**, EU region). **No Glitchlog**, and no US transfer.
+- `GET /subprocessors?client=northwind`: Render, Mailcrest (US, DPF) **and** Glitchlog (standard terms).
+- `GET /subprocessors?offering=ats` is unchanged. The EU-region engagement exists only for Aurelia, so it isn't part of the standard terms.
+
+Aurelia's agreement also lists its allowed region (`EEA`). From now on, `/coverage` checks that every engagement used for Aurelia's data processes it, and transfers it, only inside that region.
 
 The subprocessor list is a **view derived from the record**, not a static page. The offering view shows the standard terms before a contract. The client view shows a signed client's actual terms.
 
@@ -192,7 +212,7 @@ But a DPIA is the *controller's* duty, and for P3 the controllers are Hireloop's
 - For the **Standard DPA** clients (general authorization), the monitor publishes the updated list and sends notices: *"Scribe AI will be added on 2026-05-15; you may object until then."*
 - For **Aurelia** (specific authorization), a notice isn't enough. Hireloop needs Aurelia's written approval, 60 days ahead.
 
-Marc objects. Result: P3's Scribe engagement gets `excludedFor: [aurelia]`, and CV parsing stays off for Aurelia's tenant.
+Marc objects. Result: P3's Scribe engagement is scoped to exclude Aurelia (`clientScope: {exclude: [aurelia]}`), and CV parsing stays off for Aurelia's tenant.
 
 > **Operations:** Snapshot → `/coverage` → `POST /review-items`; `POST /activities` (P3); `GET /subprocessors` changes → monitor diffs our own list → notifications per agreement terms.
 > **Checks decision:** #4 (who owns what). The monitor needs to read **agreements** to know who gets a notice vs. who must approve.
@@ -203,7 +223,7 @@ Marc objects. Result: P3's Scribe engagement gets `excludedFor: [aurelia]`, and 
 
 The Subprocessor Monitor fetches Mailcrest's published subprocessor page weekly. On June 3 the diff shows one addition:
 
-> **+ Helpdesk Partners Pvt Ltd**, India, customer-support access to message content. Effective 2026-07-03 (30 days' notice).
+> **+ Helpdesk Partners Pvt Ltd**, India, customer-support access to message content **in all regions, including the EU region**. Effective 2026-07-03 (30 days' notice).
 
 The monitor calls `GET /parties/mailcrest/impact`:
 
@@ -211,9 +231,14 @@ The monitor calls `GET /parties/mailcrest/impact`:
 |---|---|---|---|
 | C2 Customer accounts | Controller | client-user emails | **Hireloop decides**: accept or object. Record new transfer: India, SCCs via Mailcrest DPA |
 | C3 Hireloop sales & marketing | Controller | lead emails | Same |
-| P1 Candidate management | **Processor** | candidate emails | **Hireloop must pass this on to its clients**: it's a new sub-subprocessor in their chain |
+| P1 Candidate management, US region | **Processor** | candidate emails (399 clients on the Standard DPA) | **Hireloop must pass this on to its clients**: it's a new sub-subprocessor in their chain |
+| P1 Candidate management, EU region | **Processor** | Aurelia's candidate emails, stored in Ireland | Same, and for Aurelia it breaks the EU-only clause |
 
-The last row is the chain effect. **An inbound change on a processor-role engagement triggers an outbound notification.** And the deadlines collide: Mailcrest gave Hireloop **30 days**, but Hireloop owes Aurelia **60 days** and *prior approval*. Priya can't meet that by accepting. She has to ask Mailcrest to exclude Aurelia's traffic from Helpdesk Partners, or route Aurelia's candidate emails through a different provider.
+The P1 rows are the chain effect. **An inbound change on a processor-role engagement triggers an outbound notification.**
+
+The EU-region row adds a lesson: **data residency doesn't rule out transfers.** Aurelia's emails are *stored* in Ireland, but support staff in India who can open them are *accessing* them from a third country, and that counts as a transfer. Once Priya records the onward transfer to India on the EU-region engagement, `/coverage` flags a **region violation** against Aurelia's agreement.
+
+And the deadlines collide: Mailcrest gave Hireloop **30 days**, but Hireloop owes Aurelia **60 days** and *prior approval*. Priya can't meet that by accepting. She has to ask Mailcrest to keep Helpdesk Partners out of the EU region, or move Aurelia's candidate emails to a different EU provider. That would be another engagement with an `include: [aurelia]` scope.
 
 The monitor opens three review items in RoPA with due dates computed from both agreements.
 
@@ -279,7 +304,7 @@ flowchart LR
     api --> db
     sweep --> db
     cv -- "CVs · SCCs · 🇺🇸" --> scribe["Scribe AI"]
-    app -- "emails · DPF · 🇺🇸" --> mail["Mailcrest"]
+    app -- "emails · DPF · 🇺🇸<br/>(EU region 🇮🇪 for Aurelia)" --> mail["Mailcrest"]
     mail -. "support access · 🇮🇳" .-> hp["Helpdesk Partners"]
     app -- "errors · SCCs · 🇺🇸<br/>(not Aurelia)" --> glitch["Glitchlog"]
     app -- "billing · recipient" --> pay["Ledgerpay 🇮🇪"]
@@ -296,7 +321,7 @@ Each box now answers *what runs here*, *whose data*, *which activity*, and *wher
 |---|---|---|
 | Ch2 controller records | #1 role discriminator; retention per data category | `POST /activities`, taxonomy |
 | Ch3 processor records | #2 offering; Agreement entity | `POST /service-offerings`, `POST /agreements` |
-| Ch4 questionnaire + signing | #2 client override; #3 Party/Engagement; prospects out of scope | `GET /subprocessors?offering=` (pre-contract), exclusions, `GET /subprocessors?client=` (post-contract) |
+| Ch4 questionnaire + signing | #2 client override; #3 Party/Engagement; prospects out of scope; per-client regions | `GET /subprocessors?offering=` (pre-contract), client-scoped engagements, `GET /subprocessors?client=` (post-contract) |
 | Ch5 new AI vendor | #4 boundaries; #6 Snapshot linkage | `GET /coverage`, `POST /review-items` |
 | Ch6 vendor list change | #4; chain effect | `GET /parties/{id}/impact` |
 | Ch7 DSARs | taxonomy IDs; role → act vs forward | `GET /data-map` |
@@ -306,7 +331,7 @@ Each box now answers *what runs here*, *whose data*, *which activity*, and *wher
 ## What the story revealed (changes to the strawman)
 
 1. **Add an `Agreement` entity** (DPA between us and a client, or between us and a vendor): authorization type (general/specific), notice days, location restrictions. Chapters 3, 5 and 6 all depend on it.
-2. **Engagements need client-scoped exclusions** (`excludedFor`): Glitchlog and Scribe for Aurelia.
+2. **Engagements need a client scope that can include or exclude clients.** Exclude: Glitchlog and Scribe for Aurelia. Include: Mailcrest's EU region *only* for Aurelia. One activity can therefore have several engagements with the same vendor, e.g. one per region.
 3. **`/subprocessors` and `/report` take `offering=` and `client=`.** The offering view shows the standard terms (pre-contract, and the public subprocessor page). The client view shows a signed client's actual terms.
 4. **Recipients ≠ subprocessors.** Ledgerpay (an independent controller) belongs in the record but not on the list, which confirms the need for a role on the Engagement.
 5. **The chain effect:** an inbound vendor change on a processor-role engagement must create outbound obligations. `impact` should return role plus affected clients and their agreement terms.
@@ -316,6 +341,7 @@ Each box now answers *what runs here*, *whose data*, *which activity*, and *wher
 9. **Versioning is not optional** if the regulator scene matters (decision #5 → yes).
 10. **Prospects are not in RoPA.** The record covers processing that actually happens. A prospect's contacts are leads (C3), and its terms arrive when the agreement is signed.
 11. **Coverage is two-directional.** A system with no activity is a gap. An activity with no Render system (C1 in Peoplehub) is legitimate.
+12. **Data residency ≠ no transfers.** Where data is stored and where it is accessed from are both processing locations. Agreements with region restrictions need a check (`region_violation`) over processing countries **and** transfer destinations for every engagement used for that client.
 
 ---
 
@@ -333,7 +359,7 @@ Each box now answers *what runs here*, *whose data*, *which activity*, and *wher
 | C2 | Customer accounts & billing | controller | client users | identity, account, billing | Render, Mailcrest (processors); Ledgerpay (recipient) |
 | C3 | Hireloop sales & marketing (prospective customers) | controller | leads | identity, marketing | Render, Mailcrest (processors) |
 | C4 | Service reliability monitoring | controller | client users, candidates (incidental) | telemetry, identity | Render, Glitchlog (processors) |
-| P1 | Candidate application management | processor | candidates | identity, cv, assessment | Render, Mailcrest, Glitchlog* (subprocessors) |
+| P1 | Candidate application management | processor | candidates | identity, cv, assessment | Render, Mailcrest US region*, Mailcrest EU region (Aurelia only), Glitchlog* (subprocessors) |
 | P2 | Diversity & accommodations module (from 2026-03-16) | processor | candidates | diversity⚠, health⚠ | Render (subprocessor); Aurelia only |
 | P3 | CV parsing (from 2026-04-14) | processor | candidates | cv, identity | Render, Scribe AI* (subprocessors) |
 
@@ -341,4 +367,4 @@ Each box now answers *what runs here*, *whose data*, *which activity*, and *wher
 
 **Agreements:** `agr-standard-dpa-v3` (general, 30d), `agr-aurelia-dpa` (specific, 60d, EU-only), plus vendor DPAs for Render, Mailcrest, Glitchlog, Scribe AI, Peoplehub.
 
-**Timeline (for versioning):** 2026-01 Aurelia questionnaire → 2026-02-10 record created → 2026-03-16 Aurelia signs (client, agreement, Glitchlog exclusion, P2) → 2026-04-14 P3 + Scribe added → 2026-06-03 Mailcrest change detected → 2026-07-03 Helpdesk Partners effective → 2026-09 regulator request.
+**Timeline (for versioning):** 2026-01 Aurelia questionnaire → 2026-02-10 record created → 2026-03-16 Aurelia signs (client, agreement, Mailcrest EU region, Glitchlog exclusion, P2) → 2026-04-14 P3 + Scribe added → 2026-06-03 Mailcrest change detected → 2026-07-03 Helpdesk Partners effective → 2026-09 regulator request.
