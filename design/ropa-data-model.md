@@ -1,4 +1,4 @@
-# RoPA Data Model (v0.5)
+# RoPA Data Model (v0.7)
 
 > Entities, relationships and rules for the RoPA service's Postgres store. It builds on `ropa-design.md` (strawman) and is checked against `ropa-story.md` (Hireloop). It replaces §6 of the strawman, and it is the input for the API shapes.
 
@@ -37,6 +37,7 @@ erDiagram
     PROCESSING_ACTIVITY }o--o{ SECURITY_MEASURE : "protected by"
     SYSTEM }o--|| PARTY : "hosted by"
     REVIEW_ITEM }o--|| PROCESSING_ACTIVITY : "flags (or party / system)"
+    REVISION ||--o{ EVENT_OUTBOX : "announced by"
 ```
 
 Groups:
@@ -45,7 +46,7 @@ Groups:
 - **Client scoping:** `activity_opt_in`, `engagement_client_scope`
 - **Where:** `system`
 - **Shared vocabulary:** `subject_category`, `data_category`, `security_measure`
-- **Workflow and history:** `review_item`, `revision`
+- **Workflow and history:** `review_item`, `revision`, `event_outbox`
 
 ## 3. Entities
 
@@ -312,13 +313,33 @@ Append-only: rows are never updated, so there is no `updated_at`.
 | valid_from | timestamptz | yes | When this version took effect |
 | snapshot | jsonb | yes | Full aggregate as saved (§6) |
 | actor | text | yes | Who made the change |
-| change_note | text | no | Why. Also emitted to the audit-log service |
+| change_note | text | no | Why. Comes from the request body's `changeNote` (API §1.6). Optional for now (§11, F4). Also emitted to the audit-log service |
+
+### 3.13 `event_outbox`: events waiting to be pushed
+
+Events are written here **in the same transaction** as the revision they describe, then delivered by a dispatcher (API §6). One row per event per destination, so a slow consumer doesn't hold up the others.
+
+| Column | Type | Required | Notes |
+|---|---|---|---|
+| event_id | uuid | yes | The event's `id` in the envelope. Consumers use it to ignore duplicates. Unique with `destination` |
+| event_type | enum `record.changed` \| `subprocessors.changed` | yes | |
+| destination | text | yes | Consumer name from configuration: `audit-log`, `monitor` |
+| payload | jsonb | yes | The full event envelope, as it will be sent |
+| revision_id | FK → revision | no | The revision that caused it (`record.changed`) |
+| attempts | int | yes | Default `0` |
+| next_attempt_at | timestamptz | yes | When the dispatcher should try next. Default: now |
+| last_error | text | no | Error from the most recent failed attempt |
+| delivered_at | timestamptz | no | Set on a `2xx` response. Empty = still pending |
+
+- Delivered rows can be deleted after a retention period (e.g. 30 days). The revision table remains the permanent history, and `/changes` can rebuild anything.
+- The dispatcher picks pending rows with `FOR UPDATE SKIP LOCKED`, so more than one dispatcher can run safely.
+- Events for one record are delivered in version order: the dispatcher doesn't send a record's later event while an earlier one is still pending.
 
 ## 4. Aggregates (what gets saved, and versioned, together)
 
 | Aggregate | Root | Includes | API implication |
 |---|---|---|---|
-| **Activity** | processing_activity | category/system/measure links, retention rules, opt-ins, engagements (+ data categories, transfers, client scopes) | One document per activity. `PUT /activities/{id}` replaces the whole thing; sub-resources are optional convenience |
+| **Activity** | processing_activity | category/system/measure links, retention rules, opt-ins, engagements (+ data categories, transfers, client scopes) | One document per activity. `PUT /activities/{id}` replaces the whole thing. The engagement sub-resource (API §3.5) is a convenience that still versions the whole activity |
 | Party | party | — | `/parties` |
 | Agreement terms | agreement_terms | — | `/agreement-terms` |
 | Agreement | agreement | — | `/agreements` |
@@ -386,7 +407,7 @@ Append-only: rows are never updated, so there is no `updated_at`.
 | Subprocessor monitor | vendor-list snapshots, diffs, fetch schedule, outbound client notices and responses | `party.slug` (watches `subprocessor_list_url`); reads `/parties/{id}/impact`, `/subprocessors`; writes `review_item` |
 | DSAR tracker | requests, timelines | `subject_category.slug`, `party.slug` (client); reads `/data-map` |
 | Architecture Snapshot | Render resources, snapshots | `system.render_resource_id`; writes `review_item` (unmapped system) |
-| Audit log | events | receives revision events |
+| Audit log | events | receives `record.changed` events pushed from `event_outbox` (§3.13); can backfill from `/changes` |
 
 ## 9. Story check
 
@@ -419,3 +440,4 @@ Append-only: rows are never updated, so there is no `updated_at`.
 | F1 | **Onward transfers → parties.** Model sub-subprocessors (e.g. Helpdesk Partners) as `party` rows linked to the vendor, instead of `transfer.onward_via` text | Text is enough for the demo. The Monitor holds the vendor's full list anyway | New party kind or relation (vendor → its subprocessors). `transfer.onward_via` becomes an FK. Impact and data-map views can follow the full chain |
 | F2 | **Party roles as a set.** Replace `party.kind` with a set of roles (`client`, `vendor`, …), so one company can be both a client and a vendor | Rare in the story; a single `kind` keeps validation simple | `party.kind` → `party_role` link table or `roles enum[]`. Rules that check "a party of kind X" check "has role X" instead |
 | F3 | **Joint controllers (Art. 26).** Define validation rules for `joint_controller` activities (J-codes) and engagements: the arrangement between the controllers, each one's responsibilities, the contact point for data subjects | Not needed for the Hireloop story | Role rules in §5, new fields (arrangement reference, responsibility split), a story chapter to test it |
+| F4 | **Required change notes for the live record.** Make the change note mandatory on `activate`, `retire` and any update to an `active` record, while keeping it optional for drafts | Optional is enough for the demo. A required reason works like a commit message: it's a real governance control and makes the Ch8 regulator scene stronger | Validation rule on writes (API `changeNote`, stored in `revision.change_note`). `422` when missing on a live record. No schema change |

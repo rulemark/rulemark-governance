@@ -1,4 +1,4 @@
-# RoPA API Design (v0.1, for review)
+# RoPA API Design (v0.4)
 
 > The HTTP API of the RoPA service. It is built on `ropa-data-model.md` (referred to as **DM §n**) and checked against `ropa-story.md` (Hireloop). The OpenAPI document is generated from Zod schemas (Zod-first), so this document describes intent and shapes, not the final schema text.
 
@@ -40,9 +40,9 @@
 Activities, parties, agreement terms, agreements, offerings, systems and taxonomy entries are **versioned aggregates** (DM §4, §6).
 
 - **Every successful create or update writes a revision** (a full JSON snapshot) in the same transaction and emits a `record.changed` event (§6).
-- **Updates replace the whole aggregate** (`PUT`). There's no `PATCH` in v1: a full document keeps each revision a clean snapshot.
+- **Updates replace the whole aggregate** (`PUT`). There's no `PATCH` in v1: a full document keeps each revision a clean snapshot. The one exception is the engagement sub-resource on activities (§3.5), a convenience that still saves and versions the whole activity.
 - **Nested rows keep their identity.** In a `PUT`, a nested row (engagement, transfer, retention rule, opt-in, client scope entry) sent **with** its `id` is updated. One sent **without** an `id` is created. An existing one that's **left out** is deleted.
-- **Optimistic concurrency.** Responses carry `ETag: "<version>"`. `PUT` and `DELETE` require `If-Match: "<version>"`. The server returns `428` if the header is missing and `412` if the version is out of date, so two people can't overwrite each other's edits unnoticed.
+- **Optimistic concurrency.** See §1.8.
 
 ### 1.5 Validation levels
 
@@ -56,11 +56,19 @@ Drafts can therefore be saved while incomplete. An activity can only become `act
 
 ### 1.6 Who changed what
 
-Each revision records an actor and a change note (DM §3.12). Until auth exists:
-- `X-Actor` (required on writes): who is making the change, e.g. `priya.raman`.
-- `X-Change-Note` (optional): why, e.g. `Added Scribe AI for CV parsing`.
+Each revision records **who** made a change and **why** (DM §3.12). The two come from different places:
 
-Once auth exists, the actor comes from the authenticated user and `X-Actor` is dropped.
+| | Who: actor | Why: change note |
+|---|---|---|
+| Sent as | `X-Actor` header, e.g. `priya.raman` | `changeNote` field in the request body, e.g. `"Added Scribe AI for CV parsing"` |
+| Required? | Yes, on every write | No (optional for now; see DM §11, F4) |
+| Lifespan | **Temporary.** Stands in for auth. Once auth exists, the actor comes from the authenticated user and `X-Actor` is dropped | **Permanent.** Not related to auth |
+| Stored in | `revision.actor` | `revision.change_note` |
+
+**`changeNote` details**
+- A top-level field in the body of every create, `PUT`, `activate` and `retire` request. `DELETE` takes no note: it's only allowed for drafts that were never active.
+- **Write-only.** It belongs to the change, not to the record: it's stored on the revision, so `GET` never returns it and a later `PUT` can't resend an old note by accident. Revision lists, `/changes` and `record.changed` events do return it. In Zod it's part of the input schemas only, and OpenAPI marks it `writeOnly`.
+- It's a body field rather than a header because it's free text: headers don't reliably carry non-ASCII characters ("Aurelia DPA §7", "Tomás"), have size limits and are often logged by proxies.
 
 ### 1.7 Errors
 
@@ -83,8 +91,26 @@ Once auth exists, the actor comes from the authenticated user and `X-Actor` is d
 | 400 | Malformed request |
 | 404 | Unknown `{ref}` |
 | 409 | Conflict: slug already taken, record still referenced (delete), invalid state transition |
-| 412 / 428 | Version mismatch / missing `If-Match` (§1.4) |
+| 412 / 428 | Version mismatch / missing `If-Match` (§1.8) |
 | 422 | Validation failed (structural or role rules), or `not_yet_supported` |
+
+### 1.8 Concurrency
+
+Two people (or a person and a service) can act on the same record at the same time. The rules below make sure nobody silently overwrites someone else's change, and that **you approve exactly the version you reviewed**.
+
+| Operation | Protection | On conflict |
+|---|---|---|
+| `PUT` / `DELETE` on a versioned record (§1.4), including the engagement sub-resource (§3.5, which uses the activity's version) | `If-Match: "<version>"` required | `428` if missing, `412` if out of date |
+| `POST /activities/{ref}/activate` and `/retire` | `If-Match: "<version>"` required | `428` if missing, `412` if out of date |
+| `POST /review-items/{ref}/resolve` and `/dismiss` | Status check: only an `open` item can be closed | `409` invalid state transition |
+| `POST` (create) | None needed: there's nothing to overwrite | `409` if a slug is already taken |
+| Views, revisions, `/changes` | None: read-only | — |
+
+- **Versions and ETags.** Every response for a versioned record carries `ETag: "<version>"`, and the body includes `version`. Clients send it back in `If-Match`.
+- **Why lifecycle actions need it.** Priya reviews P3 at version 3 and activates it, while Tomás has just saved version 4 with a new US vendor. With `If-Match: "3"` she gets `412` and must look at version 4 first, instead of activating something she never saw. Retiring works the same way.
+- **Why review items don't.** They aren't versioned, and their only changes are one-way status transitions, so the status check is enough. If review items later get editable fields (assignee, due date), they get a `version` and `If-Match` too.
+- **Services follow the same rule.** The Snapshot updating a system or the Monitor adding a transfer reads the record, then writes with the version it read. On `412` it reads again and retries.
+- **Implementation.** The version check happens in the database, in the same transaction as the write (`UPDATE … WHERE id = $1 AND version = $2`), never as a separate read beforehand. The status check for review items is done the same way (`… WHERE status = 'open'`).
 
 ## 2. Endpoint map
 
@@ -92,7 +118,7 @@ Once auth exists, the actor comes from the authenticated user and `X-Actor` is d
 
 | Resource | Endpoints | Filters |
 |---|---|---|
-| Activities | `GET/POST /activities` · `GET/PUT/DELETE /activities/{ref}` · `POST /activities/{ref}/activate` · `POST /activities/{ref}/retire` | `role`, `status`, `offering`, `subjectCategory`, `dataCategory`, `party`, `system`, `country`, `special=true` |
+| Activities | `GET/POST /activities` · `GET/PUT/DELETE /activities/{ref}` · `POST /activities/{ref}/activate` · `POST /activities/{ref}/retire` · `GET/POST /activities/{ref}/engagements` · `GET/PUT/DELETE /activities/{ref}/engagements/{id}` (§3.5, built later) | `role`, `status`, `offering`, `subjectCategory`, `dataCategory`, `party`, `system`, `country`, `special=true` |
 | Parties | `GET/POST /parties` · `GET/PUT/DELETE /parties/{ref}` | `kind`, `country` |
 | Agreement terms | `GET/POST /agreement-terms` · `GET/PUT/DELETE /agreement-terms/{ref}` | `direction`, `authorizationType` |
 | Agreements | `GET/POST /agreements` · `GET/PUT/DELETE /agreements/{id}` | `party`, `terms`, `offering`, `active=true` |
@@ -113,7 +139,7 @@ Once auth exists, the actor comes from the authenticated user and `X-Actor` is d
 | Endpoint | Purpose |
 |---|---|
 | `GET/POST /review-items` · `GET /review-items/{ref}` | Open and read review items (filters: `status`, `source`, `reason`, `target`, `dueBefore`) |
-| `POST /review-items/{ref}/resolve` · `POST /review-items/{ref}/dismiss` | Close with a required `resolutionNote` |
+| `POST /review-items/{ref}/resolve` · `POST /review-items/{ref}/dismiss` | Close with a required `resolutionNote`. Only `open` items can be closed (`409` otherwise, §1.8) |
 
 **Views** (read models, DM §7)
 
@@ -146,11 +172,11 @@ In Zod, the activity is a **discriminated union on `role`** (DM §5), which beco
 ```http
 POST /v1/activities
 X-Actor: priya.raman
-X-Change-Note: Initial processor record for the ATS
 ```
 
 ```json
 {
+  "changeNote": "Initial processor record for the ATS",
   "role": "processor",
   "name": "Candidate application management",
   "owner": "Priya Raman",
@@ -245,10 +271,29 @@ stateDiagram-v2
     draft --> [*]: DELETE (drafts only)
 ```
 
-- `POST /activities/{ref}/activate`: runs the role rules, sets `status: active` and `startedAt` (if not set). `422` if the rules fail.
-- `POST /activities/{ref}/retire`: body `{ "endedAt": "2026-09-30" }`. Sets `status: retired`. A retired activity can't be edited or reactivated, and its code is never reused (DM §3.0).
+- `POST /activities/{ref}/activate` (requires `If-Match`, §1.8; optional body `{ "changeNote": "…" }`): runs the role rules, sets `status: active` and `startedAt` (if not set). `422` if the rules fail.
+- `POST /activities/{ref}/retire` (requires `If-Match`, §1.8): body `{ "endedAt": "2026-09-30", "changeNote": "…" }`. Sets `status: retired`. A retired activity can't be edited or reactivated, and its code is never reused (DM §3.0).
 - `DELETE`: only for activities that have never been active (`409` otherwise). Everything else is retired, so history stays intact.
 - **Role change** (DM §3.0): retire the old activity, then `POST` a new one with `"supersedes": "C4"`. The new activity gets a new code (`P4`).
+
+### 3.5 Engagement sub-resource (convenience, built later)
+
+Editing one vendor on an activity shouldn't require sending the whole activity. That's common for the Monitor (adding the onward transfer in Ch6) and the Snapshot. So engagements also have their own endpoints:
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /activities/{ref}/engagements` | List the activity's engagements |
+| `POST /activities/{ref}/engagements` | Add an engagement |
+| `GET /activities/{ref}/engagements/{id}` | Read one engagement |
+| `PUT /activities/{ref}/engagements/{id}` | Replace one engagement, including its `transfers` and `clientScope` |
+| `DELETE /activities/{ref}/engagements/{id}` | Remove one engagement |
+
+**It's still one aggregate** (DM §4). These endpoints are shortcuts, not a separate record:
+- **Concurrency uses the activity's version.** `If-Match` carries the *activity's* version, and the response's `ETag` is the activity's new version. A change to one engagement and a change to another field of the same activity therefore can't overwrite each other silently.
+- **Every write is an activity revision.** It writes a full snapshot of the activity and emits `record.changed` for the activity, exactly like a `PUT /activities/{ref}`.
+- **Same validation.** The activity is validated as a whole after the change: structural checks always, and role rules if the activity is `active`.
+- **Same conventions.** `changeNote` goes in the body, and `X-Actor` is required. Engagements are identified by `id` only (they have no code or slug, DM §3.0).
+- Nested transfers and client scope entries are replaced as part of the engagement. They don't get endpoints of their own.
 
 ## 4. Other records
 
@@ -277,10 +322,19 @@ All views are read-only, computed from current state or, with `asOf`, from revis
 | `asOf` | date | The record as it stood on that date (Ch8) |
 | `format` | `json` \| `markdown` \| `csv` | Default `json`. CSV flattens to one row per activity × engagement |
 
-JSON structure:
+**JSON structure:**
 - `organisation`: the `self` party, including DPO contact (Art. 30(1)(a)).
 - `controllerActivities[]`: purposes, lawful bases, subject and data categories, recipients (engagements), transfers, retention, security measures.
 - `processorActivities[]`: the controllers served (e.g. "all clients on Standard DPA v3" plus bespoke clients, or just the scoped client), processing categories, subprocessors, transfers, security measures.
+
+**Markdown structure** (`format=markdown`, `Content-Type: text/markdown`). This is the export that feeds the architecture document, so it's built early (§8, step 2):
+- A header with the organisation, DPO contact, `generatedAt`, `asOf` and the scope (offering or client).
+- **Controller activities** and **Processor activities** sections, with one heading per activity in the form `### P3 · CV parsing`.
+- Each activity heading is preceded by a **stable anchor** built from its code (`<a id="p3"></a>`). Names can change, but codes never do (DM §3.0), so the architecture document can link a system box straight to `…#p3` and the link keeps working after renames.
+- Per activity: purposes and lawful bases (controller), or controllers served and processing categories (processor); subject and data categories, with special categories marked; a **third parties** table (party, role, service, countries, transfer mechanism); retention (controller); security measures.
+- A closing **subprocessor list** for the scope, identical to `GET /subprocessors`.
+
+CSV (one row per activity × engagement) stays in the last build step.
 
 ### 5.2 `GET /subprocessors`
 
@@ -420,12 +474,29 @@ Response: `{ "generatedAt", "findings": [ { "type", "severity", "target": Ref, "
 
 ## 6. Events
 
-On every revision the service emits one event. Delivery is HTTP `POST` to configured URLs over Render's private network. Transport details and service-to-service auth are deferred along with auth.
+RoPA **pushes** events to its consumers (Q3). Delivery is HTTP `POST` to configured URLs over Render's private network. Service-to-service auth is deferred along with auth.
 
 | Event | When | Payload | Consumer |
 |---|---|---|---|
 | `record.changed` | Any revision | `entityType`, `entity` (Ref), `version`, `changeType` (`created` \| `updated` \| `activated` \| `retired` \| `deleted`), `actor`, `changeNote`, `validFrom` | Audit log (#1) |
 | `subprocessors.changed` | A save changes the derived subprocessor list of an offering or a client | `offering` or `client` (Ref), `added[]`, `removed[]` (party Refs) | Monitor (#5): outbound notices (Ch5) |
+
+**Envelope.** Every event has the same wrapper:
+
+```json
+{ "id": "e7c2…", "type": "record.changed", "source": "ropa", "occurredAt": "2026-04-14T10:02:11Z",
+  "data": { "entityType": "activity", "entity": { "id": "…", "code": "P3", "name": "CV parsing" },
+            "version": 1, "changeType": "created", "actor": "priya.raman",
+            "changeNote": "Added Scribe AI for CV parsing", "validFrom": "2026-04-14T10:02:11Z" } }
+```
+
+**Delivery guarantees.** The audit log is the permanent history, so an event must never be lost because a consumer was briefly down:
+- **Transactional outbox.** The event is written to an outbox table (DM §3.13) **in the same transaction** as the revision. If the save commits, the event exists. If it rolls back, it doesn't.
+- **At-least-once delivery.** A dispatcher sends pending events and marks them delivered on a `2xx` response. Failures are retried with increasing delays (e.g. 1 min, 5 min, 30 min, then hourly), and each attempt's error is kept.
+- **Idempotent consumers.** A retry can deliver the same event twice, so consumers ignore an `id` they've already processed.
+- **Ordering.** Events for one record are sent in version order. Across records there's no ordering guarantee; consumers use `version` and `occurredAt`.
+- **Reconciliation.** `GET /changes` stays available, so the audit log can backfill anything it missed, e.g. after being restored from a backup.
+- **On Render.** The dispatcher can run inside the web service for the demo. A **background worker** is the production shape and another Render feature to showcase (it needs a paid instance).
 
 ## 7. Story walkthrough
 
@@ -436,7 +507,7 @@ On every revision the service emits one event. Delivery is HTTP `POST` to config
 | Ch4 questionnaire | `GET /subprocessors?offering=ats`, `GET /report?view=processor&offering=ats` |
 | Ch4 signing | `POST /parties` (aurelia), `POST /agreement-terms` (aurelia-dpa), `POST /agreements`, `PUT /activities/P1` (Mailcrest EU-region engagement, client scopes), `POST /activities` (P2, opt-in), `GET /subprocessors?client=aurelia` |
 | Ch5 AI parsing | Snapshot finds `cv-parser` → `POST /systems` → `GET /coverage` → `POST /review-items` · `POST /activities` (P3) → `subprocessors.changed` → Monitor notifies clients · `PUT /activities/P3` (Scribe scoped to exclude Aurelia) |
-| Ch6 vendor change | Monitor → `GET /parties/mailcrest/impact` → `POST /review-items` ×3 (with deadlines) → later `PUT /activities/{C2,C3,P1}` (onward transfer) → `POST /review-items/{ref}/resolve` |
+| Ch6 vendor change | Monitor → `GET /parties/mailcrest/impact` → `POST /review-items` ×3 (with deadlines) → later `PUT /activities/{C2,C3,P1}` or, once built, `PUT /activities/{ref}/engagements/{id}` (onward transfer) → `POST /review-items/{ref}/resolve` |
 | Ch7 DSARs | `GET /data-map?subjectCategory=candidates&client=northwind` · `GET /data-map?subjectCategory=employees` |
 | Ch8 regulator | `GET /report?asOf=2026-03-01`, `GET /report`, `GET /changes?from=2026-03-01` |
 | Ch9 architecture doc | `GET /systems`, `GET /activities?system=…` (joined by the Snapshot using `renderResourceId`) |
@@ -444,15 +515,15 @@ On every revision the service emits one event. Delivery is HTTP `POST` to config
 ## 8. Build order
 
 1. **Foundation:** conventions (§1), taxonomies, parties, agreement terms, agreements, offerings, systems. Revisions are **written** from day one, because they can't be recreated later.
-2. **Activities:** CRUD, role rules, activate/retire. `GET /subprocessors` and `GET /report` (JSON, current state). This is enough for Ch2–Ch4.
+2. **Activities:** CRUD, role rules, activate/retire. `GET /subprocessors` and `GET /report` in **JSON and Markdown** (current state). Markdown comes this early because it feeds the architecture document (Q5). This is enough for Ch2–Ch4.
 3. **Governance views:** `/parties/{ref}/impact`, `/data-map`, `/coverage`, review items. Enough for Ch5–Ch7 and the Monitor/DSAR integrations.
-4. **History:** `asOf`, `/revisions`, `/changes`, events. Enough for Ch8 and the audit log.
-5. **Exports:** Markdown and CSV report formats.
+4. **History:** `asOf`, `/revisions`, `/changes`, event outbox and push delivery. Enough for Ch8 and the audit log.
+5. **Conveniences:** CSV report format; engagement sub-resource (§3.5).
 
 ## 9. Open questions
 
-1. **Concurrency:** require `If-Match` on every `PUT`/`DELETE` (proposed), or make it optional for the demo?
-2. **Actor until auth exists:** `X-Actor` / `X-Change-Note` headers (proposed), or fields in the request body?
-3. **Events vs polling:** push `record.changed` to the audit log (proposed), or have the audit log poll `/changes`?
-4. **Nested sub-resources:** v1 only allows full `PUT` of an activity. Should there also be `/activities/{ref}/engagements` for convenience, e.g. for the Monitor adding a transfer?
-5. **Report formats:** keep Markdown/CSV in step 5, or pull Markdown forward because it feeds the architecture document?
+1. ~~**Concurrency**~~ **Resolved (2026-09-19):** `If-Match` required on `PUT`, `DELETE`, `activate` and `retire`. Review-item transitions are protected by a status check. See §1.8.
+2. ~~**Actor and change note**~~ **Resolved (2026-09-19):** `X-Actor` header until auth exists. The change note is a permanent, optional, write-only `changeNote` body field. See §1.6.
+3. ~~**Events vs polling**~~ **Resolved (2026-09-19):** push, using a transactional outbox with at-least-once delivery; `/changes` stays available for reconciliation. See §6.
+4. ~~**Nested sub-resources**~~ **Resolved (2026-09-19):** yes, `/activities/{ref}/engagements` as a convenience that still versions the whole activity. Designed now, built later (§8, step 5). See §3.5.
+5. ~~**Report formats**~~ **Resolved (2026-09-19):** Markdown moves forward to step 2 because it feeds the architecture document; CSV stays in step 5. See §5.1 and §8.
