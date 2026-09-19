@@ -1,4 +1,4 @@
-# RoPA Data Model (v0.9)
+# RoPA Data Model (v0.10)
 
 > Entities, relationships and rules for the RoPA service's Postgres store. It builds on `ropa-design.md` (strawman) and is checked against `ropa-story.md` (Hireloop). It replaces §6 of the strawman, and it is the input for the API shapes.
 
@@ -465,3 +465,4 @@ Events are written here **in the same transaction** as the revision they describ
 | F2 | **Party roles as a set.** Replace `party.kind` with a set of roles (`client`, `vendor`, …), so one company can be both a client and a vendor | Rare in the story; a single `kind` keeps validation simple | `party.kind` → `party_role` link table or `roles enum[]`. Rules that check "a party of kind X" check "has role X" instead |
 | F3 | **Joint controllers (Art. 26).** Define validation rules for `joint_controller` activities (J-codes) and engagements: the arrangement between the controllers, each one's responsibilities, the contact point for data subjects | Not needed for the Hireloop story | Role rules in §5, new fields (arrangement reference, responsibility split), a story chapter to test it |
 | F4 | **Required change notes for the live record.** Make the change note mandatory on `activate`, `retire` and any update to an `active` record, while keeping it optional for drafts | Optional is enough for the demo. A required reason works like a commit message: it's a real governance control and makes the Ch8 regulator scene stronger | Validation rule on writes (API `changeNote`, stored in `revision.change_note`). `422` when missing on a live record. No schema change |
+| F5 | **Principals in the database.** Replace the `PRINCIPALS` environment variable (API §1.9) with a `principal` table (subject, name, roles, status), then SSO and SCIM on top | A short JSON list is enough for a demo, and it needs no CRUD, no migration and no admin UI | New table plus `/principals` endpoints; roles still map to permissions in code. `revision.actor` already stores the subject, so history needs no change |

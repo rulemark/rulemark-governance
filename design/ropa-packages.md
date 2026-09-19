@@ -1,4 +1,4 @@
-# RoPA Packages & Monorepo (v0.2)
+# RoPA Packages & Monorepo (v0.4)
 
 > How the RoPA service, its shared schemas and its API client are organised so a future frontend can reuse the same types, validation and calls. Builds on `ropa-api.md` (**API §n**) and `ropa-database.md` (**DB §n**). Stack: Node.js + TypeScript, Zod 4, npm workspaces.
 
@@ -12,7 +12,8 @@
 | 4 | Response validation in the client | **On by default**, with an opt-out |
 | 5 | Changelogs | Hand-written until the first publish; add Changesets when publishing starts (§6.4) |
 | 6 | OpenAPI document | Shipped **inside the client package**, not as a separate package (§5.4) |
-| 7 | Frontend location | **Deferred.** Whatever it is (e.g. Next.js with SSR), it will be its own Render service. The packages are built to work in both a browser and Node, so SSR is already covered (§9) |
+| 8 | Browser → API path | The browser calls **the frontend's own origin**; Next.js proxies to the API over Render's private network (§8.1). No CORS. The API is also **public** for Swagger UI, the client package and other consumers |
+| 7 | Frontend location | **In this monorepo**, as `apps/web`. Its framework is still undecided (e.g. Next.js with SSR). It deploys as its own Render service (§8). The packages work in both a browser and Node, so SSR is already covered (§9) |
 
 **Why the name carries the service.** The scope is per-organisation, not per-project, and this is the first of several governance services. `@rulemark/ropa-*` leaves room for `@rulemark/monitor-*` and the rest without renaming anything.
 
@@ -21,18 +22,22 @@
 ```
 service-ropa/                     # repository root, npm workspaces
 ├── package.json                  # workspaces: ["apps/*", "packages/*"], shared scripts
-├── tsconfig.base.json
-├── render.yaml                   # Blueprint (§8)
+├── tsconfig.base.json            # strict base config, extended by every workspace
+├── render.yaml                   # Blueprint: one Render service per app (§8)
 ├── design/                       # these documents
 ├── packages/
 │   ├── schemas/                  # @rulemark/ropa-schemas — wire schemas, types, enums, rule helpers
 │   └── client/                   # @rulemark/ropa-client — typed API client + openapi.json
 └── apps/
     ├── api/                      # the service: Express, Drizzle, domain, migrations, seeds (DB §11)
-    └── web/                      # (later) the frontend
+    └── web/                      # the frontend (framework TBD); consumes both packages
 ```
 
+**Dependency direction.** Both apps depend on the packages; the packages depend on nothing in the repository; **`apps/web` never imports `apps/api`**. Everything the frontend needs from the service arrives through `@rulemark/ropa-client` and `@rulemark/ropa-schemas`, which is the same path an outside consumer would take. If that rule ever feels restrictive, the missing piece belongs in a package.
+
 `apps/api` keeps the structure from DB §11; `src/api/schemas/` moves out into `packages/schemas`.
+
+**What lives in the repository root:** the workspace definition, the shared TypeScript base config, lint and formatting configuration, the CI workflow, and `render.yaml`. Each app owns its own build, start and test scripts.
 
 ## 3. The boundary
 
@@ -121,7 +126,7 @@ Namespaces mirror the endpoint map (API §2): `activities`, `parties`, `agreemen
 | Validation | Responses are parsed with the shared schemas by default; `validate: false` skips it |
 | Retries | Only for `GET` on network errors, `429` and `5xx`, with backoff. **Never** for writes, which are not idempotent |
 | Cancellation | Every call takes an `AbortSignal` and an optional timeout |
-| Auth | Not yet. The options type already has a slot for a token provider, so adding it later isn't a breaking change |
+| Auth | `token` (a string or an async provider) becomes `Authorization: Bearer` (API §1.9). `ropa.tokens.mint()` and `ropa.me()` are typed like any other call |
 
 ### 5.3 Errors
 
@@ -180,7 +185,27 @@ Note that **adding an enum value is minor for the server but can break a consume
 - **OpenAPI generation:** `apps/api` builds the document from the shared schemas (it owns the routes) and `openapi:write` writes it to `packages/client/openapi.json`. CI fails if that file is stale, which is the same trick as the Drizzle migration check (DB §8.1).
 - **Contract tests:** the API integration tests call the service **through `@rulemark/ropa-client`**. The client gets exercised on every run, and any drift between schemas, routes and client shows up as a test failure.
 
-## 8. Deploying a monorepo on Render
+## 8. Deployment topology
+
+### 8.1 How the browser reaches the API
+
+```mermaid
+flowchart LR
+    B(["Browser"]) -->|"same origin: /api/ropa/*"| W["ropa-web (Next.js)<br/>proxy + SSR"]
+    W -->|"private network + Bearer token"| A["ropa-api (Express)"]
+    Ext(["Swagger UI · @rulemark/ropa-client · other consumers"]) -->|"public URL + Bearer token"| A
+    A --> DB[("Render Postgres")]
+```
+
+The API service is public **and** reachable on Render's internal hostname, so both paths work at once.
+
+- **No CORS.** Browser requests go to the frontend's own origin and are proxied, so no cross-origin request is ever made. The API sets no CORS headers.
+- **The token stays server-side.** The browser never holds an API token. The Next server attaches it (API §1.9), which is the standard backend-for-frontend split.
+- **The actor can't be forged.** Because the proxy adds the token, the subject written into every revision comes from the server, not from something the browser can set.
+- **From rewrites to a route handler.** A `next.config` rewrite is a static pass-through, which is fine before auth. To attach a per-user token it becomes a catch-all Route Handler at the same path (`/api/ropa/[...path]`). Both must pass `If-Match`, `ETag` and `Authorization` straight through.
+- **Two client instances in `apps/web`:** one for the browser with a relative base URL (`/api/ropa`) and one for server-side rendering with the internal hostname. `fetch` accepts a relative URL in the browser but not in Node, so the base URL can't be shared. The token option differs too: server-side instances carry one, browser instances don't.
+
+### 8.2 Services on Render
 
 Render supports monorepos through a **root directory** and **build filters**. Root-relative settings (build command, start command) run relative to the root directory, while build filter paths are always relative to the repository root.
 
@@ -195,6 +220,13 @@ services:
     buildCommand: npm ci && npm run build
     preDeployCommand: npm run db:migrate
     startCommand: npm start -w apps/api
+    envVars:
+      - key: JWT_SECRET                # API §1.9
+        generateValue: true            # Render generates it; never in the repository
+      - key: TOKEN_MINT_SECRET
+        generateValue: true
+      - key: PRINCIPALS
+        sync: false                    # set in the dashboard: demo subjects and their roles
     buildFilter:
       paths:
         - apps/api/**
@@ -206,11 +238,36 @@ services:
         - apps/web/**
 ```
 
+The frontend is a second service in the same Blueprint, with its own filter:
+
+```yaml
+  - type: web
+    name: ropa-web
+    runtime: node
+    plan: starter
+    buildCommand: npm ci && npm run build -w apps/web
+    startCommand: npm start -w apps/web
+    envVars:
+      - key: ROPA_API_URL
+        fromService: { type: web, name: ropa-api, property: hostport }   # private network
+      - key: ROPA_SERVICE_TOKEN_SECRET # the proxy mints tokens for the signed-in user
+        fromService: { type: web, name: ropa-api, envVarKey: TOKEN_MINT_SECRET }
+    buildFilter:
+      paths:
+        - apps/web/**
+        - packages/**
+        - package.json
+        - package-lock.json
+      ignoredPaths:
+        - design/**
+```
+
 Notes:
-- A change under `packages/**` **must** rebuild the API, since the service depends on those packages.
-- Documentation-only commits don't redeploy.
-- When `apps/web` arrives, it becomes a second service with its own filter.
+- A change under `packages/**` rebuilds **both** services, since both depend on them. That's correct: a schema change affects both sides of the contract.
+- A change under `apps/api/**` alone doesn't rebuild the frontend, and vice versa.
+- Documentation-only commits redeploy nothing.
 - Manual deploys always run, whatever the filters say.
+- Whether the frontend calls the API over Render's **private network** (server-side rendering) or from the browser (which needs a public URL and CORS) is a decision for when we pick the framework. The Blueprint sketch above assumes server-side calls.
 
 ## 9. How a frontend uses this
 
@@ -234,8 +291,8 @@ The frontend gets types, validation, and calls from one place, and a stale deplo
 
 ## 10. Questions
 
-**Resolved (2026-09-19):** scope `@rulemark` (§1); changelogs hand-written for now (§1); OpenAPI stays in the client (§5.4); frontend location deferred (§1).
+**Resolved (2026-09-19):** scope `@rulemark` (§1); changelogs hand-written for now (§1); OpenAPI stays in the client (§5.4); the frontend lives in this monorepo as `apps/web` (§1, §2, §8).
 
 **Still open**
 1. **npm scope availability.** `@rulemark` has to be registered on npm as an organisation or user scope; it may already be taken by someone else. To check when we get to publishing. Fallback: unscoped `rulemark-ropa-schemas` / `rulemark-ropa-client`.
-2. **When the frontend appears:** `apps/web` in this monorepo (simplest while both change together, and it gets its own Render service and build filter), or a separate repository consuming the published packages.
+2. **Frontend framework details.** The call path is settled (§8.1: same-origin proxy, no CORS, public API for other consumers). What remains is the framework version and whether any page calls the API directly during server-side rendering rather than through the proxy.
