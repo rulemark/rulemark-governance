@@ -1,4 +1,4 @@
-# RoPA Data Model (v0.8)
+# RoPA Data Model (v0.9)
 
 > Entities, relationships and rules for the RoPA service's Postgres store. It builds on `ropa-design.md` (strawman) and is checked against `ropa-story.md` (Hireloop). It replaces §6 of the strawman, and it is the input for the API shapes.
 
@@ -156,8 +156,8 @@ One engagement can have several transfers: Mailcrest → US directly, and → IN
 |---|---|---|---|
 | activity_id | FK → processing_activity | yes | |
 | data_category_id | FK → data_category | no | Empty = the default rule for the activity |
-| period | text (ISO 8601 duration) | yes | `P90D`, `P7Y` |
-| trigger | text | yes | "after contract end" |
+| retention_period | text (ISO 8601 duration) | yes | `P90D`, `P7Y`. (Not `period`: it's an SQL keyword) |
+| trigger_event | text | yes | "after contract end". (Not `trigger`: it's an SQL keyword) |
 | legal_ref | text | no | "Dutch tax law". Justifies keeping data despite an erasure request (Art. 17(3)(b), Ch7) |
 
 At most one rule per (activity, data category), and at most one default rule per activity.
@@ -312,8 +312,9 @@ Shared vocabularies. DSAR and Monitor reference them by `slug`.
 | Column | Type | Required | Notes |
 |---|---|---|---|
 | code | text, unique, immutable | yes | `RI-42`. Assigned by the system (§3.0) |
-| target_type | enum `activity` \| `party` \| `system` | yes | What kind of record needs attention |
-| target_id | uuid | yes | Which record (polymorphic, so checked in the application rather than by an FK) |
+| target_activity_id | FK → processing_activity | exactly one target | The record that needs attention. Three foreign-key columns, exactly one set, so the database checks the reference (see `ropa-database.md` §3). The API presents them as `targetType` + `target` |
+| target_party_id | FK → party | exactly one target | |
+| target_system_id | FK → system | exactly one target | |
 | source | enum `monitor` \| `snapshot` \| `manual` \| `schedule` | yes | Who opened it |
 | reason | enum `vendor_subprocessor_added` \| `vendor_subprocessor_removed` \| `unmapped_system` \| `transfer_missing` \| `region_violation` \| `review_overdue` | yes | |
 | details | jsonb | no | e.g. the diff from the Monitor |
@@ -331,6 +332,7 @@ Append-only: rows are never updated, so there is no `updated_at`.
 | entity_type | enum `activity` \| `party` \| `agreement` \| `agreement_terms` \| `offering` \| `system` \| `subject_category` \| `data_category` \| `security_measure` | yes | Which aggregate type (§4) |
 | entity_id | uuid | yes | The aggregate root's `id` |
 | version | int | yes | Increments per entity. Unique with (entity_type, entity_id) |
+| change_type | enum `created` \| `updated` \| `activated` \| `retired` \| `deleted` | yes | What kind of change this was. `asOf` skips records whose latest revision is `deleted` |
 | valid_from | timestamptz | yes | When this version took effect |
 | snapshot | jsonb | yes | Full aggregate as saved (§6) |
 | actor | text | yes | Who made the change |

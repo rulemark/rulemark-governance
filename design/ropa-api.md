@@ -1,4 +1,4 @@
-# RoPA API Design (v0.5)
+# RoPA API Design (v0.6)
 
 > The HTTP API of the RoPA service. It is built on `ropa-data-model.md` (referred to as **DM §n**) and checked against `ropa-story.md` (Hireloop). The OpenAPI document is generated from Zod schemas (Zod-first), so this document describes intent and shapes, not the final schema text.
 
@@ -257,9 +257,9 @@ In Ch4, after Aurelia signs, Priya `PUT`s P1 keeping every nested `id`, with thr
   "securityMeasures": ["…"],
   "retentionRules": [
     { "id": "…", "dataCategory": { "id": "…", "slug": "account", "name": "Account data" },
-      "period": "P90D", "trigger": "after contract end", "legalRef": null },
+      "retentionPeriod": "P90D", "triggerEvent": "after contract end", "legalRef": null },
     { "id": "…", "dataCategory": { "id": "…", "slug": "billing", "name": "Billing data" },
-      "period": "P7Y", "trigger": "after invoice date", "legalRef": "Dutch tax law" }
+      "retentionPeriod": "P7Y", "triggerEvent": "after invoice date", "legalRef": "Dutch tax law" }
   ],
   "engagements": [
     { "id": "…", "party": { "id": "…", "slug": "ledgerpay", "name": "Ledgerpay Ltd" },
@@ -463,7 +463,7 @@ Example: `GET /v1/data-map?subjectCategory=candidates&client=northwind` (Lena's 
     { "activity": { "code": "C4", "…": "…" }, "role": "controller", "action": "act",
       "systems": ["…hireloop-app", "…hireloop-api"],
       "vendors": [{ "party": "…glitchlog", "dataCategories": ["…identity"] }],
-      "retention": [{ "dataCategory": null, "period": "P90D", "trigger": "after event", "legalRef": null }] }
+      "retention": [{ "dataCategory": null, "retentionPeriod": "P90D", "triggerEvent": "after event", "legalRef": null }] }
   ]
 }
 ```
