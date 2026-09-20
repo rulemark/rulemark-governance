@@ -1,0 +1,36 @@
+{
+  "name": "rulemark-governance",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Governance demo services on Render: RoPA, and more to come",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "tsc --build",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "test": "npm run test --workspaces --if-present",
+    "dev": "npm run dev -w apps/ropa-api",
+    "db:migrate": "npm run db:migrate -w apps/ropa-api",
+    "db:seed": "npm run db:seed -w apps/ropa-api",
+    "openapi:write": "npm run openapi:write -w apps/ropa-api",
+    "check": "npm run typecheck && npm run lint && npm run test"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.11.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.9.8",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.70.0",
+    "vitest": "^5.0.1"
+  }
+}

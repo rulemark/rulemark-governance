@@ -1,0 +1,14 @@
+{
+  "name": "@rulemark/ropa-api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "RoPA service: Express + Drizzle + Postgres",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@rulemark/ropa-schemas": "*"
+  },
+  "scripts": {
+    "typecheck": "tsc --build"
+  }
+}

@@ -1,0 +1,7 @@
+dist/
+node_modules/
+package-lock.json
+
+# Markdown is hand-formatted; Prettier's table padding makes diffs unreadable
+docs/
+*.md

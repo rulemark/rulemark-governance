@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: ropa
+          POSTGRES_PASSWORD: ropa
+          POSTGRES_DB: ropa
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready --health-interval 10s
+          --health-timeout 5s --health-retries 5
+
+    env:
+      DATABASE_URL: postgres://ropa:ropa@localhost:5432/ropa
+
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run test
+      - run: npm run build
+
+      # Drift checks (docs/ropa/ropa-database.md §8.1, ropa-packages.md §7).
+      # Enabled once the API workspace exists.
+      # - run: npm run db:generate && git diff --exit-code drizzle/
+      # - run: npm run openapi:write && git diff --exit-code packages/ropa-client/openapi.json

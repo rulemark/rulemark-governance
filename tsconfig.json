@@ -1,0 +1,8 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/ropa-schemas" },
+    { "path": "packages/ropa-client" },
+    { "path": "apps/ropa-api" }
+  ]
+}

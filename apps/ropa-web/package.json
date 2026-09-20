@@ -1,0 +1,13 @@
+{
+  "name": "@rulemark/ropa-web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "RoPA frontend (framework not chosen yet)",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@rulemark/ropa-client": "*",
+    "@rulemark/ropa-schemas": "*"
+  },
+  "scripts": {}
+}
