@@ -1,0 +1,33 @@
+#!/bin/sh
+# Guard against pushing this repo with the wrong GitHub identity.
+# Enable with: git config core.hooksPath .githooks
+set -e
+
+EXPECTED_USER="mattmeiske"
+EXPECTED_OWNER="rulemark"
+
+remote_url="$2"
+case "$remote_url" in
+  *"$EXPECTED_OWNER"/*) ;;
+  *)
+    echo "pre-push: remote '$remote_url' is not under '$EXPECTED_OWNER'." >&2
+    exit 1
+    ;;
+esac
+
+ssh_cmd="$(git config --get core.sshCommand || echo ssh)"
+who="$($ssh_cmd -T git@github.com 2>&1 | sed -n 's/^Hi \([^!]*\)!.*/\1/p')"
+if [ "$who" != "$EXPECTED_USER" ]; then
+  echo "pre-push: authenticating to GitHub as '${who:-unknown}', expected '$EXPECTED_USER'." >&2
+  echo "          check: git config --get core.sshCommand" >&2
+  exit 1
+fi
+
+bad_authors="$(git log --format='%ae' "@{push}..HEAD" 2>/dev/null | grep -v '@rulemark\.io$' | sort -u || true)"
+if [ -n "$bad_authors" ]; then
+  echo "pre-push: commits authored with unexpected email(s):" >&2
+  echo "$bad_authors" | sed 's/^/          /' >&2
+  exit 1
+fi
+
+echo "pre-push: ok — $who → $remote_url"

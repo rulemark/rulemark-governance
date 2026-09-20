@@ -28,6 +28,15 @@ packages/ropa-client    @rulemark/ropa-client  — typed API client
 docs/              design and program documents
 ```
 
+## Contributing to this repo
+
+Commits are signed and authored as `matt@rulemark.io`. After cloning, enable the
+guard hook, which refuses a push with the wrong GitHub identity or remote:
+
+```bash
+git config core.hooksPath .githooks
+```
+
 ## Getting started
 
 ```bash
