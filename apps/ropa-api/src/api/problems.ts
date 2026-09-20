@@ -1,34 +1,16 @@
+import { PROBLEM_TYPE_BASE, type FieldError, type ProblemDetails } from '@rulemark/ropa-schemas';
 import type { ZodError } from 'zod';
 
 /**
  * RFC 9457 problem details (`application/problem+json`), the single error shape
  * of the API (`ropa-api.md` §1.7).
  *
- * The wire *shape* moves to `@rulemark/ropa-schemas` in Phase 2 so clients can
- * parse it; what lives here is the server-side machinery for building and
+ * The wire shape itself lives in `@rulemark/ropa-schemas`, so a client can parse
+ * a failure; what lives here is the server-side machinery for building and
  * throwing one, which stays private to the app (`ropa-packages.md` §3).
  */
-
-/** Problem types are URIs. Nothing dereferences them; they identify the kind. */
-export const PROBLEM_TYPE_BASE = 'https://ropa.example/problems/';
-
-export interface FieldError {
-  /** JSON Pointer (RFC 6901) into the request body: `/engagements/0/role`. */
-  readonly path: string;
-  readonly code: string;
-  readonly message: string;
-}
-
-export interface ProblemDetails {
-  type: string;
-  title: string;
-  status: number;
-  detail?: string;
-  instance?: string;
-  errors?: FieldError[];
-  /** Extensions: `requestId`, `requiredPermission`, … */
-  [extension: string]: unknown;
-}
+export type { FieldError, ProblemDetails };
+export { PROBLEM_TYPE_BASE };
 
 interface ProblemInit {
   readonly status: number;

@@ -1,3 +1,4 @@
+import { ProblemDetails as ProblemDetailsSchema } from '@rulemark/ropa-schemas/errors';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
@@ -8,6 +9,7 @@ import {
   fieldErrorsFromZod,
   forbidden,
   notFound,
+  notYetSupported,
   preconditionFailed,
   preconditionRequired,
   toProblemDetails,
@@ -128,5 +130,36 @@ describe('fieldErrorsFromZod', () => {
     const paths = fieldErrorsFromZod(result.error!).map((error) => error.path);
     expect(paths).toContain('/a~1b');
     expect(paths).toContain('/c~0d');
+  });
+});
+
+describe('the shared wire contract', () => {
+  /** One of every problem this module can produce, plus an unexpected error. */
+  const everyProblem = [
+    badRequest('bad', [{ path: '/name', code: 'invalid_type', message: 'Expected string' }]),
+    unauthorized('no token'),
+    forbidden('activity:approve'),
+    notFound('gone'),
+    conflict('slug taken'),
+    preconditionFailed('stale'),
+    preconditionRequired('need If-Match'),
+    validationFailed('Activity does not satisfy role rules', []),
+    notYetSupported('joint_controller'),
+    new Error('unexpected'),
+  ];
+
+  it.each(everyProblem)('parses as @rulemark/ropa-schemas ProblemDetails: %s', (error) => {
+    const details = toProblemDetails(error, { instance: '/v1/x', requestId: 'trace-1' });
+    const parsed = ProblemDetailsSchema.safeParse(details);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.data?.type).toBe(details.type);
+    expect(parsed.data?.status).toBe(details.status);
+    expect(parsed.data?.['requestId']).toBe('trace-1');
+  });
+
+  it('would notice if the server stopped sending a status', () => {
+    const { status: _status, ...withoutStatus } = toProblemDetails(notFound('gone'));
+    expect(ProblemDetailsSchema.safeParse(withoutStatus).success).toBe(false);
   });
 });

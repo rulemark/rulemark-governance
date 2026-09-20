@@ -33,7 +33,7 @@ const APP_ROOT = fileURLToPath(new URL('..', import.meta.url));
 const ENTRY = fileURLToPath(new URL('./index.ts', import.meta.url));
 
 function startService(env: Record<string, string>): ChildProcess {
-  return spawn(process.execPath, ['--import', 'tsx', ENTRY], {
+  return spawn(process.execPath, ['--import', 'tsx', '--conditions=development', ENTRY], {
     cwd: APP_ROOT,
     env: { ...process.env, NODE_ENV: 'test', LOG_LEVEL: 'info', ...env },
     stdio: ['ignore', 'pipe', 'pipe'],

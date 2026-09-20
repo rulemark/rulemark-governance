@@ -6,7 +6,7 @@ Ship the foundation of the RoPA service: a running, documented, authenticated Ex
 Build step 1 from `docs/ropa/ropa-api.md` §8. Activities (the discriminated union, role rules, lifecycle) are **step 2**, but every mechanism they need is built here.
 
 ## Current Phase
-Phase 1 complete. Phase 2 (shared schemas package) next.
+Phases 1–2 complete. Phase 3 (database foundations) next.
 
 ## Definition of done for step 1
 - `npm run dev` serves the API locally; `/healthz`, `/openapi.json` and `/api-docs` respond.
@@ -31,13 +31,14 @@ Reference: `ropa-api.md` §1, `ropa-database.md` §11, `ropa-packages.md` §2
 
 ### Phase 2: Shared schemas package
 Reference: `ropa-packages.md` §4, `ropa-database.md` §1
-- [ ] `packages/ropa-schemas`: zod 4 peer dependency, source-only exports (tsup deferred to first publish)
-- [ ] `enums`: every value list from DM (shared by Zod and Drizzle checks)
-- [ ] `primitives`: Slug, Code, CountryCode, IsoDuration, Ref, Cursor, AsOf
-- [ ] `errors`: ProblemDetails; `constants`: API_VERSION
-- [ ] Input/Output schemas for the foundation records (party, agreement terms, agreement, offering, system, taxonomies)
+- [x] `packages/ropa-schemas`: zod 4 peer dependency, source-only exports (tsup deferred to first publish)
+- [x] `enums`: every value list from DM (shared by Zod and Drizzle checks)
+- [x] `primitives`: Slug, Code, CountryCode, IsoDuration, Ref, Cursor, AsOf
+- [x] `errors`: ProblemDetails; `constants`: API_VERSION
+- [x] Input/Output schemas for the foundation records (party, agreement terms, agreement, offering, system, taxonomies)
+- [x] Export conditions so the built service can load the package (see findings)
 - **Done when:** `apps/ropa-api` imports the package and type-checks against it
-- **Status:** pending
+- **Status:** complete — 98 package tests, a cross-package contract test in the API, `npm run check` and `npm run build` clean from an empty tree
 
 ### Phase 3: Database foundations
 Reference: `ropa-database.md` §3, §4, §8
@@ -129,6 +130,9 @@ Activities (discriminated union, role rules, lifecycle, client scoping), the vie
 | **Packages stay source-only** (`main: ./src/index.ts`), tsup added when we first publish | Open question 4, resolved 2026-09-19. Project references already give cross-workspace type-checking; a build step per change buys nothing yet |
 | **`dotenv` for local environment loading**, not Node's `--env-file` | User decision, 2026-09-19. Familiar and identical everywhere; Render injects variables directly, so this is a development-only concern |
 | Config validates only the variables a phase actually uses | Requiring `DATABASE_URL` before anything connects would break `npm run dev` without Docker. Added in Phase 3 |
+| **Packages ship an export map with a `development` condition**: sources for tsx and Vitest, built output for everything else | Phase 2. Node will not strip types inside `node_modules`, so a TypeScript entry point breaks `node dist/index.js` |
+| **An unset optional field is returned as `null`, never omitted** | A typed client gets a field that is always present, and OpenAPI stays simple. Enforced by the Output schemas |
+| **Pure single-record rules live in the schemas** (self-party DPO, `endedAt >= signedAt`, Render systems need a region); anything needing another record is the server's job | `ropa-packages.md` §4.3: a form can then show the same error the server would return |
 
 ## Errors encountered
 | Error | Attempt | Resolution |

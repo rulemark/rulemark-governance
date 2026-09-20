@@ -1,0 +1,148 @@
+import { describe, expect, it } from 'vitest';
+
+import {
+  AsOf,
+  CountryCode,
+  Cursor,
+  Identifier,
+  IsoDate,
+  IsoDateTime,
+  IsoDuration,
+  Ref,
+  RegionCode,
+  Slug,
+  Uuid,
+} from './primitives.js';
+
+describe('Slug', () => {
+  it.each(['health', 'standard-dpa-v3', 'hireloop-db', 'ats'])('accepts %s', (value) => {
+    expect(Slug.safeParse(value).success).toBe(true);
+  });
+
+  it.each(['Health', 'has space', '-leading', 'trailing-', 'double--hyphen', ''])(
+    'rejects %s',
+    (value) => {
+      expect(Slug.safeParse(value).success).toBe(false);
+    },
+  );
+
+  it('rejects a UUID-shaped slug, so the API can always tell the two apart (DM §3.0)', () => {
+    expect(Slug.safeParse('3f9c1a2b-4d5e-7f80-9a1b-2c3d4e5f6071').success).toBe(false);
+  });
+});
+
+describe('CountryCode', () => {
+  it.each(['DE', 'US', 'IN', 'IE'])('accepts %s', (value) => {
+    expect(CountryCode.safeParse(value).success).toBe(true);
+  });
+
+  it.each(['de', 'DEU', 'D', ''])('rejects %s', (value) => {
+    expect(CountryCode.safeParse(value).success).toBe(false);
+  });
+});
+
+describe('RegionCode', () => {
+  it('accepts the EEA region and plain country codes (agreement_terms.allowed_regions)', () => {
+    expect(RegionCode.safeParse('EEA').success).toBe(true);
+    expect(RegionCode.safeParse('IE').success).toBe(true);
+    expect(RegionCode.safeParse('eea').success).toBe(false);
+  });
+});
+
+describe('IsoDuration', () => {
+  it.each(['P90D', 'P7Y', 'P1Y6M', 'PT12H'])('accepts %s', (value) => {
+    expect(IsoDuration.safeParse(value).success).toBe(true);
+  });
+
+  it.each(['P', '90D', '7 years', ''])('rejects %s', (value) => {
+    expect(IsoDuration.safeParse(value).success).toBe(false);
+  });
+});
+
+describe('IsoDate and IsoDateTime', () => {
+  it('accepts a business date', () => {
+    expect(IsoDate.safeParse('2026-03-16').success).toBe(true);
+  });
+
+  it('rejects a timestamp where a date is expected', () => {
+    expect(IsoDate.safeParse('2026-03-16T10:00:00Z').success).toBe(false);
+  });
+
+  it('rejects a date that does not exist', () => {
+    expect(IsoDate.safeParse('2026-02-30').success).toBe(false);
+  });
+
+  it('accepts an RFC 3339 timestamp', () => {
+    expect(IsoDateTime.safeParse('2026-03-16T10:00:00Z').success).toBe(true);
+  });
+});
+
+describe('AsOf', () => {
+  it('takes either a date or a timestamp, because a report can be asked for either', () => {
+    expect(AsOf.safeParse('2026-03-16').success).toBe(true);
+    expect(AsOf.safeParse('2026-03-16T10:00:00Z').success).toBe(true);
+    expect(AsOf.safeParse('March').success).toBe(false);
+  });
+});
+
+describe('Uuid', () => {
+  it('accepts a UUIDv7, which is what Postgres 18 generates', () => {
+    expect(Uuid.safeParse('0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e').success).toBe(true);
+  });
+
+  it('rejects a slug', () => {
+    expect(Uuid.safeParse('mailcrest').success).toBe(false);
+  });
+});
+
+describe('Identifier', () => {
+  it('accepts any of the three identifier kinds a path or body may carry (DM §3.0)', () => {
+    expect(Identifier.safeParse('0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e').success).toBe(true);
+    expect(Identifier.safeParse('mailcrest').success).toBe(true);
+    expect(Identifier.safeParse('P3').success).toBe(true);
+  });
+
+  it('rejects an empty string', () => {
+    expect(Identifier.safeParse('').success).toBe(false);
+  });
+});
+
+describe('Ref', () => {
+  it('is the small object every reference is returned as (§1.2)', () => {
+    const parsed = Ref.parse({
+      id: '0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e',
+      slug: 'mailcrest',
+      name: 'Mailcrest Inc.',
+    });
+    expect(parsed.slug).toBe('mailcrest');
+  });
+
+  it('allows a code instead of a slug, for activities and review items', () => {
+    expect(
+      Ref.safeParse({
+        id: '0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e',
+        code: 'P3',
+        name: 'CV parsing',
+      }).success,
+    ).toBe(true);
+  });
+
+  it('allows neither, because an agreement has only an id', () => {
+    expect(
+      Ref.safeParse({ id: '0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e', name: 'Aurelia — Standard DPA' })
+        .success,
+    ).toBe(true);
+  });
+
+  it('always needs an id and a name', () => {
+    expect(Ref.safeParse({ slug: 'mailcrest', name: 'Mailcrest Inc.' }).success).toBe(false);
+    expect(Ref.safeParse({ id: '0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e' }).success).toBe(false);
+  });
+});
+
+describe('Cursor', () => {
+  it('is an opaque non-empty string', () => {
+    expect(Cursor.safeParse('eyJpZCI6IjAxOTkifQ').success).toBe(true);
+    expect(Cursor.safeParse('').success).toBe(false);
+  });
+});

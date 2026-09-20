@@ -32,6 +32,27 @@ Three bugs were caught by tests rather than by review: internal error detail
 leaking outside development, a duplicated log line per failed request, and
 `pino-http` discarding the real error on a 5xx. See findings.md.
 
+### Phase 2 — Shared schemas package (complete)
+`@rulemark/ropa-schemas`, source-only, Zod 4 as a peer dependency. 98 tests,
+written before each module.
+
+- `enums.ts` — every value list in the data model, frozen, with `RENDER_SYSTEM_KINDS`
+  derived from `SYSTEM_KINDS` so the two cannot drift
+- `primitives.ts` — `Slug` (never UUID-shaped), `Code`, `CountryCode`, `RegionCode`,
+  `IsoDuration`, `IsoDate`, `IsoDateTime`, `AsOf`, `Uuid`, `Identifier`, `Ref`, `Cursor`
+- `errors.ts` — `ProblemDetails` as a loose object, so RFC 9457 extensions survive
+- `constants.ts` — `API_VERSION`, `PROBLEM_TYPE_BASE`, paging defaults
+- `resources/` — Input and Output schemas for party, agreement terms, agreement,
+  offering, system and the three taxonomies, plus `listResponse` and `ListQuery`
+- `apps/ropa-api` now takes `ProblemDetails`, `FieldError` and `PROBLEM_TYPE_BASE`
+  from the package; a contract test asserts every problem the server builds parses
+  as the shared shape
+
+**Packaging fix.** Importing the package broke `node dist/index.js`, because Node
+refuses to strip types inside `node_modules`. Export conditions now serve sources
+to tsx and Vitest and built output to everything else. Verified from a clean tree
+with no `dist/` and no `.tsbuildinfo`.
+
 ## Test Results
 | Test | Command | Expected | Actual | Status |
 |---|---|---|---|---|
@@ -41,6 +62,10 @@ leaking outside development, a duplicated log line per failed request, and
 | Build | `npm run build` | `dist/` without test files | as expected | ✅ |
 | Dev server | `PORT=3999 npm run dev` | `/healthz` 200, 404 as problem+json | as expected | ✅ |
 | Built output, production mode | `NODE_ENV=production node dist/index.js` | JSON logs, one line per request, clean SIGTERM exit | as expected | ✅ |
+| Phase 2 suite (98 tests, 4 files) | `npm run test` | all pass | all pass | ✅ |
+| Tests resolve to sources | delete `dist/`, `npm run test` | 149 tests still pass | as expected | ✅ |
+| Clean-slate gate | delete `dist/` and `*.tsbuildinfo`, `npm run check && npm run build` | clean | clean | ✅ |
+| Production entry with a package import | `NODE_ENV=production node dist/index.js` | starts and shuts down cleanly | as expected | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -50,8 +75,8 @@ leaking outside development, a duplicated log line per failed request, and
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Build step 1, Phase 1 complete; Phase 2 (shared schemas package) next |
+| Where am I? | Build step 1, Phases 1–2 complete; Phase 3 (database foundations) next |
 | Where am I going? | Phases 2–9: schemas, database, persistence, auth, endpoints, OpenAPI, CI, deploy |
 | What's the goal? | A running, authenticated, documented API on Render with foundation records working end to end |
 | What have I learned? | See findings.md |
-| What have I done? | Design complete and pushed; monorepo scaffolded; the API app boots, logs, handles errors and shuts down cleanly, under test |
+| What have I done? | Design complete and pushed; monorepo scaffolded; the API app boots, logs, handles errors and shuts down cleanly; the shared schemas package defines every foundation shape and the API consumes it |

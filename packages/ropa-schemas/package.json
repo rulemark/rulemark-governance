@@ -5,12 +5,54 @@
   "type": "module",
   "description": "Zod schemas, types and enum lists for the RoPA API (demo project)",
   "license": "UNLICENSED",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./enums": {
+      "development": "./src/enums.ts",
+      "types": "./dist/enums.d.ts",
+      "default": "./dist/enums.js"
+    },
+    "./primitives": {
+      "development": "./src/primitives.ts",
+      "types": "./dist/primitives.d.ts",
+      "default": "./dist/primitives.js"
+    },
+    "./errors": {
+      "development": "./src/errors.ts",
+      "types": "./dist/errors.d.ts",
+      "default": "./dist/errors.js"
+    },
+    "./constants": {
+      "development": "./src/constants.ts",
+      "types": "./dist/constants.d.ts",
+      "default": "./dist/constants.js"
+    },
+    "./resources": {
+      "development": "./src/resources/index.ts",
+      "types": "./dist/resources/index.d.ts",
+      "default": "./dist/resources/index.js"
+    }
   },
   "scripts": {
-    "typecheck": "tsc --build"
-  }
+    "build": "tsc --build",
+    "typecheck": "tsc --build",
+    "typecheck:tests": "tsc -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "peerDependencies": {
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "zod": "^4.6.5"
+  },
+  "files": [
+    "dist"
+  ]
 }

@@ -37,6 +37,15 @@
 - **Tests that spawn the service must resolve paths from `import.meta.url`.** `process.cwd()` differs between `npm test -w apps/ropa-api` and a run from the repository root.
 - `npm install` warns that `esbuild` and `fsevents` have unapproved install scripts. The platform binaries are present and `tsx` works, so nothing was approved.
 
+### Phase 2 (2026-09-19)
+- **Node will not strip types inside `node_modules`**, so a workspace package whose entry point is TypeScript cannot be loaded by `node dist/index.js`. Source-only packages break the production build the moment the app actually imports one. Fixed with **export conditions**: `development` → `./src/*.ts` for tsx and Vitest, `default` → `./dist/*.js` for everything else. `npm run dev` and the spawned test service pass `--conditions=development`; both `vitest.config.ts` files set `resolve.conditions`.
+- **Test type-checking must follow test resolution.** `tsconfig.test.json` sets `customConditions: ["development"]` so tests are type-checked against the same sources Vitest runs, instead of against `dist/*.d.ts` that may not have been built yet.
+- **`tsc --build` trusts `.tsbuildinfo` over reality.** Deleting `dist/` by hand leaves the build thinking it is current and it silently emits nothing. `--force` is the escape hatch; CI is unaffected because a fresh clone has no build info.
+- **Zod 4 `z.looseObject`** is what keeps RFC 9457 extension members (`requiredPermission`, `requestId`); a plain `z.object` silently drops exactly the part a caller needs most.
+- **A refined schema cannot be extended.** `PartyInput` is `.superRefine`d for the self-party DPO rule, so the plain object is exported separately as `PartyInputBase` for anything that needs `.extend()` or `.partial()` later.
+- `RENDER_SYSTEM_KINDS` is **derived** from `SYSTEM_KINDS` by prefix rather than written out twice, so a new Render kind cannot be missed by the region rule.
+- ESLint's `no-unused-vars` needed `ignoreRestSiblings` and a `^_` pattern: omitting a key by destructuring (`const { region: _region, ...rest }`) is the natural way to test a missing field.
+
 ## Issues encountered
 | Issue | Resolution |
 |---|---|
