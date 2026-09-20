@@ -117,6 +117,22 @@ with no `dist/` and no `.tsbuildinfo`.
 - 21 new database tests, including a real (committing) transaction test that
   proves the record, its history and its events land together or not at all
 
+### Phase 5 — Authentication and authorization (complete)
+- `@rulemark/ropa-schemas`: `PERMISSIONS` and `ROLES`, plus `Principal`,
+  `TokenRequest`, `TokenResponse` and `MeResponse`
+- Config: `JWT_SECRET`, `TOKEN_MINT_SECRET` (both required, 16 characters
+  minimum, no defaults), `PRINCIPALS` parsed and validated as JSON with unique
+  subjects, `REQUIRE_AUTH_FOR_READS` and `AUTH_DISABLED`, the latter refused in
+  production
+- `src/auth/permissions.ts` — the role map, server-authoritative
+- `src/auth/tokens.ts` — HS256 through `jose`, eight-hour expiry, per-token
+  `jti`, claims validated on verify
+- `src/api/middleware/authenticate.ts` — who is calling, and `actorFor`
+- `src/api/middleware/authorize.ts` — `requires(permission)`, 401 against 403
+- `src/api/routes/auth.ts` — `POST /v1/tokens` (rate limited, constant-time
+  secret comparison) and `GET /v1/me`
+- CI and the service harness carry test values for the new required variables
+
 ## Test Results
 | Test | Command | Expected | Actual | Status |
 |---|---|---|---|---|
@@ -139,6 +155,11 @@ with no `dist/` and no `.tsbuildinfo`.
 | Phase 4 persistence suite | `npm run test` | save, concurrency, codes, identifiers | all pass | ✅ |
 | Atomicity, for real | `db.transaction()` on its own connection, made to throw | no row, no revision, no outbox row | as expected | ✅ |
 | Whole gate from nothing, twice | fresh database, no build artifacts, run twice | 216 tests pass both times | as expected | ✅ |
+| Phase 5 auth suite | `npm run test` | permissions, tokens, endpoints, actor | all pass | ✅ |
+| Viewer refused a write | `POST /v1/parties` with a viewer token | 403 naming `record:write` | as expected | ✅ |
+| Revision records the token's subject | write with a token plus a contradicting `X-Actor` | `revision.actor` is the token's `sub` | as expected | ✅ |
+| Live demo tour | `npm run dev`, mint, `/v1/me`, wrong secret | token minted, permissions listed, 401 on a bad secret | as expected | ✅ |
+| Whole gate | `npm run check` and `npm run test:dist` | 274 tests | all pass | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -148,8 +169,8 @@ with no `dist/` and no `.tsbuildinfo`.
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Build step 1, Phases 1–4 complete; Phase 5 (authentication and authorization) next |
+| Where am I? | Build step 1, Phases 1–5 complete; Phase 6 (foundation record endpoints) next |
 | Where am I going? | Phases 2–9: schemas, database, persistence, auth, endpoints, OpenAPI, CI, deploy |
 | What's the goal? | A running, authenticated, documented API on Render with foundation records working end to end |
 | What have I learned? | See findings.md |
-| What have I done? | Design complete and pushed; monorepo scaffolded; the API app boots, logs, handles errors and shuts down cleanly; the shared schemas package defines every foundation shape and the API consumes it; eleven tables exist in Postgres with their constraints and triggers proven by test; records save with versioning, revisions and outbox rows in one transaction |
+| What have I done? | Design complete and pushed; monorepo scaffolded; the API app boots, logs, handles errors and shuts down cleanly; the shared schemas package defines every foundation shape and the API consumes it; eleven tables exist in Postgres with their constraints and triggers proven by test; records save with versioning, revisions and outbox rows in one transaction; tokens are minted and permissions enforced per route |

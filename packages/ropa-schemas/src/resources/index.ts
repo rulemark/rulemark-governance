@@ -1,4 +1,5 @@
 export * from './common.js';
+export * from './auth.js';
 export * from './party.js';
 export * from './agreement-terms.js';
 export * from './agreement.js';

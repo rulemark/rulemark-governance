@@ -1,10 +1,13 @@
+import { API_VERSION } from '@rulemark/ropa-schemas';
 import express, { type Express, type Router } from 'express';
 import { pinoHttp } from 'pino-http';
 
 import type { Config } from '../shared/config.js';
 import { createLogger, type Logger } from '../shared/logger.js';
+import { authenticate } from './middleware/authenticate.js';
 import { notFoundHandler, problemHandler } from './middleware/errors.js';
 import { requestId } from './middleware/request-id.js';
+import { authRouter } from './routes/auth.js';
 import { healthzRouter } from './routes/healthz.js';
 
 export interface AppOptions {
@@ -49,7 +52,13 @@ export function createApp({ config, logger = createLogger(config), router }: App
 
   app.use(express.json({ limit: '1mb' }));
 
+  // Outside /v1 and outside auth: Render polls it before anything is ready.
   app.use(healthzRouter);
+
+  // Every route below knows who is calling; what they may do is each route's
+  // own declaration, through `requires()` (§1.9).
+  app.use(authenticate(config));
+  app.use(`/${API_VERSION}`, authRouter(config));
   if (router !== undefined) app.use(router);
 
   app.use(notFoundHandler);

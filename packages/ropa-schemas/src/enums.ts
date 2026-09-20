@@ -83,6 +83,41 @@ export const DATA_CATEGORY_SPECIALS = list('none', 'art9', 'art10');
 /** The `{type}` segment of `/taxonomy/{type}` (API §2). */
 export const TAXONOMY_TYPES = list('subject-categories', 'data-categories', 'security-measures');
 
+// --- authentication and authorization (API §1.9) ---
+
+/**
+ * Each route declares the one permission it needs. Two splits are deliberate:
+ * editing is not approving (`record:write` against `activity:approve`), and
+ * services get their own narrow roles rather than borrowing a person's.
+ */
+export const PERMISSIONS = list(
+  'record:read',
+  'record:write',
+  'record:delete',
+  'taxonomy:write',
+  'system:write',
+  'activity:approve',
+  'review:read',
+  'review:create',
+  'review:resolve',
+  'view:report',
+  'view:subprocessors',
+  'view:impact',
+  'view:datamap',
+  'view:coverage',
+  'history:read',
+);
+
+export const ROLES = list(
+  'viewer',
+  'editor',
+  'approver',
+  'admin',
+  'service:monitor',
+  'service:snapshot',
+  'service:dsar',
+);
+
 // --- workflow, history and events ---
 
 export const REVIEW_SOURCES = list('monitor', 'snapshot', 'manual', 'schedule');
@@ -129,6 +164,8 @@ export type SystemKind = (typeof SYSTEM_KINDS)[number];
 export type RenderSystemKind = Extract<SystemKind, `render_${string}`>;
 export type DataCategorySpecial = (typeof DATA_CATEGORY_SPECIALS)[number];
 export type TaxonomyType = (typeof TAXONOMY_TYPES)[number];
+// `Permission` and `Role` types come from `resources/auth.ts`, which owns the
+// Zod schemas built on these lists, so the name means one thing.
 export type ReviewSource = (typeof REVIEW_SOURCES)[number];
 export type ReviewReason = (typeof REVIEW_REASONS)[number];
 export type ReviewStatus = (typeof REVIEW_STATUSES)[number];

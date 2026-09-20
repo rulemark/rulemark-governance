@@ -69,6 +69,15 @@
 - The `Transaction` type covers a `Database` as well as Drizzle's transaction handle: a connection can already be inside a transaction without Drizzle having opened it, which is how the harness isolates tests and how a caller holding a checked-out client works.
 - `Problem` moved from `src/api/` to `src/shared/`, so the domain can throw the app's error vocabulary without depending on the HTTP layer.
 
+### Phase 5 (2026-09-20)
+- **A module-level singleton is the wrong place for per-app configuration.** The first `requires()` read `REQUIRE_AUTH_FOR_READS` from module state, which every app in a test process would have shared. The switch now lives in `authenticate`, which turns configuration into the anonymous caller's roles, leaving `requires()` reading nothing but the request.
+- **A bad token is refused even on a public read.** Falling back to anonymous would hide an expired session behind a page that merely looks emptier than it should.
+- **Token claims are validated, not trusted.** Roles travel inside the token, so `verifyToken` parses them against `Principal` rather than handing whatever it finds to the permission map.
+- **One message for "unknown subject" and "wrong secret".** Distinguishing them turns the mint endpoint into a directory of valid subjects. The secret comparison is constant-time, and equal-length, so neither the value nor its length leaks.
+- **`AUTH_DISABLED` is refused when `NODE_ENV=production`.** It honours `X-Actor`, so anyone could claim to be anyone in the history — a development convenience that must never be a deployment.
+- `Permission` and `Role` types are exported from `resources/auth.ts` rather than `enums.ts`, because the schema module owns the name; exporting both caused an ambiguous re-export.
+- Express 5 needs async route bodies wrapped (`void (async () => …)()`) when the handler is not itself declared `async`, since the middleware signature returns `void`.
+
 ## Issues encountered
 | Issue | Resolution |
 |---|---|

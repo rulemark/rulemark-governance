@@ -1,6 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
+import { Router } from 'express';
+import request from 'supertest';
 import { describe, expect, it } from 'vitest';
+
+import { createApp } from '../../src/api/app.js';
+import { actorFor } from '../../src/api/middleware/authenticate.js';
+import { requires } from '../../src/api/middleware/authorize.js';
+import { loadConfig } from '../../src/shared/config.js';
 
 import { codeCounter, eventOutbox, party, revision } from '../../src/db/schema/index.js';
 import {
@@ -18,7 +25,7 @@ import { allocateCode } from '../../src/domain/codes.js';
 import { findByIdentifier, identifierKind } from '../../src/domain/identifiers.js';
 import { PartySnapshot, SNAPSHOT_SCHEMA_VERSION } from '../../src/domain/snapshots.js';
 import { Problem } from '../../src/shared/problems.js';
-import { useDatabase, withRealTransaction } from './harness.js';
+import { TEST_DATABASE_URL, useDatabase, withRealTransaction } from './harness.js';
 
 /**
  * The persistence machinery against real Postgres.
@@ -431,5 +438,97 @@ describe('backdating (seed only, §9)', () => {
     expect(stored!.validFrom.toISOString()).toBe(backdated.toISOString());
     // created_at keeps the backdating visible rather than hiding it (§4.5).
     expect(stored!.createdAt.getTime()).toBeGreaterThan(backdated.getTime());
+  });
+});
+
+describe('the actor on a revision (§1.6)', () => {
+  const AUTH_ENV = {
+    LOG_LEVEL: 'silent',
+    NODE_ENV: 'test',
+    DATABASE_URL: TEST_DATABASE_URL,
+    JWT_SECRET: 'a-secret-long-enough-for-hs256-signing',
+    TOKEN_MINT_SECRET: 'the-mint-secret-nobody-should-guess',
+    PRINCIPALS: JSON.stringify([
+      { sub: 'tomas.herrera', name: 'Tomás Herrera', roles: ['editor'] },
+    ]),
+  };
+
+  /**
+   * A stand-in for the party endpoint Phase 6 builds, wired to this test's
+   * transaction, so the whole path is exercised: token → caller → actor →
+   * revision.
+   */
+  function appSaving(overrides: Record<string, string> = {}) {
+    const config = loadConfig({ ...AUTH_ENV, ...overrides });
+    const router = Router();
+    router.post('/v1/parties', requires('record:write'), (req, res, next) => {
+      void (async () => {
+        try {
+          const row = await createAggregate(
+            db().db,
+            partyAggregate,
+            aVendor({ slug: req.body.slug }),
+            {
+              actor: actorFor(req),
+            },
+          );
+          res.status(201).json({ id: row.id });
+        } catch (error) {
+          next(error);
+        }
+      })();
+    });
+    return createApp({ config, router });
+  }
+
+  async function mint(app: ReturnType<typeof appSaving>): Promise<string> {
+    const response = await request(app)
+      .post('/v1/tokens')
+      .send({ subject: 'tomas.herrera', secret: AUTH_ENV.TOKEN_MINT_SECRET });
+    return response.body.token as string;
+  }
+
+  it("records the token's subject, not anything the caller asked for", async () => {
+    const app = appSaving();
+    const token = await mint(app);
+
+    const created = await request(app)
+      .post('/v1/parties')
+      .set('Authorization', `Bearer ${token}`)
+      // Offered, and ignored: an actor callers could choose would undermine
+      // the point of the history.
+      .set('X-Actor', 'priya.raman')
+      .send({ slug: 'pm-actor-vendor' });
+
+    expect(created.status).toBe(201);
+
+    const [stored] = await db()
+      .db.select()
+      .from(revision)
+      .where(eq(revision.entityId, created.body.id as string));
+    expect(stored?.actor).toBe('tomas.herrera');
+  });
+
+  it('honours X-Actor only when auth is switched off for development', async () => {
+    const app = appSaving({ AUTH_DISABLED: 'true' });
+
+    const created = await request(app)
+      .post('/v1/parties')
+      .set('X-Actor', 'priya.raman')
+      .send({ slug: 'pm-actor-dev' });
+
+    expect(created.status).toBe(201);
+
+    const [stored] = await db()
+      .db.select()
+      .from(revision)
+      .where(eq(revision.entityId, created.body.id as string));
+    expect(stored?.actor).toBe('priya.raman');
+  });
+
+  it('refuses an anonymous write, so no revision can be actorless', async () => {
+    const response = await request(appSaving()).post('/v1/parties').send({ slug: 'pm-nobody' });
+    expect(response.status).toBe(401);
+    expect(await db().db.select().from(party).where(eq(party.slug, 'pm-nobody'))).toHaveLength(0);
   });
 });

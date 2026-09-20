@@ -6,7 +6,7 @@ Ship the foundation of the RoPA service: a running, documented, authenticated Ex
 Build step 1 from `docs/ropa/ropa-api.md` §8. Activities (the discriminated union, role rules, lifecycle) are **step 2**, but every mechanism they need is built here.
 
 ## Current Phase
-Phases 1–4 complete. Phase 5 (authentication and authorization) next.
+Phases 1–5 complete. Phase 6 (foundation record endpoints) next.
 
 ## Definition of done for step 1
 - `npm run dev` serves the API locally; `/healthz`, `/openapi.json` and `/api-docs` respond.
@@ -69,14 +69,14 @@ Reference: `ropa-database.md` §5, §6; `ropa-api.md` §1.4, §1.8
 
 ### Phase 5: Authentication and authorization
 Reference: `ropa-api.md` §1.9, §1.6
-- [ ] `PRINCIPALS` config parsing; `jose` HS256 signing
-- [ ] `POST /v1/tokens` (mint, rate-limited), `GET /v1/me`
-- [ ] Verification middleware: bearer token, claims, expiry; anonymous = viewer unless `REQUIRE_AUTH_FOR_READS`
-- [ ] Permission map (roles → permissions) and `requires()` per route
-- [ ] 401 vs 403 with `requiredPermission` in the problem details
-- [ ] Actor from `sub` into revisions; `X-Actor` only when `AUTH_DISABLED`
+- [x] `PRINCIPALS` config parsing; `jose` HS256 signing
+- [x] `POST /v1/tokens` (mint, rate-limited), `GET /v1/me`
+- [x] Verification middleware: bearer token, claims, expiry; anonymous = viewer unless `REQUIRE_AUTH_FOR_READS`
+- [x] Permission map (roles → permissions) and `requires()` per route
+- [x] 401 vs 403 with `requiredPermission` in the problem details
+- [x] Actor from `sub` into revisions; `X-Actor` only when `AUTH_DISABLED`
 - **Done when:** a viewer token is refused a write with 403 naming the permission, and revisions record the token's subject
-- **Status:** pending
+- **Status:** complete — both proven by test, and driven live against `npm run dev`
 
 ### Phase 6: Foundation record endpoints
 Reference: `ropa-api.md` §2, §4; `ropa-packages.md` §4
@@ -147,6 +147,9 @@ Activities (discriminated union, role rules, lifecycle, client scoping), the vie
 | **A deletion gets its own revision version (N+1)**, not the deleted row's | `revision_version_once` rightly refuses a second row for a spent version, and `asOf` relies on `snapshot.version` matching `revision.version` |
 | **No test disables a constraint or a trigger** | One that did left `revision_append_only` disabled for every later run. A test that commits cleans up only its own record and leaves history alone |
 | **Database assertions are scoped to the record under test** | Once anything commits, unscoped queries see other tests' rows. Counter assertions are relative, never absolute |
+| **`AUTH_DISABLED` makes the caller an admin and honours `X-Actor`**, and configuration refuses it in production | It exists so the API can be driven locally without minting. In production it would let anyone claim to be anyone in the history |
+| **A token that is present but invalid is refused even on a public read** | Falling back to anonymous would hide an expired session behind a page that just looks emptier |
+| **The mint endpoint gives one message for an unknown subject and a wrong secret** | Telling them apart turns it into a directory of valid subjects |
 | **Pure single-record rules live in the schemas** (self-party DPO, `endedAt >= signedAt`, Render systems need a region); anything needing another record is the server's job | `ropa-packages.md` §4.3: a form can then show the same error the server would return |
 
 ## Errors encountered

@@ -11,6 +11,11 @@ const TEST_ENV = {
   LOG_LEVEL: 'silent',
   NODE_ENV: 'test',
   DATABASE_URL: 'postgres://ropa:ropa@localhost:5432/ropa',
+  JWT_SECRET: 'a-secret-long-enough-for-hs256-signing',
+  TOKEN_MINT_SECRET: 'the-mint-secret-nobody-should-guess',
+  PRINCIPALS: JSON.stringify([
+    { sub: 'priya.raman', name: 'Priya Raman', roles: ['editor', 'approver'] },
+  ]),
 };
 const config = loadConfig(TEST_ENV);
 
