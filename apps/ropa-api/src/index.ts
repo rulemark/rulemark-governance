@@ -1,10 +1,14 @@
 import { createApp } from './api/app.js';
+import { recordsRouter } from './api/resources/index.js';
+import { createDb, createPool } from './db/client.js';
 import { createLogger } from './shared/logger.js';
 import { loadConfigOrExit } from './shared/startup.js';
 
 const config = loadConfigOrExit();
 const logger = createLogger(config);
-const app = createApp({ config, logger });
+
+const pool = createPool(config.databaseUrl);
+const app = createApp({ config, logger, router: recordsRouter(createDb(pool)) });
 
 const server = app.listen(config.port, () => {
   logger.info({ port: config.port, nodeEnv: config.nodeEnv }, 'ropa-api listening');
@@ -31,12 +35,16 @@ function shutdown(signal: NodeJS.Signals): void {
 
   server.close((error) => {
     clearTimeout(forceClose);
-    if (error) {
-      logger.error({ err: error }, 'shutdown failed');
-      process.exit(1);
-    }
-    logger.info('shutdown complete');
-    process.exit(0);
+    // Close the pool after the server, so in-flight requests keep their
+    // connections until they have finished answering.
+    void pool.end().finally(() => {
+      if (error) {
+        logger.error({ err: error }, 'shutdown failed');
+        process.exit(1);
+      }
+      logger.info('shutdown complete');
+      process.exit(0);
+    });
   });
 }
 

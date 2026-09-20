@@ -133,6 +133,19 @@ with no `dist/` and no `.tsbuildinfo`.
   secret comparison) and `GET /v1/me`
 - CI and the service harness carry test values for the new required variables
 
+### Phase 6 — Foundation record endpoints (complete)
+- `src/domain/slug.ts` — derives a slug from the name, folding accents, and
+  gives up rather than inventing one
+- `src/domain/pagination.ts` — opaque keyset cursors over UUIDv7 ids
+- `src/domain/refs.ts` — one query per referenced table per page, not per row
+- `src/api/resources/resource-router.ts` — list, create, read, replace, delete
+  and the two history routes, built once from a resource definition
+- `src/api/resources/definitions.ts` — the six record types: their schemas,
+  references, cross-table rules and filters
+- `src/index.ts` now owns the pool and closes it after the server, so in-flight
+  requests keep their connections
+- 31 endpoint tests walking the Hireloop story over HTTP, plus the live tour
+
 ## Test Results
 | Test | Command | Expected | Actual | Status |
 |---|---|---|---|---|
@@ -160,6 +173,11 @@ with no `dist/` and no `.tsbuildinfo`.
 | Revision records the token's subject | write with a token plus a contradicting `X-Actor` | `revision.actor` is the token's `sub` | as expected | ✅ |
 | Live demo tour | `npm run dev`, mint, `/v1/me`, wrong secret | token minted, permissions listed, 401 on a bad secret | as expected | ✅ |
 | Whole gate | `npm run check` and `npm run test:dist` | 274 tests | all pass | ✅ |
+| Hireloop record through the API | `POST` parties, terms, offering, agreements | created, with Refs resolved | as expected | ✅ |
+| Paging walks the whole set | `?limit=2` followed to the last cursor | every row once, no repeats | as expected | ✅ |
+| Delete while referenced | `DELETE` terms an offering uses | 409 problem+json | as expected | ✅ |
+| Whole gate, three times | `npm run test` | 318 tests | all pass each time | ✅ |
+| Robust to leftover data | live demo rows left in the database, then the suite | unaffected | as expected | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -169,8 +187,8 @@ with no `dist/` and no `.tsbuildinfo`.
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Build step 1, Phases 1–5 complete; Phase 6 (foundation record endpoints) next |
+| Where am I? | Build step 1, Phases 1–6 complete; Phase 7 (OpenAPI and docs) next |
 | Where am I going? | Phases 2–9: schemas, database, persistence, auth, endpoints, OpenAPI, CI, deploy |
 | What's the goal? | A running, authenticated, documented API on Render with foundation records working end to end |
 | What have I learned? | See findings.md |
-| What have I done? | Design complete and pushed; monorepo scaffolded; the API app boots, logs, handles errors and shuts down cleanly; the shared schemas package defines every foundation shape and the API consumes it; eleven tables exist in Postgres with their constraints and triggers proven by test; records save with versioning, revisions and outbox rows in one transaction; tokens are minted and permissions enforced per route |
+| What have I done? | Design complete and pushed; monorepo scaffolded; the API app boots, logs, handles errors and shuts down cleanly; the shared schemas package defines every foundation shape and the API consumes it; eleven tables exist in Postgres with their constraints and triggers proven by test; records save with versioning, revisions and outbox rows in one transaction; tokens are minted and permissions enforced per route; all six foundation record types are createable, readable, replaceable and deletable over HTTP, with history |

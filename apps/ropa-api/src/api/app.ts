@@ -24,8 +24,10 @@ export interface AppOptions {
 export function createApp({ config, logger = createLogger(config), router }: AppOptions): Express {
   const app = express();
 
-  // Render terminates TLS and proxies; without this, req.ip and req.protocol lie.
-  app.set('trust proxy', true);
+  // Render terminates TLS and puts exactly one proxy in front of the service.
+  // `true` would trust the whole X-Forwarded-For chain, so any caller could
+  // prepend an address and pick their own identity for rate limiting.
+  app.set('trust proxy', 1);
   app.disable('x-powered-by');
 
   // First, so every later log line and every problem response carries the id.

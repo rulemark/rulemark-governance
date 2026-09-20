@@ -10,5 +10,10 @@ export default defineConfig({
     restoreMocks: true,
     // Applies the migrations once for the whole run.
     globalSetup: ['test/db/global-setup.ts'],
+    // One database is shared by every file, and some of these tests commit.
+    // Run files one at a time rather than reasoning about which committed row
+    // can collide with which uncommitted one — `party_one_self` alone makes
+    // that a losing game. The whole suite takes a couple of seconds.
+    fileParallelism: false,
   },
 });

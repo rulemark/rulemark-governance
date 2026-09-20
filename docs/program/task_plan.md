@@ -6,7 +6,7 @@ Ship the foundation of the RoPA service: a running, documented, authenticated Ex
 Build step 1 from `docs/ropa/ropa-api.md` §8. Activities (the discriminated union, role rules, lifecycle) are **step 2**, but every mechanism they need is built here.
 
 ## Current Phase
-Phases 1–5 complete. Phase 6 (foundation record endpoints) next.
+Phases 1–6 complete. Phase 7 (OpenAPI and docs) next.
 
 ## Definition of done for step 1
 - `npm run dev` serves the API locally; `/healthz`, `/openapi.json` and `/api-docs` respond.
@@ -63,10 +63,6 @@ Reference: `ropa-database.md` §5, §6; `ropa-api.md` §1.4, §1.8
 - **Done when:** saving a record twice produces two revisions, and a stale `If-Match` returns 412
 - **Status:** complete — both proven by test, plus real-transaction atomicity. Children diff is a no-op for foundation records (they have none) and is the one step step 2 adds
 
-> Note: the `validate` step of §6.1 is structural only so far. Cross-table rules
-> (outbound default terms, offering required for outbound agreements) arrive
-> with the endpoints in Phase 6, which is where the input schemas are applied.
-
 ### Phase 5: Authentication and authorization
 Reference: `ropa-api.md` §1.9, §1.6
 - [x] `PRINCIPALS` config parsing; `jose` HS256 signing
@@ -80,13 +76,14 @@ Reference: `ropa-api.md` §1.9, §1.6
 
 ### Phase 6: Foundation record endpoints
 Reference: `ropa-api.md` §2, §4; `ropa-packages.md` §4
-- [ ] CRUD for parties, agreement terms, agreements, offerings, systems, taxonomies
-- [ ] Identifier resolution: id, code or slug in paths and bodies (§1.2)
-- [ ] Cursor pagination and per-resource filters (§1.3)
-- [ ] Delete semantics: 409 while referenced
-- [ ] `GET /{resource}/{ref}/revisions` and `/revisions/{version}`
+- [x] CRUD for parties, agreement terms, agreements, offerings, systems, taxonomies
+- [x] Identifier resolution: id, code or slug in paths and bodies (§1.2)
+- [x] Cursor pagination and per-resource filters (§1.3)
+- [x] Delete semantics: 409 while referenced
+- [x] `GET /{resource}/{ref}/revisions` and `/revisions/{version}`
+- [x] The cross-table rules deferred from Phase 4: outbound default terms, offering required for outbound agreements
 - **Done when:** the Hireloop parties, offering and agreements can be created through the API
-- **Status:** pending
+- **Status:** complete — proven by 31 endpoint tests and driven live against `npm run dev`
 
 ### Phase 7: OpenAPI and docs
 Reference: `ropa-api.md` §1.9, `ropa-packages.md` §5.4, §7
@@ -143,7 +140,8 @@ Activities (discriminated union, role rules, lifecycle, client scoping), the vie
 | **The built artifact is tested, not just built.** `npm run test:dist` starts `dist/index.js` in CI | Running only the sources hid a `dist/` that could not boot. Brought forward from Phase 8 on 2026-09-20 |
 | **The package bundler is chosen at first publish**, not now, and not presumed to be tsup | `tsc` already emits what the workspace needs; tsup's last release was November 2025 and `tsdown` is the active successor. The export map is unchanged either way |
 | **`db:migrate` runs the built output**, and the root script builds first | Render sets `NODE_ENV=production` for Node services, so the pre-deploy command cannot rely on `tsx` being installed |
-| **Database tests live in one file** until the isolation question is settled | Vitest parallelises files, and a unique constraint blocks across uncommitted transactions. Revisit in Phase 8, open question 5 |
+| **Vitest runs test files one at a time** (`fileParallelism: false`) | One database is shared and some tests commit; `party_one_self` alone makes reasoning about collisions a losing game. The suite still runs in about four seconds |
+| **The endpoint tests commit and clean up**, rather than using the per-test transaction | The router opens its own transaction per write, and a handle already inside one does not nest |
 | **A deletion gets its own revision version (N+1)**, not the deleted row's | `revision_version_once` rightly refuses a second row for a spent version, and `asOf` relies on `snapshot.version` matching `revision.version` |
 | **No test disables a constraint or a trigger** | One that did left `revision_append_only` disabled for every later run. A test that commits cleans up only its own record and leaves history alone |
 | **Database assertions are scoped to the record under test** | Once anything commits, unscoped queries see other tests' rows. Counter assertions are relative, never absolute |

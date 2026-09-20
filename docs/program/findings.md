@@ -78,6 +78,14 @@
 - `Permission` and `Role` types are exported from `resources/auth.ts` rather than `enums.ts`, because the schema module owns the name; exporting both caused an ambiguous re-export.
 - Express 5 needs async route bodies wrapped (`void (async () => …)()`) when the handler is not itself declared `async`, since the middleware signature returns `void`.
 
+### Phase 6 (2026-09-20)
+- **`ON DELETE RESTRICT` raises `restrict_violation` (23001), not `foreign_key_violation` (23503).** 23503 is what a deferred `NO ACTION` check raises. Every foreign key between aggregates is RESTRICT (DB §3), which is exactly what makes the API's "409 while referenced" work, so the handler treats both codes the same. Caught by a delete answering 500 instead of 409.
+- **`trust proxy: true` lets any caller bypass IP rate limiting**, by prepending an address to `X-Forwarded-For`; `express-rate-limit` refuses to stay quiet about it. Render puts exactly one proxy in front of the service, so the setting is `1`. This was wrong from Phase 1 and only surfaced once something was rate limited.
+- **Vitest file parallelism and one shared database do not mix** once tests commit. `party_one_self` alone makes "which committed row can collide with which uncommitted one" a losing game, so `fileParallelism: false`. The whole suite still runs in about four seconds, and this may well be what the unreproduced flake after the secret rotation was.
+- **Endpoint tests cannot use the per-test transaction**, because the router opens its own transaction per write and a handle already inside one does not nest (Phase 4 finding). They commit, prefix everything `hl-`, and clean up in reverse dependency order.
+- Reference resolution in list responses loads each referenced table once for the whole page (`domain/refs.ts`), rather than per row.
+- `python` edits against files Prettier has reformatted keep missing: match on a line range or a regex instead of an exact block when the block has been through the formatter.
+
 ## Issues encountered
 | Issue | Resolution |
 |---|---|
