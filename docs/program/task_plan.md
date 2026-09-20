@@ -145,6 +145,7 @@ Activities (discriminated union, role rules, lifecycle, client scoping), the vie
 | **Filters are declared, not implemented as functions** | The router applies them and the OpenAPI document describes them from the same statement |
 | **Generated files are Prettier-ignored** (`drizzle/`, `openapi.json`) | Formatting them puts Prettier and the generator in a fight, which the drift checks then report as a failure |
 | **`npm run check` is the whole gate**, not a subset of it | "It passes locally" and "it passes in CI" should be the same claim |
+| **Tests use their own database** (`<database>_test`), created by the global setup | Some tests commit, and constraints like `party_one_self` are global; demo data in the development database made twelve tests fail, including ones that roll back |
 | **Vitest runs test files one at a time** (`fileParallelism: false`) | One database is shared and some tests commit; `party_one_self` alone makes reasoning about collisions a losing game. The suite still runs in about four seconds |
 | **The endpoint tests commit and clean up**, rather than using the per-test transaction | The router opens its own transaction per write, and a handle already inside one does not nest |
 | **A deletion gets its own revision version (N+1)**, not the deleted row's | `revision_version_once` rightly refuses a second row for a spent version, and `asOf` relies on `snapshot.version` matching `revision.version` |

@@ -47,10 +47,25 @@ npm run db:migrate               # creates the schema
 npm run dev                      # API on :3000, docs at /api-docs
 ```
 
-There is no demo data yet: the Hireloop seed (`npm run db:seed`) arrives with
-build step 2. Until then, create records through the API — open
-`http://localhost:3000/api-docs`, mint a token at `POST /v1/tokens` using the
-`TOKEN_MINT_SECRET` from your `.env`, press **Authorize**, and post a party.
+### Demo data
+
+```bash
+npm run demo:data                # loads the Hireloop cast through the API
+```
+
+This talks HTTP like any other client, so it also works against a deployed
+service (`DEMO_API_URL=https://… npm run demo:data`), which is how a Render
+preview environment gets filled. It is idempotent: run it twice and nothing
+changes.
+
+It is **not** the seed described in `docs/ropa/ropa-database.md` §9. That one
+writes through the domain layer so it can backdate `valid_from` and replay the
+story's timeline for `asOf` and `/changes`; backdating is deliberately not
+exposed over HTTP, so everything loaded here is stamped now. The real
+`npm run db:seed` arrives with build step 2, along with activities.
+
+Then open `http://localhost:3000/api-docs`, mint a token at `POST /v1/tokens`
+with the `TOKEN_MINT_SECRET` from your `.env`, press **Authorize**, and explore.
 
 On Render nothing reads `.env`: every variable comes from the service's
 environment, and the generated secrets come from the Blueprint. A variable that

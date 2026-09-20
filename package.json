@@ -25,7 +25,8 @@
     "test:dist": "npm run build && npm run test:dist --workspaces --if-present",
     "db:generate": "npm run db:generate -w apps/ropa-api",
     "format:check": "prettier --check .",
-    "coverage": "npm run coverage -w apps/ropa-api"
+    "coverage": "npm run coverage -w apps/ropa-api",
+    "demo:data": "npm run build && npm run demo:data -w apps/ropa-api"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

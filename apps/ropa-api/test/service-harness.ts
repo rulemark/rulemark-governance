@@ -2,6 +2,8 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { createServer } from 'node:net';
 import { fileURLToPath } from 'node:url';
 
+import { TEST_DATABASE_URL } from './db/harness.js';
+
 /**
  * Starting the service as a real process, for the things `createApp` cannot
  * cover: failing fast on bad configuration, shutting down when Render sends
@@ -52,7 +54,7 @@ export interface RunningService {
 const BASE_ENV = {
   NODE_ENV: 'test',
   LOG_LEVEL: 'info',
-  DATABASE_URL: process.env['DATABASE_URL'] ?? 'postgres://ropa:ropa@localhost:5432/ropa',
+  DATABASE_URL: TEST_DATABASE_URL,
   JWT_SECRET: 'a-secret-long-enough-for-hs256-signing',
   TOKEN_MINT_SECRET: 'the-mint-secret-nobody-should-guess',
   PRINCIPALS: JSON.stringify([

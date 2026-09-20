@@ -30,7 +30,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node dist/db/migrate.js",
     "openapi:write": "node dist/api/openapi/write.js",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "demo:data": "node dist/demo/seed.js"
   },
   "devDependencies": {
     "@apidevtools/swagger-parser": "^13.0.0",

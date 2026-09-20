@@ -2,6 +2,7 @@ import request from 'supertest';
 import { afterAll, describe, expect, it } from 'vitest';
 
 import { createDb, createPool } from '../db/client.js';
+import { TEST_DATABASE_URL } from '../../test/db/harness.js';
 import { loadConfig } from '../shared/config.js';
 import { createApp } from './app.js';
 import { buildOpenApiDocument } from './openapi/document.js';
@@ -10,7 +11,7 @@ import { recordsRouter } from './resources/index.js';
 const config = loadConfig({
   LOG_LEVEL: 'silent',
   NODE_ENV: 'test',
-  DATABASE_URL: 'postgres://ropa:ropa@localhost:5432/ropa',
+  DATABASE_URL: TEST_DATABASE_URL,
   JWT_SECRET: 'a-secret-long-enough-for-hs256-signing',
   TOKEN_MINT_SECRET: 'the-mint-secret-nobody-should-guess',
   PRINCIPALS: JSON.stringify([{ sub: 'reader', name: 'A Reader', roles: ['viewer'] }]),

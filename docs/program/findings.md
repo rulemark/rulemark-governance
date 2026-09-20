@@ -101,6 +101,12 @@
 - **Snapshots were validated on write but not on read**, though DB §6.2 asks for both. `GET /{ref}/revisions/{version}` now parses the stored snapshot before returning it: a snapshot that no longer matches its schema is how an aggregate's shape changed without an upgrader, and returning it quietly would hand a caller history that does not mean what it says.
 - **Coverage's zero-percent files were an artifact, not a gap.** The bootstrap, the migrator and the OpenAPI writer all run in child processes, so v8 sees none of their lines although each is covered. They are excluded from the report with that reason written down, rather than counted as untested or papered over with shallow tests.
 
+### Demo data over HTTP (2026-09-20)
+- **Seeding through the API cannot replace `db:seed`.** DB §9 replays the story's timeline by backdating `valid_from`, and that option is deliberately not exposed over HTTP (API §1.6), so anything loaded through the API is stamped now and `asOf` sees a single moment. The two coexist: `demo:data` for something to look at and for environments we have no database access to, `db:seed` for the timeline, with activities, in step 2.
+- **The demo loader needs an admin.** Taxonomy writes need `taxonomy:write`, which only `admin` carries, and neither principal in `.env.example` had it. Added `svc:seed`, which also demonstrates the service-role idea from §1.9.
+- **Tests now use their own database, beside the development one.** Loading demo data broke twelve tests: a committed `self` party makes `party_one_self` reject every other one, including inside a transaction that rolls back, because a unique index sees committed rows regardless. Sharing a server but not a database is the fix; `test/db/global-setup.ts` creates `<database>_test` if it is missing. Tests were already robust to *rows*, but could never have been robust to a globally unique constraint.
+- The dataset is validated by a test against the same Input schemas the API uses, including that every reference points at a record defined *earlier* in the list — a forward reference would pass against an already-seeded database and fail only on a fresh one.
+
 ## Issues encountered
 | Issue | Resolution |
 |---|---|

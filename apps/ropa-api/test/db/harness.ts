@@ -11,8 +11,27 @@ import { createDb, createPool, type Database } from '../../src/db/client.js';
  * Each test runs inside a transaction that is rolled back, so tests see a clean
  * database without truncating between them.
  */
-export const TEST_DATABASE_URL =
-  process.env['DATABASE_URL'] ?? 'postgres://ropa:ropa@localhost:5432/ropa';
+/**
+ * Tests get their own database, beside the development one.
+ *
+ * They share a server but never a database: some tests commit, and constraints
+ * like `party_one_self` are global, so a single `self` party loaded by
+ * `demo:data` would make every test that needs one fail — including tests that
+ * roll back, because a unique index sees committed rows regardless. Created by
+ * `global-setup.ts` if it does not exist.
+ */
+const DEVELOPMENT_URL = process.env['DATABASE_URL'] ?? 'postgres://ropa:ropa@localhost:5432/ropa';
+
+function withDatabaseName(url: string, name: string): string {
+  const parsed = new URL(url);
+  parsed.pathname = `/${name}`;
+  return parsed.toString();
+}
+
+export const TEST_DATABASE_NAME = `${new URL(DEVELOPMENT_URL).pathname.replace(/^\//, '')}_test`;
+export const TEST_DATABASE_URL = withDatabaseName(DEVELOPMENT_URL, TEST_DATABASE_NAME);
+/** The maintenance database, the only place `CREATE DATABASE` can run from. */
+export const MAINTENANCE_URL = withDatabaseName(DEVELOPMENT_URL, 'postgres');
 
 export interface DbContext {
   /**

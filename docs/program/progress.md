@@ -172,6 +172,18 @@ with no `dist/` and no `.tsbuildinfo`.
   points excluded and the reason recorded
 - README fixed: it told a newcomer to run a script that does not exist
 
+### Demo data over HTTP (2026-09-20)
+- `src/demo/dataset.ts` and `src/demo/seed.ts`, run with `npm run demo:data`:
+  39 foundation records — the Hireloop cast, terms, the ATS offering, three
+  agreements, four systems and the three taxonomies
+- Idempotent by lookup, so a second run reports everything already present
+- Works against any base URL (`DEMO_API_URL`), which is how a deployed service
+  or a Render preview environment gets filled, and doubles as a smoke test
+- `svc:seed` (admin) added to `.env.example`: taxonomy writes need
+  `taxonomy:write`, which no existing principal had
+- Tests moved to their own database (`ropa_test`, created by the global setup).
+  Demo data in the development database had broken twelve of them
+
 ## Test Results
 | Test | Command | Expected | Actual | Status |
 |---|---|---|---|---|
@@ -212,6 +224,9 @@ with no `dist/` and no `.tsbuildinfo`.
 | Whole gate, one command | `npm run check` | typecheck, lint, format, 400 tests | all pass | ✅ |
 | Coverage | `npm run coverage` | no meaningful gaps | 95% statements, 96% lines | ✅ |
 | README getting-started | followed from a clean clone | every command exists | fixed (db:seed did not) | ✅ |
+| Demo data over HTTP | `npm run demo:data` | records created | 38 created, 1 already there | ✅ |
+| Idempotent | run it a second time | nothing changes | 0 created, 39 already there | ✅ |
+| Tests isolated from dev data | demo data loaded, then the suite | unaffected | 305 pass, test database separate | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
