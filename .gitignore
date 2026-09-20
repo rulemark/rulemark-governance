@@ -1,0 +1,26 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+build/
+.next/
+*.tsbuildinfo
+
+# env & secrets
+.env
+.env.local
+.env.*.local
+
+# test & tooling
+coverage/
+.vitest/
+.turbo/
+
+# editor / OS
+.DS_Store
+.idea/
+*.swp
+
+# obsidian vault config
+.obsidian/
