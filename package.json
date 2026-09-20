@@ -14,7 +14,7 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
-    "typecheck": "tsc --build",
+    "typecheck": "tsc --build && npm run typecheck:tests --workspaces --if-present",
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "npm run test --workspaces --if-present",

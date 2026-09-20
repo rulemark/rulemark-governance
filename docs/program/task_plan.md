@@ -6,7 +6,7 @@ Ship the foundation of the RoPA service: a running, documented, authenticated Ex
 Build step 1 from `docs/ropa/ropa-api.md` §8. Activities (the discriminated union, role rules, lifecycle) are **step 2**, but every mechanism they need is built here.
 
 ## Current Phase
-Phase 1
+Phase 1 complete. Phase 2 (shared schemas package) next.
 
 ## Definition of done for step 1
 - `npm run dev` serves the API locally; `/healthz`, `/openapi.json` and `/api-docs` respond.
@@ -19,18 +19,19 @@ Phase 1
 
 ### Phase 1: API app foundations
 Reference: `ropa-api.md` §1, `ropa-database.md` §11, `ropa-packages.md` §2
-- [ ] `apps/ropa-api` dependencies: express, zod, pino, dotenv, tsx, vitest
-- [ ] Config module: Zod-validated environment, fails fast with a clear message
-- [ ] App bootstrap: server, graceful shutdown, request ID, structured logging
-- [ ] `GET /healthz` (Render health check)
-- [ ] Error handling: RFC 9457 `application/problem+json`, field-level `errors[]`, status mapping (§1.7)
-- [ ] `npm run dev` works
-- **Done when:** the server starts, `/healthz` returns 200, and a deliberate error returns problem+json
-- **Status:** pending
+- [x] `apps/ropa-api` dependencies: express, zod, pino, dotenv, tsx, vitest, supertest
+- [x] Vitest set up in `apps/ropa-api` (the harness every later phase writes tests into)
+- [x] Config module: Zod-validated environment, fails fast with a clear message
+- [x] App bootstrap: server, graceful shutdown, request ID, structured logging
+- [x] `GET /healthz` (Render health check)
+- [x] Error handling: RFC 9457 `application/problem+json`, field-level `errors[]`, status mapping (§1.7)
+- [x] `npm run dev` works
+- **Done when:** the server starts, `/healthz` returns 200, a deliberate error returns problem+json, and `npm run test` passes
+- **Status:** complete — 40 tests, `npm run check` and `npm run build` clean, verified against both `npm run dev` and the built output
 
 ### Phase 2: Shared schemas package
 Reference: `ropa-packages.md` §4, `ropa-database.md` §1
-- [ ] `packages/ropa-schemas`: zod 4 peer dependency, tsup build, subpath exports
+- [ ] `packages/ropa-schemas`: zod 4 peer dependency, source-only exports (tsup deferred to first publish)
 - [ ] `enums`: every value list from DM (shared by Zod and Drizzle checks)
 - [ ] `primitives`: Slug, Code, CountryCode, IsoDuration, Ref, Cursor, AsOf
 - [ ] `errors`: ProblemDetails; `constants`: API_VERSION
@@ -89,11 +90,12 @@ Reference: `ropa-api.md` §1.9, `ropa-packages.md` §5.4, §7
 - **Done when:** Swagger UI can mint a token, authorize, and create a party
 - **Status:** pending
 
-### Phase 8: Tests and CI
+### Phase 8: CI and test hardening
 Reference: `ropa-database.md` §10, `workspace-skeleton.md` §3.5
-- [ ] Vitest against Docker Postgres; migrations once per run; transaction-per-test isolation
-- [ ] Unit: permission map, config validation, snapshot round-trip
-- [ ] Integration: auth flows, CRUD, concurrency (412/428), constraint failures
+> Tests are written test-first inside each phase (see Decisions). This phase is what's
+> left over: the CI wiring, the shared Postgres harness, and gap-filling.
+- [ ] Vitest against Docker Postgres in CI; migrations once per run; transaction-per-test isolation
+- [ ] Review coverage across phases 1–7 and fill the gaps
 - [ ] Enable the commented-out CI drift checks (Drizzle, OpenAPI)
 - **Done when:** `npm run check` passes locally and in CI
 - **Status:** pending
@@ -111,11 +113,11 @@ Reference: `ropa-packages.md` §8, `ropa-database.md` §8.2
 Activities (discriminated union, role rules, lifecycle, client scoping), the views (`/report`, `/subprocessors`, `/parties/{ref}/impact`, `/data-map`, `/coverage`), review items, `asOf` and `/changes`, the outbox **dispatcher** (rows are written in step 1, delivery comes later), the Markdown report export, and the Hireloop seed script.
 
 ## Open questions
-1. Express 5 (current) — confirm middleware and async error handling match what we expect.
+1. ~~Express 5 — confirm middleware and async error handling.~~ **Resolved (2026-09-19):** rejected promises from async handlers reach the error middleware unaided; covered by a test.
 2. Which Zod→OpenAPI library: `zod-openapi` or `@asteasolutions/zod-to-openapi`? Pick in Phase 7.
-3. Logging: pino with pretty output in development — anything else needed for Render's log stream?
-4. Do packages build with tsup from the start, or stay source-only (`main: src/index.ts`) until first publish?
-5. Test isolation: transaction rollback per test, or a fresh schema per suite for the ones that use transactions themselves?
+3. ~~Logging: anything else needed for Render's log stream?~~ **Resolved (2026-09-19):** JSON at `info`, `pino-pretty` in development, one line per request carrying the problem, a passing `/healthz` at `debug`, `authorization` redacted.
+4. ~~Do packages build with tsup from the start, or stay source-only?~~ **Resolved (2026-09-19):** source-only until the first publish.
+5. Test isolation: transaction rollback per test, or a fresh schema per suite for the ones that use transactions themselves? *Phase 8.*
 
 ## Decisions
 | Decision | Where it came from |
@@ -123,6 +125,10 @@ Activities (discriminated union, role rules, lifecycle, client scoping), the vie
 | Auth is built in step 1, before any record is written | Actor can't be retrofitted into revisions (`ropa-api.md` §8) |
 | Revisions and outbox rows are written from day one | They can't be recreated later (`ropa-database.md` §8) |
 | Foundation records first, activities in step 2 | Activities need every mechanism this step builds |
+| **Test-driven throughout.** Tests are written before the code they cover, in the phase that introduces it | User decision, 2026-09-19. Phase 8 becomes CI wiring and gap-filling, not a write-everything-at-once phase |
+| **Packages stay source-only** (`main: ./src/index.ts`), tsup added when we first publish | Open question 4, resolved 2026-09-19. Project references already give cross-workspace type-checking; a build step per change buys nothing yet |
+| **`dotenv` for local environment loading**, not Node's `--env-file` | User decision, 2026-09-19. Familiar and identical everywhere; Render injects variables directly, so this is a development-only concern |
+| Config validates only the variables a phase actually uses | Requiring `DATABASE_URL` before anything connects would break `npm run dev` without Docker. Added in Phase 3 |
 
 ## Errors encountered
 | Error | Attempt | Resolution |
