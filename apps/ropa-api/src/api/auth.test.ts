@@ -1,6 +1,7 @@
 import { Router } from 'express';
+import type { Server } from 'node:http';
 import request from 'supertest';
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 
 import { loadConfig } from '../shared/config.js';
 import { createApp } from './app.js';
@@ -20,7 +21,43 @@ const BASE_ENV = {
   ]),
 };
 
-function appWith(overrides: Record<string, string> = {}) {
+/**
+ * Apps are built once per configuration rather than once per assertion.
+ * Building one is not free — it constructs the routers and the OpenAPI
+ * document — and each `request(app)` binds an ephemeral port, so churning
+ * dozens of them makes the suite slower and noisier than it needs to be.
+ */
+const servers = new Map<string, Server>();
+
+/**
+ * One listening server per configuration, reused across the file. `request(app)`
+ * starts and stops an ephemeral server per call; hundreds of those in quick
+ * succession is slow and a source of confusing failures.
+ */
+function appWith(overrides: Record<string, string> = {}): Server {
+  const key = JSON.stringify(overrides);
+  const existing = servers.get(key);
+  if (existing !== undefined) return existing;
+
+  const server = buildAppWith(overrides).listen(0);
+  servers.set(key, server);
+  return server;
+}
+
+afterAll(async () => {
+  await Promise.all(
+    [...servers.values()].map(
+      (server) =>
+        new Promise<void>((resolve) => {
+          server.close(() => {
+            resolve();
+          });
+        }),
+    ),
+  );
+});
+
+function buildAppWith(overrides: Record<string, string>) {
   const config = loadConfig({ ...BASE_ENV, ...overrides });
 
   // A stand-in for the record routes Phase 6 adds, declaring the same
@@ -42,7 +79,7 @@ function appWith(overrides: Record<string, string> = {}) {
   return createApp({ config, router });
 }
 
-async function mint(app: ReturnType<typeof appWith>, subject: string): Promise<string> {
+async function mint(app: Server, subject: string): Promise<string> {
   const response = await request(app)
     .post('/v1/tokens')
     .send({ subject, secret: BASE_ENV.TOKEN_MINT_SECRET });
@@ -121,7 +158,10 @@ describe('POST /v1/tokens', () => {
   });
 
   it('is rate limited, so the secret cannot be guessed at speed', async () => {
-    const app = appWith();
+    // Its own app: this deliberately exhausts the limiter, which would then
+    // refuse the other tests sharing a configuration.
+    const app = buildAppWith({}).listen(0);
+    servers.set(`rate-limit-${Date.now()}`, app);
     const attempts = [];
     for (let i = 0; i < 25; i += 1) {
       attempts.push(
@@ -282,7 +322,7 @@ describe('bad tokens', () => {
   it('refuses a malformed Authorization header', async () => {
     for (const header of ['Bearer', 'Bearer   ', 'Basic abc', 'abc']) {
       const response = await request(appWith()).get('/v1/me').set('Authorization', header);
-      expect(response.status, header).toBe(401);
+      expect(response.status, `${header} -> ${JSON.stringify(response.body)}`).toBe(401);
     }
   });
 

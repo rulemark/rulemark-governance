@@ -8,6 +8,7 @@ import { authenticate } from './middleware/authenticate.js';
 import { notFoundHandler, problemHandler } from './middleware/errors.js';
 import { requestId } from './middleware/request-id.js';
 import { authRouter } from './routes/auth.js';
+import { docsRouter } from './routes/docs.js';
 import { healthzRouter } from './routes/healthz.js';
 
 export interface AppOptions {
@@ -54,8 +55,11 @@ export function createApp({ config, logger = createLogger(config), router }: App
 
   app.use(express.json({ limit: '1mb' }));
 
-  // Outside /v1 and outside auth: Render polls it before anything is ready.
+  // Outside /v1 and outside auth: Render polls the health check before
+  // anything is ready, and documentation you must authenticate for is
+  // documentation nobody reads (§1.9).
   app.use(healthzRouter);
+  app.use(docsRouter());
 
   // Every route below knows who is calling; what they may do is each route's
   // own declaration, through `requires()` (§1.9).

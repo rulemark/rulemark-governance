@@ -1,4 +1,5 @@
 import { inArray, like } from 'drizzle-orm';
+import type { Server } from 'node:http';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -32,11 +33,17 @@ const ENV = {
 let db: Database;
 let pool: ReturnType<typeof createPool>;
 let app: ReturnType<typeof createApp>;
+/**
+ * One listening server for the whole file. `request(server)` starts and stops an
+ * ephemeral server per call, and hundreds of those in quick succession is both
+ * slow and a source of confusing failures.
+ */
+let server: Server;
 let token: string;
 let readerToken: string;
 
 async function mint(subject: string): Promise<string> {
-  const response = await request(app)
+  const response = await request(server)
     .post('/v1/tokens')
     .send({ subject, secret: ENV.TOKEN_MINT_SECRET });
   expect(response.status, JSON.stringify(response.body)).toBe(200);
@@ -66,6 +73,7 @@ beforeAll(async () => {
   pool = createPool(TEST_DATABASE_URL, 5);
   db = createDb(pool);
   app = createApp({ config: loadConfig(ENV), router: recordsRouter(db) });
+  server = app.listen(0);
   await cleanup();
   token = await mint('priya.raman');
   readerToken = await mint('reader');
@@ -73,13 +81,18 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await cleanup();
+  await new Promise<void>((resolve) =>
+    server.close(() => {
+      resolve();
+    }),
+  );
   await pool.end();
 });
 
 const auth = () => ({ Authorization: `Bearer ${token}` });
 
 function post(path: string, body: Record<string, unknown>) {
-  return request(app).post(path).set(auth()).send(body);
+  return request(server).post(path).set(auth()).send(body);
 }
 
 describe('the Hireloop record, created through the API (Ch2–Ch4)', () => {
@@ -232,22 +245,22 @@ describe('the Hireloop record, created through the API (Ch2–Ch4)', () => {
 
 describe('reading records', () => {
   it('finds the same record by slug and by id (§1.2)', async () => {
-    const bySlug = await request(app).get(`/v1/parties/${PREFIX}mailcrest`).set(auth());
+    const bySlug = await request(server).get(`/v1/parties/${PREFIX}mailcrest`).set(auth());
     expect(bySlug.status).toBe(200);
 
-    const byId = await request(app).get(`/v1/parties/${bySlug.body.id}`).set(auth());
+    const byId = await request(server).get(`/v1/parties/${bySlug.body.id}`).set(auth());
     expect(byId.body.id).toBe(bySlug.body.id);
     expect(byId.headers.etag).toBe(`"${bySlug.body.version}"`);
   });
 
   it('answers 404 for an identifier nobody has', async () => {
-    const response = await request(app).get(`/v1/parties/${PREFIX}nobody`).set(auth());
+    const response = await request(server).get(`/v1/parties/${PREFIX}nobody`).set(auth());
     expect(response.status).toBe(404);
     expect(response.headers['content-type']).toMatch(/problem\+json/);
   });
 
   it('lists with a cursor, and the cursor walks the whole set (§1.3)', async () => {
-    const first = await request(app).get('/v1/parties?limit=2').set(auth());
+    const first = await request(server).get('/v1/parties?limit=2').set(auth());
     expect(first.status).toBe(200);
     expect(first.body.data.length).toBeLessThanOrEqual(2);
 
@@ -256,7 +269,7 @@ describe('reading records', () => {
     let pages = 1;
 
     while (cursor !== null && pages < 20) {
-      const next = await request(app).get(`/v1/parties?limit=2&cursor=${cursor}`).set(auth());
+      const next = await request(server).get(`/v1/parties?limit=2&cursor=${cursor}`).set(auth());
       expect(next.status).toBe(200);
       for (const row of next.body.data as { id: string }[]) {
         // A row must not appear on two pages.
@@ -267,22 +280,22 @@ describe('reading records', () => {
       pages += 1;
     }
 
-    const all = await request(app).get('/v1/parties?limit=200').set(auth());
+    const all = await request(server).get('/v1/parties?limit=200').set(auth());
     expect(seen.size).toBe(all.body.data.length);
   });
 
   it('rejects a cursor that did not come from us', async () => {
-    const response = await request(app).get('/v1/parties?cursor=bm90LW91cnM').set(auth());
+    const response = await request(server).get('/v1/parties?cursor=bm90LW91cnM').set(auth());
     expect(response.status).toBe(400);
   });
 
   it('rejects a limit outside the allowed range', async () => {
-    expect((await request(app).get('/v1/parties?limit=0').set(auth())).status).toBe(400);
-    expect((await request(app).get('/v1/parties?limit=500').set(auth())).status).toBe(400);
+    expect((await request(server).get('/v1/parties?limit=0').set(auth())).status).toBe(400);
+    expect((await request(server).get('/v1/parties?limit=500').set(auth())).status).toBe(400);
   });
 
   it('filters parties by kind and country', async () => {
-    const vendors = await request(app).get('/v1/parties?kind=vendor&limit=200').set(auth());
+    const vendors = await request(server).get('/v1/parties?kind=vendor&limit=200').set(auth());
     expect(vendors.status).toBe(200);
     expect(vendors.body.data.every((row: { kind: string }) => row.kind === 'vendor')).toBe(true);
     expect(
@@ -291,7 +304,7 @@ describe('reading records', () => {
   });
 
   it('filters agreements by a party given as a slug (§1.3)', async () => {
-    const response = await request(app)
+    const response = await request(server)
       .get(`/v1/agreements?party=${PREFIX}aurelia&limit=200`)
       .set(auth());
     expect(response.status).toBe(200);
@@ -299,7 +312,9 @@ describe('reading records', () => {
   });
 
   it('finds a system by the Render resource id the Snapshot knows (§4)', async () => {
-    const response = await request(app).get('/v1/systems?renderResourceId=dpg-hl-test').set(auth());
+    const response = await request(server)
+      .get('/v1/systems?renderResourceId=dpg-hl-test')
+      .set(auth());
     expect(response.status).toBe(200);
     expect(response.body.data).toHaveLength(1);
     expect(response.body.data[0].slug).toBe(`${PREFIX}hireloop-db`);
@@ -308,27 +323,27 @@ describe('reading records', () => {
 
 describe('replacing a record', () => {
   it('needs If-Match, and refuses a stale one (§1.8)', async () => {
-    const current = await request(app).get(`/v1/parties/${PREFIX}mailcrest`).set(auth());
+    const current = await request(server).get(`/v1/parties/${PREFIX}mailcrest`).set(auth());
     const body = {
       kind: 'vendor',
       legalName: 'Mailcrest Limited',
       country: 'US',
     };
 
-    const withoutHeader = await request(app)
+    const withoutHeader = await request(server)
       .put(`/v1/parties/${PREFIX}mailcrest`)
       .set(auth())
       .send(body);
     expect(withoutHeader.status).toBe(428);
 
-    const stale = await request(app)
+    const stale = await request(server)
       .put(`/v1/parties/${PREFIX}mailcrest`)
       .set(auth())
       .set('If-Match', '"99"')
       .send(body);
     expect(stale.status).toBe(412);
 
-    const ok = await request(app)
+    const ok = await request(server)
       .put(`/v1/parties/${PREFIX}mailcrest`)
       .set(auth())
       .set('If-Match', `"${current.body.version}"`)
@@ -341,8 +356,8 @@ describe('replacing a record', () => {
   });
 
   it('keeps the slug, which cannot be changed through the API in v1 (§1.2)', async () => {
-    const current = await request(app).get(`/v1/parties/${PREFIX}mailcrest`).set(auth());
-    const response = await request(app)
+    const current = await request(server).get(`/v1/parties/${PREFIX}mailcrest`).set(auth());
+    const response = await request(server)
       .put(`/v1/parties/${PREFIX}mailcrest`)
       .set(auth())
       .set('If-Match', `"${current.body.version}"`)
@@ -360,7 +375,9 @@ describe('replacing a record', () => {
 
 describe('history (§2)', () => {
   it('lists the revisions of a record, with who and why', async () => {
-    const response = await request(app).get(`/v1/parties/${PREFIX}mailcrest/revisions`).set(auth());
+    const response = await request(server)
+      .get(`/v1/parties/${PREFIX}mailcrest/revisions`)
+      .set(auth());
 
     expect(response.status).toBe(200);
     expect(response.body.data.length).toBeGreaterThanOrEqual(2);
@@ -374,7 +391,7 @@ describe('history (§2)', () => {
   });
 
   it('returns the snapshot for one version, as the record stood then', async () => {
-    const response = await request(app)
+    const response = await request(server)
       .get(`/v1/parties/${PREFIX}mailcrest/revisions/1`)
       .set(auth());
 
@@ -384,7 +401,7 @@ describe('history (§2)', () => {
   });
 
   it('answers 404 for a version that was never written', async () => {
-    const response = await request(app)
+    const response = await request(server)
       .get(`/v1/parties/${PREFIX}mailcrest/revisions/99`)
       .set(auth());
     expect(response.status).toBe(404);
@@ -457,11 +474,11 @@ describe('validation and references', () => {
 
 describe('deleting', () => {
   it('refuses while another record still points at it (§4)', async () => {
-    const terms = await request(app)
+    const terms = await request(server)
       .get(`/v1/agreement-terms/${PREFIX}standard-dpa-v3`)
       .set(auth());
 
-    const response = await request(app)
+    const response = await request(server)
       .delete(`/v1/agreement-terms/${PREFIX}standard-dpa-v3`)
       .set(auth())
       .set('If-Match', `"${terms.body.version}"`);
@@ -471,8 +488,8 @@ describe('deleting', () => {
   });
 
   it('refuses to delete the self party', async () => {
-    const self = await request(app).get(`/v1/parties/${PREFIX}hireloop`).set(auth());
-    const response = await request(app)
+    const self = await request(server).get(`/v1/parties/${PREFIX}hireloop`).set(auth());
+    const response = await request(server)
       .delete(`/v1/parties/${PREFIX}hireloop`)
       .set(auth())
       .set('If-Match', `"${self.body.version}"`);
@@ -487,28 +504,29 @@ describe('deleting', () => {
     });
     expect(created.status).toBe(201);
 
-    const response = await request(app)
+    const response = await request(server)
       .delete(`/v1/taxonomy/security-measures/${PREFIX}doomed`)
       .set(auth())
       .set('If-Match', '"1"');
     expect(response.status).toBe(204);
 
     expect(
-      (await request(app).get(`/v1/taxonomy/security-measures/${PREFIX}doomed`).set(auth())).status,
+      (await request(server).get(`/v1/taxonomy/security-measures/${PREFIX}doomed`).set(auth()))
+        .status,
     ).toBe(404);
   });
 });
 
 describe('permissions on the record routes', () => {
   it('lets a viewer read', async () => {
-    const response = await request(app)
+    const response = await request(server)
       .get('/v1/parties')
       .set('Authorization', `Bearer ${readerToken}`);
     expect(response.status).toBe(200);
   });
 
   it('refuses a viewer a write, naming the permission', async () => {
-    const response = await request(app)
+    const response = await request(server)
       .post('/v1/parties')
       .set('Authorization', `Bearer ${readerToken}`)
       .send({ kind: 'vendor', legalName: 'Nope Ltd', country: 'US' });
@@ -518,7 +536,7 @@ describe('permissions on the record routes', () => {
   });
 
   it('asks a taxonomy write for taxonomy:write', async () => {
-    const response = await request(app)
+    const response = await request(server)
       .post('/v1/taxonomy/subject-categories')
       .set('Authorization', `Bearer ${readerToken}`)
       .send({ name: 'Candidates' });

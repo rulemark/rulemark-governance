@@ -107,7 +107,7 @@ describe('errors', () => {
       throw conflict('Slug "mailcrest" is already taken');
     });
     const response = await request(buildApp(router)).get('/boom');
-    expect(response.status).toBe(409);
+    expect(response.status, JSON.stringify(response.body)).toBe(409);
     expect(response.headers['content-type']).toMatch(PROBLEM_JSON);
   });
 

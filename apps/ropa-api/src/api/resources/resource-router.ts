@@ -1,5 +1,6 @@
 import type { Permission } from '@rulemark/ropa-schemas';
 import { and, asc, eq, gt, type SQL } from 'drizzle-orm';
+import type { PgColumn } from 'drizzle-orm/pg-core';
 import { Router, type Request } from 'express';
 import type { z } from 'zod';
 
@@ -39,6 +40,27 @@ export interface ResourceContext {
   readonly request: Request;
 }
 
+/**
+ * A `?name=` filter (§1.3), declared rather than implemented, so the router can
+ * apply it and the OpenAPI document can describe it from the same statement.
+ * A filter that takes a record accepts any identifier, like a body reference.
+ */
+export type FilterSpec =
+  | {
+      readonly name: string;
+      readonly kind: 'equals';
+      readonly column: PgColumn;
+      readonly description: string;
+    }
+  | {
+      readonly name: string;
+      readonly kind: 'reference';
+      readonly column: PgColumn;
+      readonly target: Identifiable;
+      readonly label: string;
+      readonly description: string;
+    };
+
 export interface ResourceDefinition<TRow extends RowShape, TSnapshot, TInput> {
   /** The path segment: `parties`, `agreement-terms`, `taxonomy/data-categories`. */
   readonly path: string;
@@ -63,8 +85,12 @@ export interface ResourceDefinition<TRow extends RowShape, TSnapshot, TInput> {
   ) => Promise<Record<string, unknown>>;
   /** Rows to API shape, with references already loaded as Refs. */
   readonly toOutput: (context: ResourceContext, rows: readonly TRow[]) => Promise<unknown[]>;
-  /** `?field=` filters, which may themselves resolve an identifier (§1.3). */
-  readonly filters?: (context: ResourceContext) => Promise<SQL[]>;
+  /** The response shape, for the OpenAPI document and for parsing on the way out. */
+  readonly output: z.ZodType;
+  /** What the schemas are called in `components.schemas`. */
+  readonly schemaNames: { readonly input: string; readonly output: string };
+  /** `?field=` filters (§1.3). */
+  readonly filters?: readonly FilterSpec[];
   /** Refuse a delete the database cannot refuse on its own. */
   readonly guardDelete?: (context: ResourceContext, row: TRow) => Promise<void>;
 }
@@ -133,7 +159,7 @@ export function resourceRouter<TRow extends RowShape, TSnapshot, TInput>(
       try {
         const context: ResourceContext = { tx: db, request: req };
         const { limit, cursor } = parsePaging(req.query);
-        const conditions = await (definition.filters?.(context) ?? Promise.resolve([]));
+        const conditions = await applyFilters(context, definition.filters ?? []);
         if (cursor !== undefined) conditions.push(gt(aggregate.table.id, decodeCursor(cursor)));
 
         /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -311,6 +337,39 @@ export function resourceRouter<TRow extends RowShape, TSnapshot, TInput>(
   });
 
   return router;
+}
+
+/** Turns the declared filters into conditions, resolving any identifiers. */
+async function applyFilters(
+  context: ResourceContext,
+  filters: readonly FilterSpec[],
+): Promise<SQL[]> {
+  const conditions: SQL[] = [];
+
+  for (const filter of filters) {
+    const raw = context.request.query[filter.name];
+    // An absent or repeated parameter is treated as absent.
+    if (typeof raw !== 'string' || raw === '') continue;
+
+    if (filter.kind === 'equals') {
+      conditions.push(eq(filter.column, raw));
+      continue;
+    }
+
+    const row = await findByIdentifier<{ id: string }>(context.tx, filter.target, raw);
+    if (row === undefined) {
+      throw validationFailed('This filter refers to something that does not exist', [
+        {
+          path: `/${filter.name}`,
+          code: 'unknown_reference',
+          message: `No ${filter.label} matching "${raw}"`,
+        },
+      ]);
+    }
+    conditions.push(eq(filter.column, row.id));
+  }
+
+  return conditions;
 }
 
 /** `changeNote` is input-only and belongs to the change, not the record (§1.6). */

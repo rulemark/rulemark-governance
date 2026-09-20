@@ -146,6 +146,18 @@ with no `dist/` and no `.tsbuildinfo`.
   requests keep their connections
 - 31 endpoint tests walking the Hireloop story over HTTP, plus the live tour
 
+### Phase 7 — OpenAPI and docs (complete)
+- `src/api/openapi/document.ts` — the OpenAPI 3.1 document, schemas from Zod 4's
+  own `toJSONSchema`, paths derived from the resource definitions
+- `src/api/routes/docs.ts` — `GET /openapi.json` and `GET /api-docs`, neither
+  needing a token
+- `src/api/openapi/write.ts` and `npm run openapi:write` — writes the document
+  into `packages/ropa-client/openapi.json`; CI fails if it is stale
+- Filters became declarative, so the router applies them and the document
+  describes them from one statement
+- The intermittent test failure was tracked down to supertest's per-request
+  ephemeral servers; each file now starts one server and reuses it
+
 ## Test Results
 | Test | Command | Expected | Actual | Status |
 |---|---|---|---|---|
@@ -178,6 +190,11 @@ with no `dist/` and no `.tsbuildinfo`.
 | Delete while referenced | `DELETE` terms an offering uses | 409 problem+json | as expected | ✅ |
 | Whole gate, three times | `npm run test` | 318 tests | all pass each time | ✅ |
 | Robust to leftover data | live demo rows left in the database, then the suite | unaffected | as expected | ✅ |
+| Document is valid OpenAPI 3.1 | `SwaggerParser.validate` in a test | valid | valid | ✅ |
+| Every documented route is routable | 60 operations against the app | none answer "No route for" | as expected | ✅ |
+| That guard can fail | document a path the router does not serve | the test fails | as expected | ✅ |
+| Swagger UI and the authorize flow | `/api-docs`, then mint → bearer → create a party | 200, then 201 | as expected | ✅ |
+| Flake rate | 20 consecutive full runs after the server-reuse fix | 0 failures | 0 failures | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -187,8 +204,8 @@ with no `dist/` and no `.tsbuildinfo`.
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Build step 1, Phases 1–6 complete; Phase 7 (OpenAPI and docs) next |
+| Where am I? | Build step 1, Phases 1–7 complete; Phase 8 (CI and test hardening) next |
 | Where am I going? | Phases 2–9: schemas, database, persistence, auth, endpoints, OpenAPI, CI, deploy |
 | What's the goal? | A running, authenticated, documented API on Render with foundation records working end to end |
 | What have I learned? | See findings.md |
-| What have I done? | Design complete and pushed; monorepo scaffolded; the API app boots, logs, handles errors and shuts down cleanly; the shared schemas package defines every foundation shape and the API consumes it; eleven tables exist in Postgres with their constraints and triggers proven by test; records save with versioning, revisions and outbox rows in one transaction; tokens are minted and permissions enforced per route; all six foundation record types are createable, readable, replaceable and deletable over HTTP, with history |
+| What have I done? | Design complete and pushed; monorepo scaffolded; the API app boots, logs, handles errors and shuts down cleanly; the shared schemas package defines every foundation shape and the API consumes it; eleven tables exist in Postgres with their constraints and triggers proven by test; records save with versioning, revisions and outbox rows in one transaction; tokens are minted and permissions enforced per route; all six foundation record types are createable, readable, replaceable and deletable over HTTP, with history; the API documents itself and Swagger UI can drive it |

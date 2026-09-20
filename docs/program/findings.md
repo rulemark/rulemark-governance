@@ -86,6 +86,13 @@
 - Reference resolution in list responses loads each referenced table once for the whole page (`domain/refs.ts`), rather than per row.
 - `python` edits against files Prettier has reformatted keep missing: match on a line range or a regex instead of an exact block when the block has been through the formatter.
 
+### Phase 7 (2026-09-20)
+- **The intermittent test failure is understood and gone.** `request(app)` in supertest starts *and stops an ephemeral HTTP server per call*, and the suite made hundreds per run; occasionally a request was answered by a server that no longer had the expected routes, which showed up as a 404 on a route that plainly exists. Each test file now starts one server and reuses it. Measured: 4 failures in 16 runs before, 1 in 16 after the intermediate fixes, **0 in 20** after. Not proof, but a plausible mechanism plus a fix that removes it.
+- Two things found while chasing it, both worth keeping: `docs.test.ts` was handing the router `undefined` as a database, so a public read turned a routing check into a crash; and the auth tests were building a fresh app per assertion, which is neither cheap nor necessary.
+- **Zod 4 converts to JSON Schema natively** (`z.toJSONSchema`, draft 2020-12 — the dialect OpenAPI 3.1 uses), so open question 2 is answered with "neither library". Every schema converts cleanly, refinements included, and `io: 'input' | 'output'` reproduces the Input/Output split exactly: a field with a default is optional going in and present coming out.
+- **The document is generated from the same `ResourceDefinition` objects as the router**, so an endpoint cannot exist undocumented or be documented with the wrong permission. Filters became declarative for the same reason; they were functions, which a document cannot describe.
+- A generator is exactly the thing that can produce plausible nonsense, so the document is validated as OpenAPI 3.1 by a test, and a second test asserts every documented route is routable — verified to fail by documenting a path the router does not serve.
+
 ## Issues encountered
 | Issue | Resolution |
 |---|---|

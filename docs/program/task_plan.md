@@ -6,7 +6,7 @@ Ship the foundation of the RoPA service: a running, documented, authenticated Ex
 Build step 1 from `docs/ropa/ropa-api.md` §8. Activities (the discriminated union, role rules, lifecycle) are **step 2**, but every mechanism they need is built here.
 
 ## Current Phase
-Phases 1–6 complete. Phase 7 (OpenAPI and docs) next.
+Phases 1–7 complete. Phase 8 (CI and test hardening) next.
 
 ## Definition of done for step 1
 - `npm run dev` serves the API locally; `/healthz`, `/openapi.json` and `/api-docs` respond.
@@ -87,12 +87,11 @@ Reference: `ropa-api.md` §2, §4; `ropa-packages.md` §4
 
 ### Phase 7: OpenAPI and docs
 Reference: `ropa-api.md` §1.9, `ropa-packages.md` §5.4, §7
-- [ ] Generate OpenAPI 3.1 from the Zod schemas
-- [ ] `GET /openapi.json`, `GET /api-docs` (Swagger UI), `bearerAuth` scheme
-- [ ] Document each operation's required permission (`x-required-permission`)
-- [ ] `openapi:write` into `packages/ropa-client/openapi.json`
-- **Done when:** Swagger UI can mint a token, authorize, and create a party
-- **Status:** pending
+- [x] Generate OpenAPI 3.1 from the Zod schemas
+- [x] `GET /openapi.json`, `GET /api-docs` (Swagger UI), `bearerAuth` scheme
+- [x] Document each operation's required permission (`x-required-permission`)
+- [x] `openapi:write` into `packages/ropa-client/openapi.json`, with the CI drift check enabled
+- **Status:** complete — 35 paths, 60 operations, validated as OpenAPI 3.1 by test. The mint → authorize → create flow was driven end to end against the running service; the button itself was not clicked in a browser
 
 ### Phase 8: CI and test hardening
 Reference: `ropa-database.md` §10, `workspace-skeleton.md` §3.5
@@ -120,7 +119,7 @@ Activities (discriminated union, role rules, lifecycle, client scoping), the vie
 
 ## Open questions
 1. ~~Express 5 — confirm middleware and async error handling.~~ **Resolved (2026-09-19):** rejected promises from async handlers reach the error middleware unaided; covered by a test.
-2. Which Zod→OpenAPI library: `zod-openapi` or `@asteasolutions/zod-to-openapi`? Pick in Phase 7.
+2. ~~Which Zod→OpenAPI library?~~ **Resolved (2026-09-20): neither.** Zod 4's own `z.toJSONSchema` emits draft 2020-12, which is OpenAPI 3.1's dialect, and paths are generated from the resource definitions so the document cannot drift from the routes.
 3. ~~Logging: anything else needed for Render's log stream?~~ **Resolved (2026-09-19):** JSON at `info`, `pino-pretty` in development, one line per request carrying the problem, a passing `/healthz` at `debug`, `authorization` redacted.
 4. ~~Do packages build with tsup from the start, or stay source-only?~~ **Resolved (2026-09-19):** source-only until the first publish.
 5. Test isolation: transaction-per-test is in place and works (`test/db/harness.ts`). Still open for the cases that use transactions themselves, such as the dispatcher: a fresh schema per suite, or serialised files? *Phase 8.*
@@ -140,6 +139,8 @@ Activities (discriminated union, role rules, lifecycle, client scoping), the vie
 | **The built artifact is tested, not just built.** `npm run test:dist` starts `dist/index.js` in CI | Running only the sources hid a `dist/` that could not boot. Brought forward from Phase 8 on 2026-09-20 |
 | **The package bundler is chosen at first publish**, not now, and not presumed to be tsup | `tsc` already emits what the workspace needs; tsup's last release was November 2025 and `tsdown` is the active successor. The export map is unchanged either way |
 | **`db:migrate` runs the built output**, and the root script builds first | Render sets `NODE_ENV=production` for Node services, so the pre-deploy command cannot rely on `tsx` being installed |
+| **Each test file starts one HTTP server and reuses it** | `request(app)` starts and stops an ephemeral server per call; hundreds per run caused requests to be answered by a server that no longer had the expected routes |
+| **Filters are declared, not implemented as functions** | The router applies them and the OpenAPI document describes them from the same statement |
 | **Vitest runs test files one at a time** (`fileParallelism: false`) | One database is shared and some tests commit; `party_one_self` alone makes reasoning about collisions a losing game. The suite still runs in about four seconds |
 | **The endpoint tests commit and clean up**, rather than using the per-test transaction | The router opens its own transaction per write, and a handle already inside one does not nest |
 | **A deletion gets its own revision version (N+1)**, not the deleted row's | `revision_version_once` rightly refuses a second row for a spent version, and `asOf` relies on `snapshot.version` matching `revision.version` |

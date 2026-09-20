@@ -59,5 +59,14 @@ jobs:
             exit 1
           fi
 
-      # Enabled in Phase 7, once the document is generated (ropa-packages.md §7).
-      # - run: npm run openapi:write && git diff --exit-code packages/ropa-client/openapi.json
+      # Drift: routes or schemas changed without regenerating the document
+      # (ropa-packages.md §7). The client package ships this file.
+      - run: npm run openapi:write
+      - name: Fail if openapi.json is stale
+        run: |
+          changes="$(git status --porcelain -- packages/ropa-client/openapi.json)"
+          if [ -n "$changes" ]; then
+            git diff -- packages/ropa-client/openapi.json | head -60
+            echo "::error::openapi.json is out of date. Run: npm run openapi:write"
+            exit 1
+          fi

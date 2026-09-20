@@ -17,7 +17,6 @@ import {
   SystemInput,
   type Ref,
 } from '@rulemark/ropa-schemas';
-import { eq, type SQL } from 'drizzle-orm';
 
 import { agreement, agreementTerms, offering, party, system } from '../../db/schema/index.js';
 import {
@@ -95,12 +94,6 @@ function slugFor(
   return derived;
 }
 
-/** Reads `?name=value`, treating an absent or repeated parameter as absent. */
-function queryValue(context: ResourceContext, name: string): string | undefined {
-  const value = context.request.query[name];
-  return typeof value === 'string' && value !== '' ? value : undefined;
-}
-
 // --- parties ---------------------------------------------------------------
 
 export const partiesResource: ResourceDefinition<
@@ -109,6 +102,8 @@ export const partiesResource: ResourceDefinition<
   typeof PartyInput._output
 > = {
   path: 'parties',
+  output: Party,
+  schemaNames: { input: 'PartyInput', output: 'Party' },
   label: 'party',
   aggregate: partyAggregate as never,
   input: PartyInput,
@@ -151,14 +146,15 @@ export const partiesResource: ResourceDefinition<
       }),
     ),
 
-  filters: async (context) => {
-    const conditions: SQL[] = [];
-    const kind = queryValue(context, 'kind');
-    const country = queryValue(context, 'country');
-    if (kind !== undefined) conditions.push(eq(party.kind, kind as typeof party.kind._.data));
-    if (country !== undefined) conditions.push(eq(party.country, country));
-    return conditions;
-  },
+  filters: [
+    {
+      name: 'kind',
+      kind: 'equals',
+      column: party.kind,
+      description: 'self, client, vendor or other',
+    },
+    { name: 'country', kind: 'equals', column: party.country, description: 'ISO 3166-1 alpha-2' },
+  ],
 
   guardDelete: async (_context, row) => {
     // The record owner is the one party the record cannot be without (§4).
@@ -176,6 +172,8 @@ export const agreementTermsResource: ResourceDefinition<
   typeof AgreementTermsInput._output
 > = {
   path: 'agreement-terms',
+  output: AgreementTerms,
+  schemaNames: { input: 'AgreementTermsInput', output: 'AgreementTerms' },
   label: 'agreement terms',
   aggregate: agreementTermsAggregate as never,
   input: AgreementTermsInput,
@@ -208,18 +206,20 @@ export const agreementTermsResource: ResourceDefinition<
       }),
     ),
 
-  filters: async (context) => {
-    const conditions: SQL[] = [];
-    const direction = queryValue(context, 'direction');
-    const authorizationType = queryValue(context, 'authorizationType');
-    if (direction !== undefined) {
-      conditions.push(eq(agreementTerms.direction, direction as 'outbound'));
-    }
-    if (authorizationType !== undefined) {
-      conditions.push(eq(agreementTerms.authorizationType, authorizationType as 'general'));
-    }
-    return conditions;
-  },
+  filters: [
+    {
+      name: 'direction',
+      kind: 'equals',
+      column: agreementTerms.direction,
+      description: 'outbound (a client signs) or inbound (we sign)',
+    },
+    {
+      name: 'authorizationType',
+      kind: 'equals',
+      column: agreementTerms.authorizationType,
+      description: 'general or specific (Art. 28(2))',
+    },
+  ],
 };
 
 // --- offerings -------------------------------------------------------------
@@ -230,6 +230,8 @@ export const offeringsResource: ResourceDefinition<
   typeof OfferingInput._output
 > = {
   path: 'offerings',
+  output: Offering,
+  schemaNames: { input: 'OfferingInput', output: 'Offering' },
   label: 'offering',
   aggregate: offeringAggregate as never,
   input: OfferingInput,
@@ -292,6 +294,8 @@ export const agreementsResource: ResourceDefinition<
   typeof AgreementInput._output
 > = {
   path: 'agreements',
+  output: Agreement,
+  schemaNames: { input: 'AgreementInput', output: 'Agreement' },
   label: 'agreement',
   aggregate: agreementAggregate as never,
   input: AgreementInput,
@@ -381,22 +385,32 @@ export const agreementsResource: ResourceDefinition<
     );
   },
 
-  filters: async (context) => {
-    const conditions: SQL[] = [];
-
-    for (const [name, spec, column] of [
-      ['party', partyAggregate, agreement.partyId],
-      ['terms', agreementTermsAggregate, agreement.termsId],
-      ['offering', offeringAggregate, agreement.offeringId],
-    ] as const) {
-      const value = queryValue(context, name);
-      if (value === undefined) continue;
-      const row = await resolveReference(context.tx, spec, value, name, name);
-      conditions.push(eq(column, row.id));
-    }
-
-    return conditions;
-  },
+  filters: [
+    {
+      name: 'party',
+      kind: 'reference',
+      column: agreement.partyId,
+      target: partyAggregate,
+      label: 'party',
+      description: 'A party, by id or slug',
+    },
+    {
+      name: 'terms',
+      kind: 'reference',
+      column: agreement.termsId,
+      target: agreementTermsAggregate,
+      label: 'agreement terms',
+      description: 'Agreement terms, by id or slug',
+    },
+    {
+      name: 'offering',
+      kind: 'reference',
+      column: agreement.offeringId,
+      target: offeringAggregate,
+      label: 'offering',
+      description: 'An offering, by id or slug',
+    },
+  ],
 };
 
 // --- systems ---------------------------------------------------------------
@@ -407,6 +421,8 @@ export const systemsResource: ResourceDefinition<
   typeof SystemInput._output
 > = {
   path: 'systems',
+  output: System,
+  schemaNames: { input: 'SystemInput', output: 'System' },
   label: 'system',
   aggregate: systemAggregate as never,
   input: SystemInput,
@@ -452,29 +468,24 @@ export const systemsResource: ResourceDefinition<
     );
   },
 
-  filters: async (context) => {
-    const conditions: SQL[] = [];
-    const kind = queryValue(context, 'kind');
-    const renderResourceId = queryValue(context, 'renderResourceId');
-    const hostingParty = queryValue(context, 'hostingParty');
-
-    if (kind !== undefined) conditions.push(eq(system.kind, kind as 'external_saas'));
-    // How the Architecture Snapshot finds a system it already knows about (§4).
-    if (renderResourceId !== undefined) {
-      conditions.push(eq(system.renderResourceId, renderResourceId));
-    }
-    if (hostingParty !== undefined) {
-      const row = await resolveReference(
-        context.tx,
-        partyAggregate,
-        hostingParty,
-        'hostingParty',
-        'party',
-      );
-      conditions.push(eq(system.hostingPartyId, row.id));
-    }
-    return conditions;
-  },
+  filters: [
+    { name: 'kind', kind: 'equals', column: system.kind, description: 'A system kind' },
+    {
+      name: 'renderResourceId',
+      kind: 'equals',
+      column: system.renderResourceId,
+      // How the Architecture Snapshot finds a system it already knows (§4).
+      description: 'The Render resource id: srv-…, dpg-…',
+    },
+    {
+      name: 'hostingParty',
+      kind: 'reference',
+      column: system.hostingPartyId,
+      target: partyAggregate,
+      label: 'party',
+      description: 'The hosting party, by id or slug',
+    },
+  ],
 };
 
 // --- taxonomies ------------------------------------------------------------
@@ -485,6 +496,7 @@ function taxonomyResource<TRow extends { id: string; slug: string; name: string 
   aggregate: unknown,
   input: unknown,
   output: unknown,
+  schemaNames: { input: string; output: string },
   extra?: (row: TRow) => Record<string, unknown>,
 ): ResourceDefinition<never, never, never> {
   return {
@@ -492,6 +504,8 @@ function taxonomyResource<TRow extends { id: string; slug: string; name: string 
     label,
     aggregate: aggregate as never,
     input: input as never,
+    output: output as never,
+    schemaNames,
     permissions: { read: 'record:read', write: 'taxonomy:write', delete: 'record:delete' },
 
     toValues: (async (
@@ -530,6 +544,7 @@ export const subjectCategoriesResource = taxonomyResource(
   subjectCategoryAggregate,
   SubjectCategoryInput,
   SubjectCategory,
+  { input: 'SubjectCategoryInput', output: 'SubjectCategory' },
 );
 
 export const dataCategoriesResource = taxonomyResource(
@@ -538,6 +553,7 @@ export const dataCategoriesResource = taxonomyResource(
   dataCategoryAggregate,
   DataCategoryInput,
   DataCategory,
+  { input: 'DataCategoryInput', output: 'DataCategory' },
   (row) => ({ special: (row as unknown as { special: string }).special }),
 );
 
@@ -547,6 +563,7 @@ export const securityMeasuresResource = taxonomyResource(
   securityMeasureAggregate,
   SecurityMeasureInput,
   SecurityMeasure,
+  { input: 'SecurityMeasureInput', output: 'SecurityMeasure' },
 );
 
 export type { Ref };
