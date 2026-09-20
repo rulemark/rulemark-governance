@@ -62,6 +62,12 @@
 - Render monorepos: `rootDir` (root-relative build/start commands; autodeploy only for changes under it) + `buildFilter.paths`/`ignoredPaths` (always relative to repo root; manual deploys ignore filters) (https://render.com/docs/monorepo-support).
 - Zod 4 is the current major (4.6.x as of 2026-09) (https://www.npmjs.com/package/zod, https://zod.dev/v4).
 
+## Toolchain notes (2026-09-19)
+- TypeScript 7 is released but `typescript-eslint` peer-requires `<6.1` → TypeScript pinned to ^5.9. Revisit later.
+- Installed at root: typescript 5.9, eslint 10, @eslint/js, typescript-eslint 8, eslint-config-prettier, prettier 3, vitest 5.
+- Prettier ignores markdown: table padding produced an ~1,800-line whitespace diff across the design docs.
+- Repo moved: `.git` relocated to the program root; renames detected, history intact (`git log --follow`).
+
 ## Technical Decisions
 | Decision | Rationale |
 |----------|-----------|

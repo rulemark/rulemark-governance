@@ -1,10 +1,10 @@
-# Workspace Skeleton (v0.1, for review)
+# Workspace Skeleton (v1.0, implemented)
 
 > The repository layout, root configuration and tooling for the monorepo, and the plan for moving git to the new root. Builds on `ropa-packages.md` (**PKG §n**) and `ropa-database.md` (**DB §n**). This document is program-level: once the move is done it lives at `docs/program/workspace-skeleton.md`.
 
 ## 1. Repository scope
 
-**Recommended: one repository for the whole governance program**, not one per service.
+**Decided (2026-09-19): one repository for the whole governance program**, named `rulemark-governance`.
 
 | Why | Detail |
 |---|---|
@@ -88,8 +88,9 @@ Strict, modern, extended by every workspace: `strict: true`, `noUncheckedIndexed
 |---|---|---|
 | Package manager | **npm workspaces** | Built in, no extra tooling, and what Render's default build command expects |
 | Node | **24 LTS**, pinned in `.nvmrc`, `engines` and the Blueprint's `NODE_VERSION` | One version everywhere, including Render |
-| Build (packages) | **tsup** | ESM + CJS + type declarations, one config each |
-| Dev runner (API) | **tsx** watch | No build step while developing |
+| TypeScript | **5.x** (pinned) | TypeScript 7 is released, but `typescript-eslint` still requires `<6.1`. Revisit once it supports 7 |
+| Build (packages) | **tsup** | ESM + CJS + type declarations, one config each (added when the packages get code) |
+| Dev runner (API) | **tsx** watch | No build step while developing (added with the API) |
 | Tests | **Vitest** | Same runner everywhere; works with TypeScript and ESM without ceremony |
 | Lint / format | **ESLint flat config + Prettier** | One config at the root |
 | Commits | **Conventional Commits** (`feat:`, `fix:`, `chore:`) | Already the style in the existing history, and it feeds changelogs when we publish (PKG §6.4) |
@@ -141,10 +142,24 @@ npm run dev                  # API on :3000, docs at /api-docs
 
 `docker-compose.yml` at the root holds only Postgres. Everything else runs on the host.
 
-## 6. Open questions
+## 6. Decisions (2026-09-19)
 
-1. **Repository scope:** the whole program (recommended, §1) or RoPA alone?
-2. **Repository name:** `rulemark-governance`? It becomes the GitHub repository name and the local folder name.
-3. **Planning files** (`task_plan.md`, `findings.md`, `progress.md`): commit them under `docs/program/` as a record of how the design was reached, or keep them out of git?
-4. **Existing research documents:** `service-ideas.md` and `architecture-snapshot-exec-summary.md` move to `docs/program/` as they are, or get a light edit first (they predate several decisions)?
-5. **`apps/ropa-web` now or later:** create it empty as part of the skeleton, or add it when the frontend starts?
+| Question | Decision |
+|---|---|
+| Repository scope | The whole governance program |
+| Repository name | `rulemark-governance` |
+| Planning files | Committed under `docs/program/` |
+| Research documents | Moved to `docs/program/` unchanged; they predate several decisions (notably on cost, now that the workspace is on Pro) |
+| `apps/ropa-web` | Created empty now |
+
+## 7. What exists now
+
+Steps §4.1–§4.6 are done, in four commits: the skeleton document, the root move, the documentation reorganisation, and the scaffold. Verified locally: `npm ci`, `npm run typecheck`, `npm run lint` and `npx prettier --check .` all pass.
+
+Deliberately **not** done yet:
+- **`render.yaml`.** The Blueprint sketch in PKG §8.2 refers to build and start scripts that don't exist yet. It lands with the API in build step 1.
+- **Drift checks in CI.** The two steps are in `ci.yml`, commented out until there are migrations and an OpenAPI document to compare.
+- **`tsup`, `tsx`, framework dependencies.** They arrive with the code that needs them.
+- **The local folder rename** (`render` → `rulemark-governance`) and creating the GitHub repository.
+
+**Markdown is excluded from Prettier** (`.prettierignore`). Its table padding turned the design documents into an 1,800-line whitespace diff and would reflow a whole table on every edit.

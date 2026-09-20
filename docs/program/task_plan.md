@@ -9,7 +9,7 @@ Planned services: **RoPA (#4, first)** → Subprocessor monitor (#5) → DSAR tr
 Define the **shape of the RoPA service**: the problems it solves, its users, the controller/processor model, the data model and the API. The design must anticipate the subprocessor monitor (#5) and DSAR (#3), and link to the Architecture Snapshot inventory.
 
 ## Current Phase
-Phase 9 (workspace skeleton), then build step 1
+Build step 1: auth + Drizzle schema + first migration (docs/ropa/ropa-api.md §8)
 
 ## Phases
 
@@ -70,9 +70,11 @@ Phase 9 (workspace skeleton), then build step 1
 
 ### Phase 9: Workspace skeleton & repo move
 - [x] design/workspace-skeleton.md v0.1 (scope, tree, root config, tooling, CI, git move plan)
-- [ ] Decide §6 questions (repo scope + name, planning files in git, research docs, apps/ropa-web now?)
-- [ ] Execute the git move + create root files and empty workspaces
-- **Status:** in_progress
+- [x] Decisions: whole-program repo `rulemark-governance`; planning + research docs in `docs/program/`; `apps/ropa-web` created empty
+- [x] Git moved to the monorepo root (history preserved via rename detection); docs reorganised into docs/program + docs/ropa
+- [x] Root config + 4 workspaces scaffolded; typecheck/lint/format pass
+- [ ] Remaining: local folder rename, GitHub repo under `rulemark`, render.yaml (with build step 1)
+- **Status:** complete (scaffold)
 
 ### Later (deferred by user): region, implementation, deploy
 - Cost constraint lifted: Render **Pro** workspace (2026-09-19) → paid instances, pre-deploy command, background workers, cron jobs, paid Postgres (no 30-day expiry), preview environments, Render audit logs all available
