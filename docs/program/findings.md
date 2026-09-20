@@ -51,6 +51,16 @@
 - **The test suite could not see a broken build.** Every test ran the TypeScript sources through `tsx`, which resolves workspace packages to *their* sources, so `node dist/index.js` was broken while 149 tests stayed green. `apps/ropa-api/test/dist.test.ts` now starts the built artifact the way Render does and is wired into CI after `npm run build`. Verified by reintroducing the original bug: the ordinary suite still passed, the dist suite failed with `ERR_MODULE_NOT_FOUND` in its output.
 - **tsup has gone quiet** (last release November 2025); `tsdown`, from the Rolldown team, is where the activity is. Neither is deprecated. `ropa-packages.md` §7 and `workspace-skeleton.md` §3.3 now record that the packages build with plain `tsc` and that the bundler is chosen at first publish, against whatever is current then.
 
+### Phase 3 (2026-09-20)
+- **A check constraint built from bound values is not a constraint.** `sql`${value}`` inside `inList` made drizzle-kit emit `CHECK (kind IN ($1, $2, $3, $4))` for every enum in all eleven tables. Literals must be inlined with `sql.raw`, quotes escaped. Caught by reading the generated SQL, which is exactly why §8.1 says to review it; a test now asserts no `check_clause` in `information_schema` contains `$1`.
+- **Drizzle auto-names a column-level unique constraint from the TypeScript property**, giving `system_renderResourceId_unique`. Constraint names are `<table>_<meaning>` (§3), so the name is passed explicitly: `text().unique('system_render_resource_id')`.
+- **Postgres aborts the whole transaction when a statement fails** (25P02), so a test that expects a violation and then keeps going needs a `SAVEPOINT` around the failing statement. The harness wraps every expectation in one.
+- **Drizzle wraps driver errors**, so `error.constraint` is undefined and the real one is on `error.cause`. The harness checks both; asserting on the *named* constraint matters, because "it threw" also passes when the row was rejected for an unrelated reason.
+- **A second entry point exposed `.env` loading in the wrong place.** The migrator is its own process and had no dotenv call. Loading the file and failing fast on bad configuration now live in `src/shared/startup.ts`, shared by the service and the migrator.
+- **`db:migrate` runs the built output, not tsx.** Render sets `NODE_ENV=production` for Node services, so `npm ci` there can skip devDependencies and `tsx` would not exist at pre-deploy time.
+- **The CI drift check uses `git status`, not `git diff`.** A newly generated migration is an untracked file, which `git diff --exit-code` does not see.
+- Vitest runs test files in parallel, and a unique constraint blocks across uncommitted transactions, so the database tests live in one file for now. Revisit with the isolation question in Phase 8.
+
 ## Issues encountered
 | Issue | Resolution |
 |---|---|

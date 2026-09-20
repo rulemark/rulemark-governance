@@ -6,7 +6,7 @@ Ship the foundation of the RoPA service: a running, documented, authenticated Ex
 Build step 1 from `docs/ropa/ropa-api.md` §8. Activities (the discriminated union, role rules, lifecycle) are **step 2**, but every mechanism they need is built here.
 
 ## Current Phase
-Phases 1–2 complete. Phase 3 (database foundations) next.
+Phases 1–3 complete. Phase 4 (persistence machinery) next.
 
 ## Definition of done for step 1
 - `npm run dev` serves the API locally; `/healthz`, `/openapi.json` and `/api-docs` respond.
@@ -42,14 +42,16 @@ Reference: `ropa-packages.md` §4, `ropa-database.md` §1
 
 ### Phase 3: Database foundations
 Reference: `ropa-database.md` §3, §4, §8
-- [ ] Drizzle setup: `drizzle.config.ts`, client, snake_case casing
-- [ ] Check helpers (`slugCheck`, `inList`) and the shared conventions (§3)
-- [ ] Schema for foundation tables: party, agreement_terms, agreement, offering, system, taxonomies, code_counter, revision, event_outbox
-- [ ] First generated migration; review the SQL against §4
-- [ ] Custom migration: `set_updated_at`, `forbid_immutable_change`, `revision_append_only`, seed `code_counter`
-- [ ] `db:migrate` script (Drizzle migrator + advisory lock) against Docker Postgres 18
+- [x] Drizzle setup: `drizzle.config.ts`, client, snake_case casing
+- [x] Check helpers (`slugCheck`, `inList`) and the shared conventions (§3)
+- [x] Schema for foundation tables: party, agreement_terms, agreement, offering, system, taxonomies, code_counter, revision, event_outbox
+- [x] First generated migration; review the SQL against §4 — caught two defects before it was applied
+- [x] Custom migration: `set_updated_at`, `forbid_immutable_change`, `revision_append_only`, seed `code_counter`
+- [x] `db:migrate` script (Drizzle migrator + advisory lock) against Docker Postgres 18
+- [x] `DATABASE_URL` in the config schema, with a `.env.example` drift guard
+- [x] Drizzle drift check enabled in CI (brought forward from Phase 8)
 - **Done when:** migrations apply to an empty database and constraints reject bad data by hand
-- **Status:** pending
+- **Status:** complete — 26 database tests, one per named constraint; verified from a dropped and recreated database
 
 ### Phase 4: Persistence machinery
 Reference: `ropa-database.md` §5, §6; `ropa-api.md` §1.4, §1.8
@@ -97,6 +99,7 @@ Reference: `ropa-database.md` §10, `workspace-skeleton.md` §3.5
 > left over: the CI wiring, the shared Postgres harness, and gap-filling.
 - [ ] Vitest against Docker Postgres in CI; migrations once per run; transaction-per-test isolation
 - [x] Built-artifact smoke test (`npm run test:dist`), wired into CI — brought forward after it caught a real gap in Phase 2
+- [x] Drizzle schema/migration drift check in CI — brought forward with Phase 3
 - [ ] Review coverage across phases 1–7 and fill the gaps
 - [ ] Enable the commented-out CI drift checks (Drizzle, OpenAPI)
 - **Done when:** `npm run check` passes locally and in CI
@@ -119,7 +122,7 @@ Activities (discriminated union, role rules, lifecycle, client scoping), the vie
 2. Which Zod→OpenAPI library: `zod-openapi` or `@asteasolutions/zod-to-openapi`? Pick in Phase 7.
 3. ~~Logging: anything else needed for Render's log stream?~~ **Resolved (2026-09-19):** JSON at `info`, `pino-pretty` in development, one line per request carrying the problem, a passing `/healthz` at `debug`, `authorization` redacted.
 4. ~~Do packages build with tsup from the start, or stay source-only?~~ **Resolved (2026-09-19):** source-only until the first publish.
-5. Test isolation: transaction rollback per test, or a fresh schema per suite for the ones that use transactions themselves? *Phase 8.*
+5. Test isolation: transaction-per-test is in place and works (`test/db/harness.ts`). Still open for the cases that use transactions themselves, such as the dispatcher: a fresh schema per suite, or serialised files? *Phase 8.*
 
 ## Decisions
 | Decision | Where it came from |
@@ -135,6 +138,8 @@ Activities (discriminated union, role rules, lifecycle, client scoping), the vie
 | **An unset optional field is returned as `null`, never omitted** | A typed client gets a field that is always present, and OpenAPI stays simple. Enforced by the Output schemas |
 | **The built artifact is tested, not just built.** `npm run test:dist` starts `dist/index.js` in CI | Running only the sources hid a `dist/` that could not boot. Brought forward from Phase 8 on 2026-09-20 |
 | **The package bundler is chosen at first publish**, not now, and not presumed to be tsup | `tsc` already emits what the workspace needs; tsup's last release was November 2025 and `tsdown` is the active successor. The export map is unchanged either way |
+| **`db:migrate` runs the built output**, and the root script builds first | Render sets `NODE_ENV=production` for Node services, so the pre-deploy command cannot rely on `tsx` being installed |
+| **Database tests live in one file** until the isolation question is settled | Vitest parallelises files, and a unique constraint blocks across uncommitted transactions. Revisit in Phase 8, open question 5 |
 | **Pure single-record rules live in the schemas** (self-party DPO, `endedAt >= signedAt`, Render systems need a region); anything needing another record is the server's job | `ropa-packages.md` §4.3: a form can then show the same error the server would return |
 
 ## Errors encountered

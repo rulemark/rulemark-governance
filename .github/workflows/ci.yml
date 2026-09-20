@@ -41,7 +41,18 @@ jobs:
       # TypeScript sources, which cannot catch a dist/ that will not boot.
       - run: npm run test:dist
 
-      # Drift checks (docs/ropa/ropa-database.md §8.1, ropa-packages.md §7).
-      # Enabled once the API workspace exists.
-      # - run: npm run db:generate && git diff --exit-code drizzle/
+      # Drift: a schema change that was never migrated (docs/ropa/ropa-database.md §8.1).
+      # `git status` rather than `git diff`, because a new migration is an
+      # untracked file and `git diff` would not see it.
+      - run: npm run db:generate
+      - name: Fail if the schema has no committed migration
+        run: |
+          changes="$(git status --porcelain -- apps/ropa-api/drizzle)"
+          if [ -n "$changes" ]; then
+            echo "$changes"
+            echo "::error::The Drizzle schema changed without a committed migration. Run: npm run db:generate"
+            exit 1
+          fi
+
+      # Enabled in Phase 7, once the document is generated (ropa-packages.md §7).
       # - run: npm run openapi:write && git diff --exit-code packages/ropa-client/openapi.json

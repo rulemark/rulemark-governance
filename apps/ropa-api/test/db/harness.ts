@@ -1,0 +1,136 @@
+import { afterAll, afterEach, beforeAll, beforeEach, expect } from 'vitest';
+import type { Pool, PoolClient } from 'pg';
+
+import { createDb, createPool, type Database } from '../../src/db/client.js';
+
+/**
+ * Tests run against a real Postgres, never a mock: constraints, triggers and
+ * defaults are the behaviour under test (`ropa-database.md` §10). Migrations
+ * are applied once per run by `test/db/global-setup.ts`.
+ *
+ * Each test runs inside a transaction that is rolled back, so tests see a clean
+ * database without truncating between them.
+ */
+export const TEST_DATABASE_URL =
+  process.env['DATABASE_URL'] ?? 'postgres://ropa:ropa@localhost:5432/ropa';
+
+export interface DbContext {
+  /** Drizzle, bound to this test's transaction. */
+  readonly db: Database;
+  /** The same transaction, for SQL that TypeScript would refuse to write. */
+  readonly sql: PoolClient;
+}
+
+/**
+ * Installs the per-test transaction and returns a getter, because the context
+ * only exists once `beforeEach` has run.
+ */
+export function useDatabase(): () => DbContext {
+  let pool: Pool;
+  let client: PoolClient;
+  let context: DbContext;
+
+  beforeAll(async () => {
+    pool = createPool(TEST_DATABASE_URL, 1);
+    try {
+      await pool.query('select 1');
+    } catch (error) {
+      throw new Error(
+        `Cannot reach Postgres at ${TEST_DATABASE_URL}.\n` +
+          `Start it with: docker compose up -d db`,
+        { cause: error },
+      );
+    }
+  });
+
+  afterAll(async () => {
+    await pool?.end();
+  });
+
+  beforeEach(async () => {
+    client = await pool.connect();
+    await client.query('BEGIN');
+    context = { db: createDb(client), sql: client };
+    currentClient = client;
+  });
+
+  afterEach(async () => {
+    await client.query('ROLLBACK');
+    client.release();
+    currentClient = undefined;
+  });
+
+  return () => context;
+}
+
+/**
+ * The transaction the expectation helpers below act on. Safe as module state
+ * because `useDatabase` is called once per file and Vitest runs the tests in a
+ * file one at a time.
+ */
+let currentClient: PoolClient | undefined;
+
+interface PostgresError extends Error {
+  code?: string;
+  constraint?: string;
+  cause?: unknown;
+}
+
+/** Drizzle wraps driver errors, so the constraint name sits on the cause. */
+function constraintOf(error: PostgresError | undefined): string | undefined {
+  if (error?.constraint !== undefined) return error.constraint;
+  const cause = error?.cause as PostgresError | undefined;
+  return cause?.constraint;
+}
+
+/**
+ * Runs something that is expected to fail, inside a savepoint.
+ *
+ * Postgres aborts the whole transaction when a statement fails, and every later
+ * statement is refused with 25P02 until it is rolled back. Without the
+ * savepoint, one expected failure would poison the rest of the test.
+ */
+async function runExpectingFailure(
+  run: () => Promise<unknown>,
+): Promise<PostgresError | undefined> {
+  const client = currentClient;
+  if (client === undefined) throw new Error('useDatabase() must be called in this file first');
+
+  await client.query('SAVEPOINT expected_failure');
+  try {
+    await run();
+    await client.query('RELEASE SAVEPOINT expected_failure');
+    return undefined;
+  } catch (caught) {
+    await client.query('ROLLBACK TO SAVEPOINT expected_failure');
+    return caught as PostgresError;
+  }
+}
+
+/**
+ * Asserts that a statement is rejected by a *named* constraint. Naming it
+ * matters: a test that only checks "this threw" passes just as happily when the
+ * row is rejected for an unrelated reason, such as a typo in the fixture.
+ */
+export async function expectViolation(
+  constraint: string,
+  run: () => Promise<unknown>,
+): Promise<void> {
+  const error = await runExpectingFailure(run);
+
+  expect(error, `expected ${constraint} to reject this, but it was accepted`).toBeDefined();
+  expect(
+    constraintOf(error),
+    `rejected by ${constraintOf(error) ?? 'something unnamed'} instead: ${error?.message}`,
+  ).toBe(constraint);
+}
+
+/** Asserts a trigger raised, identified by its message rather than a constraint. */
+export async function expectRaise(pattern: RegExp, run: () => Promise<unknown>): Promise<void> {
+  const error = await runExpectingFailure(run);
+
+  expect(error, 'expected this to be rejected, but it was accepted').toBeDefined();
+  // Drizzle's wrapper keeps the driver message on the cause.
+  const message = `${error?.message ?? ''} ${(error?.cause as Error | undefined)?.message ?? ''}`;
+  expect(message).toMatch(pattern);
+}

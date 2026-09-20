@@ -1,32 +1,8 @@
-import { fileURLToPath } from 'node:url';
-import { config as loadDotenv } from 'dotenv';
-
 import { createApp } from './api/app.js';
-import { ConfigError, loadConfig } from './shared/config.js';
 import { createLogger } from './shared/logger.js';
+import { loadConfigOrExit } from './shared/startup.js';
 
-/**
- * Local development reads the repository-root `.env`; on Render every variable
- * comes from the service's environment (workspace-skeleton.md §3.4). The path
- * is relative to this file because npm runs workspace scripts from the
- * workspace directory, and `src/` and `dist/` sit at the same depth.
- */
-if (process.env['NODE_ENV'] !== 'production') {
-  loadDotenv({ path: fileURLToPath(new URL('../../../.env', import.meta.url)), quiet: true });
-}
-
-let config;
-try {
-  config = loadConfig();
-} catch (error) {
-  if (error instanceof ConfigError) {
-    // Before the logger exists, and the level it would use is what failed.
-    process.stderr.write(`${error.message}\n`);
-    process.exit(1);
-  }
-  throw error;
-}
-
+const config = loadConfigOrExit();
 const logger = createLogger(config);
 const app = createApp({ config, logger });
 

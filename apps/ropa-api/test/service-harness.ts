@@ -44,10 +44,21 @@ export interface RunningService {
   stderr(): string;
 }
 
+/**
+ * Everything the service needs to boot. Passed explicitly rather than inherited,
+ * so a test behaves the same whether or not the developer has a `.env`, and the
+ * same in CI as on a laptop.
+ */
+const BASE_ENV = {
+  NODE_ENV: 'test',
+  LOG_LEVEL: 'info',
+  DATABASE_URL: process.env['DATABASE_URL'] ?? 'postgres://ropa:ropa@localhost:5432/ropa',
+};
+
 export function startService(args: string[], env: Record<string, string> = {}): RunningService {
   const child = spawn(process.execPath, args, {
     cwd: APP_ROOT,
-    env: { ...process.env, NODE_ENV: 'test', LOG_LEVEL: 'info', ...env },
+    env: { ...process.env, ...BASE_ENV, ...env },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 

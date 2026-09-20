@@ -19,11 +19,12 @@
     "format": "prettier --write .",
     "test": "npm run test --workspaces --if-present",
     "dev": "npm run dev -w apps/ropa-api",
-    "db:migrate": "npm run db:migrate -w apps/ropa-api",
+    "db:migrate": "npm run build && npm run db:migrate -w apps/ropa-api",
     "db:seed": "npm run db:seed -w apps/ropa-api",
     "openapi:write": "npm run openapi:write -w apps/ropa-api",
     "check": "npm run typecheck && npm run lint && npm run test",
-    "test:dist": "npm run build && npm run test:dist --workspaces --if-present"
+    "test:dist": "npm run build && npm run test:dist --workspaces --if-present",
+    "db:generate": "npm run db:generate -w apps/ropa-api"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

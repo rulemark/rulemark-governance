@@ -8,13 +8,31 @@ import { z } from 'zod';
  *
  * Variables are added to this schema by the phase that first uses them, so
  * `npm run dev` never demands configuration for a feature that does not exist
- * yet. `DATABASE_URL` arrives with Drizzle, the auth variables with tokens.
+ * yet. The auth variables arrive with tokens.
  */
+const PostgresUrl = z.string().refine((value) => {
+  // A connection string, not a bare host:port, and not a URL for a different
+  // database that happens to parse: a pasted MySQL or Redis URL is a likelier
+  // mistake than a malformed one.
+  try {
+    return ['postgres:', 'postgresql:'].includes(new URL(value).protocol);
+  } catch {
+    return false;
+  }
+}, 'Must be a postgres:// or postgresql:// connection string');
+
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
+  DATABASE_URL: PostgresUrl,
 });
+
+/**
+ * The variables with no default, which a deployment must therefore supply.
+ * `.env.example` is checked against this list so the two cannot drift.
+ */
+export const REQUIRED_ENV_VARS = ['DATABASE_URL'] as const;
 
 export type LogLevel = z.infer<typeof EnvSchema>['LOG_LEVEL'];
 export type NodeEnv = z.infer<typeof EnvSchema>['NODE_ENV'];
@@ -23,6 +41,7 @@ export interface Config {
   readonly nodeEnv: NodeEnv;
   readonly port: number;
   readonly logLevel: LogLevel;
+  readonly databaseUrl: string;
 }
 
 export class ConfigError extends Error {
@@ -57,5 +76,6 @@ export function loadConfig(
     nodeEnv: result.data.NODE_ENV,
     port: result.data.PORT,
     logLevel: result.data.LOG_LEVEL,
+    databaseUrl: result.data.DATABASE_URL,
   };
 }

@@ -79,6 +79,25 @@ with no `dist/` and no `.tsbuildinfo`.
   depends on a developer having one
 - README getting-started now includes `cp .env.example .env`
 
+### Phase 3 — Database foundations (complete)
+- `DATABASE_URL` added to the config schema, validated as a postgres connection
+  string; `.env.example` is now checked against the required list by a test
+- `src/db/schema/`: checks and column helpers, then party, agreement_terms,
+  offering, agreement, system, the three taxonomies, revision, event_outbox and
+  code_counter — eleven tables, matching `ropa-database.md` §4.2, §4.3, §4.5
+- `drizzle/0000_foundation_records.sql` generated and reviewed against §4; two
+  defects found and fixed before it was ever applied (see findings)
+- `drizzle/0001_triggers_and_code_counters.sql` hand-written: `set_updated_at`
+  on the ten editable tables, the generic `forbid_immutable_change` function for
+  step 2, `revision_append_only` on `revision`, and the four counter rows
+- `src/db/client.ts` and `src/db/migrate.ts`, the latter taking a Postgres
+  advisory lock so two instances starting together cannot both migrate
+- `src/shared/startup.ts`: `.env` loading and fail-fast config, shared by the
+  service and the migrator
+- 26 database tests against real Postgres, one per named constraint plus the
+  triggers, code allocation and the migration itself
+- CI now fails on Drizzle schema/migration drift
+
 ## Test Results
 | Test | Command | Expected | Actual | Status |
 |---|---|---|---|---|
@@ -94,6 +113,10 @@ with no `dist/` and no `.tsbuildinfo`.
 | Production entry with a package import | `NODE_ENV=production node dist/index.js` | starts and shuts down cleanly | as expected | ✅ |
 | Built-artifact suite (4 tests) | `npm run test:dist` | all pass | all pass | ✅ |
 | Guard actually guards | reintroduce the TypeScript entry point, run both suites | ordinary suite passes, dist suite fails | as expected | ✅ |
+| Phase 3 database suite (26 tests) | `npm run test` | all pass against Postgres 18.6 | all pass | ✅ |
+| Migrations on an empty database | `DROP DATABASE`, `CREATE DATABASE`, `npm run db:migrate` | 11 tables, 4 counter rows, 11 triggers | as expected | ✅ |
+| Schema/migration drift | `npm run db:generate` | "No schema changes" | as expected | ✅ |
+| Whole gate from nothing | empty database, no `dist/`, no `.tsbuildinfo` | 185 tests pass | as expected | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -103,8 +126,8 @@ with no `dist/` and no `.tsbuildinfo`.
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Build step 1, Phases 1–2 complete; Phase 3 (database foundations) next |
+| Where am I? | Build step 1, Phases 1–3 complete; Phase 4 (persistence machinery) next |
 | Where am I going? | Phases 2–9: schemas, database, persistence, auth, endpoints, OpenAPI, CI, deploy |
 | What's the goal? | A running, authenticated, documented API on Render with foundation records working end to end |
 | What have I learned? | See findings.md |
-| What have I done? | Design complete and pushed; monorepo scaffolded; the API app boots, logs, handles errors and shuts down cleanly; the shared schemas package defines every foundation shape and the API consumes it |
+| What have I done? | Design complete and pushed; monorepo scaffolded; the API app boots, logs, handles errors and shuts down cleanly; the shared schemas package defines every foundation shape and the API consumes it; eleven tables exist in Postgres with their constraints and triggers proven by test |

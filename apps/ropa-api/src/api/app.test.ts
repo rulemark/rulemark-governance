@@ -7,7 +7,12 @@ import { createLogger } from '../shared/logger.js';
 import { createApp } from './app.js';
 import { conflict, validationFailed } from './problems.js';
 
-const config = loadConfig({ LOG_LEVEL: 'silent', NODE_ENV: 'test' });
+const TEST_ENV = {
+  LOG_LEVEL: 'silent',
+  NODE_ENV: 'test',
+  DATABASE_URL: 'postgres://ropa:ropa@localhost:5432/ropa',
+};
+const config = loadConfig(TEST_ENV);
 
 function buildApp(router?: Router) {
   return createApp(router ? { config, router } : { config });
@@ -21,7 +26,7 @@ const PROBLEM_JSON = /^application\/problem\+json/;
  */
 function capturingLogger() {
   const lines: Record<string, unknown>[] = [];
-  const logger = createLogger(loadConfig({ LOG_LEVEL: 'info', NODE_ENV: 'test' }), {
+  const logger = createLogger(loadConfig({ ...TEST_ENV, LOG_LEVEL: 'info' }), {
     write(line: string) {
       lines.push(JSON.parse(line) as Record<string, unknown>);
     },
