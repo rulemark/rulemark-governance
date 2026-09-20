@@ -89,7 +89,7 @@ Strict, modern, extended by every workspace: `strict: true`, `noUncheckedIndexed
 | Package manager | **npm workspaces** | Built in, no extra tooling, and what Render's default build command expects |
 | Node | **24 LTS**, pinned in `.nvmrc`, `engines` and the Blueprint's `NODE_VERSION` | One version everywhere, including Render |
 | TypeScript | **5.x** (pinned) | TypeScript 7 is released, but `typescript-eslint` still requires `<6.1`. Revisit once it supports 7 |
-| Build (packages) | **tsup** | ESM + CJS + type declarations, one config each (added when the packages get code) |
+| Build (packages) | **`tsc`** | ESM + type declarations into `dist/`, with a `development` export condition serving sources to `tsx` and Vitest. A bundler waits for the first publish (PKG §7) |
 | Dev runner (API) | **tsx** watch | No build step while developing (added with the API) |
 | Tests | **Vitest** | Same runner everywhere; works with TypeScript and ESM without ceremony |
 | Lint / format | **ESLint flat config + Prettier** | One config at the root |

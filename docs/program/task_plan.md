@@ -96,6 +96,7 @@ Reference: `ropa-database.md` §10, `workspace-skeleton.md` §3.5
 > Tests are written test-first inside each phase (see Decisions). This phase is what's
 > left over: the CI wiring, the shared Postgres harness, and gap-filling.
 - [ ] Vitest against Docker Postgres in CI; migrations once per run; transaction-per-test isolation
+- [x] Built-artifact smoke test (`npm run test:dist`), wired into CI — brought forward after it caught a real gap in Phase 2
 - [ ] Review coverage across phases 1–7 and fill the gaps
 - [ ] Enable the commented-out CI drift checks (Drizzle, OpenAPI)
 - **Done when:** `npm run check` passes locally and in CI
@@ -132,6 +133,8 @@ Activities (discriminated union, role rules, lifecycle, client scoping), the vie
 | Config validates only the variables a phase actually uses | Requiring `DATABASE_URL` before anything connects would break `npm run dev` without Docker. Added in Phase 3 |
 | **Packages ship an export map with a `development` condition**: sources for tsx and Vitest, built output for everything else | Phase 2. Node will not strip types inside `node_modules`, so a TypeScript entry point breaks `node dist/index.js` |
 | **An unset optional field is returned as `null`, never omitted** | A typed client gets a field that is always present, and OpenAPI stays simple. Enforced by the Output schemas |
+| **The built artifact is tested, not just built.** `npm run test:dist` starts `dist/index.js` in CI | Running only the sources hid a `dist/` that could not boot. Brought forward from Phase 8 on 2026-09-20 |
+| **The package bundler is chosen at first publish**, not now, and not presumed to be tsup | `tsc` already emits what the workspace needs; tsup's last release was November 2025 and `tsdown` is the active successor. The export map is unchanged either way |
 | **Pure single-record rules live in the schemas** (self-party DPO, `endedAt >= signedAt`, Render systems need a region); anything needing another record is the server's job | `ropa-packages.md` §4.3: a form can then show the same error the server would return |
 
 ## Errors encountered

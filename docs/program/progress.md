@@ -53,6 +53,17 @@ refuses to strip types inside `node_modules`. Export conditions now serve source
 to tsx and Vitest and built output to everything else. Verified from a clean tree
 with no `dist/` and no `.tsbuildinfo`.
 
+### Between phases 2 and 3 — closing the build blind spot (2026-09-20)
+- `apps/ropa-api/test/` now holds the process-level tests: `service-harness.ts`
+  (shared spawn, free port, health polling, stderr capture), `bootstrap.test.ts`
+  (moved from `src/index.test.ts`) and `dist.test.ts`
+- `npm run test:dist` builds, then starts `dist/index.js` and checks the health
+  check, the problem+json type URI that comes from the shared package, and a
+  clean SIGTERM exit. Added to CI after `npm run build`
+- `ropa-packages.md` §7 and `workspace-skeleton.md` §3.3 corrected: packages
+  build with `tsc`; the bundler choice moves to first publish, and is no longer
+  presumed to be tsup
+
 ## Test Results
 | Test | Command | Expected | Actual | Status |
 |---|---|---|---|---|
@@ -66,6 +77,8 @@ with no `dist/` and no `.tsbuildinfo`.
 | Tests resolve to sources | delete `dist/`, `npm run test` | 149 tests still pass | as expected | ✅ |
 | Clean-slate gate | delete `dist/` and `*.tsbuildinfo`, `npm run check && npm run build` | clean | clean | ✅ |
 | Production entry with a package import | `NODE_ENV=production node dist/index.js` | starts and shuts down cleanly | as expected | ✅ |
+| Built-artifact suite (4 tests) | `npm run test:dist` | all pass | all pass | ✅ |
+| Guard actually guards | reintroduce the TypeScript entry point, run both suites | ordinary suite passes, dist suite fails | as expected | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |

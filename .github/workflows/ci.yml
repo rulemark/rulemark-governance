@@ -37,6 +37,10 @@ jobs:
       - run: npm run test
       - run: npm run build
 
+      # Start the built artifact the way Render does. Everything above runs the
+      # TypeScript sources, which cannot catch a dist/ that will not boot.
+      - run: npm run test:dist
+
       # Drift checks (docs/ropa/ropa-database.md §8.1, ropa-packages.md §7).
       # Enabled once the API workspace exists.
       # - run: npm run db:generate && git diff --exit-code drizzle/

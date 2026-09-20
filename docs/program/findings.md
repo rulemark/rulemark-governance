@@ -46,6 +46,10 @@
 - `RENDER_SYSTEM_KINDS` is **derived** from `SYSTEM_KINDS` by prefix rather than written out twice, so a new Render kind cannot be missed by the region rule.
 - ESLint's `no-unused-vars` needed `ignoreRestSiblings` and a `^_` pattern: omitting a key by destructuring (`const { region: _region, ...rest }`) is the natural way to test a missing field.
 
+### Between phases 2 and 3 (2026-09-20)
+- **The test suite could not see a broken build.** Every test ran the TypeScript sources through `tsx`, which resolves workspace packages to *their* sources, so `node dist/index.js` was broken while 149 tests stayed green. `apps/ropa-api/test/dist.test.ts` now starts the built artifact the way Render does and is wired into CI after `npm run build`. Verified by reintroducing the original bug: the ordinary suite still passed, the dist suite failed with `ERR_MODULE_NOT_FOUND` in its output.
+- **tsup has gone quiet** (last release November 2025); `tsdown`, from the Rolldown team, is where the activity is. Neither is deprecated. `ropa-packages.md` §7 and `workspace-skeleton.md` §3.3 now record that the packages build with plain `tsc` and that the bundler is chosen at first publish, against whatever is current then.
+
 ## Issues encountered
 | Issue | Resolution |
 |---|---|

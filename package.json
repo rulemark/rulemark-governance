@@ -22,7 +22,8 @@
     "db:migrate": "npm run db:migrate -w apps/ropa-api",
     "db:seed": "npm run db:seed -w apps/ropa-api",
     "openapi:write": "npm run openapi:write -w apps/ropa-api",
-    "check": "npm run typecheck && npm run lint && npm run test"
+    "check": "npm run typecheck && npm run lint && npm run test",
+    "test:dist": "npm run build && npm run test:dist --workspaces --if-present"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

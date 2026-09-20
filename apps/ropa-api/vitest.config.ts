@@ -6,7 +6,7 @@ export default defineConfig({
   resolve: { conditions: ['development'] },
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'test/bootstrap.test.ts'],
     restoreMocks: true,
   },
 });

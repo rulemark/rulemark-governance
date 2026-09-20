@@ -20,7 +20,8 @@
     "typecheck": "tsc --build",
     "typecheck:tests": "tsc -p tsconfig.test.json",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:dist": "vitest run --config vitest.dist.config.ts"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
