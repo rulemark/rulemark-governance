@@ -1,6 +1,6 @@
 import type { ErrorRequestHandler, RequestHandler } from 'express';
 
-import { notFound, toProblemDetails, type ProblemDetails } from '../problems.js';
+import { notFound, toProblemDetails, type ProblemDetails } from '../../shared/problems.js';
 
 declare module 'express-serve-static-core' {
   interface Locals {

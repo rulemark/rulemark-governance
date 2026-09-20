@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { loadConfig } from '../shared/config.js';
 import { createLogger } from '../shared/logger.js';
 import { createApp } from './app.js';
-import { conflict, validationFailed } from './problems.js';
+import { conflict, validationFailed } from '../shared/problems.js';
 
 const TEST_ENV = {
   LOG_LEVEL: 'silent',

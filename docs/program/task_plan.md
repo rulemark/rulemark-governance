@@ -6,7 +6,7 @@ Ship the foundation of the RoPA service: a running, documented, authenticated Ex
 Build step 1 from `docs/ropa/ropa-api.md` §8. Activities (the discriminated union, role rules, lifecycle) are **step 2**, but every mechanism they need is built here.
 
 ## Current Phase
-Phases 1–3 complete. Phase 4 (persistence machinery) next.
+Phases 1–4 complete. Phase 5 (authentication and authorization) next.
 
 ## Definition of done for step 1
 - `npm run dev` serves the API locally; `/healthz`, `/openapi.json` and `/api-docs` respond.
@@ -55,13 +55,17 @@ Reference: `ropa-database.md` §3, §4, §8
 
 ### Phase 4: Persistence machinery
 Reference: `ropa-database.md` §5, §6; `ropa-api.md` §1.4, §1.8
-- [ ] Code allocation from `code_counter` inside the transaction
-- [ ] Aggregate save: version check → validate → children diff → revision snapshot → outbox rows, one transaction
-- [ ] Snapshot format with `schemaVersion` and its own Zod schema
-- [ ] Optimistic concurrency: `ETag`, `If-Match`, 412/428
-- [ ] Repository pattern: rows ↔ aggregates mapping, Ref resolution
+- [x] Code allocation from `code_counter` inside the transaction
+- [x] Aggregate save: version check → validate → children diff → revision snapshot → outbox rows, one transaction
+- [x] Snapshot format with `schemaVersion` and its own Zod schema
+- [x] Optimistic concurrency: `ETag`, `If-Match`, 412/428
+- [x] Repository pattern: rows ↔ aggregates mapping, Ref resolution
 - **Done when:** saving a record twice produces two revisions, and a stale `If-Match` returns 412
-- **Status:** pending
+- **Status:** complete — both proven by test, plus real-transaction atomicity. Children diff is a no-op for foundation records (they have none) and is the one step step 2 adds
+
+> Note: the `validate` step of §6.1 is structural only so far. Cross-table rules
+> (outbound default terms, offering required for outbound agreements) arrive
+> with the endpoints in Phase 6, which is where the input schemas are applied.
 
 ### Phase 5: Authentication and authorization
 Reference: `ropa-api.md` §1.9, §1.6
@@ -140,6 +144,9 @@ Activities (discriminated union, role rules, lifecycle, client scoping), the vie
 | **The package bundler is chosen at first publish**, not now, and not presumed to be tsup | `tsc` already emits what the workspace needs; tsup's last release was November 2025 and `tsdown` is the active successor. The export map is unchanged either way |
 | **`db:migrate` runs the built output**, and the root script builds first | Render sets `NODE_ENV=production` for Node services, so the pre-deploy command cannot rely on `tsx` being installed |
 | **Database tests live in one file** until the isolation question is settled | Vitest parallelises files, and a unique constraint blocks across uncommitted transactions. Revisit in Phase 8, open question 5 |
+| **A deletion gets its own revision version (N+1)**, not the deleted row's | `revision_version_once` rightly refuses a second row for a spent version, and `asOf` relies on `snapshot.version` matching `revision.version` |
+| **No test disables a constraint or a trigger** | One that did left `revision_append_only` disabled for every later run. A test that commits cleans up only its own record and leaves history alone |
+| **Database assertions are scoped to the record under test** | Once anything commits, unscoped queries see other tests' rows. Counter assertions are relative, never absolute |
 | **Pure single-record rules live in the schemas** (self-party DPO, `endedAt >= signedAt`, Render systems need a region); anything needing another record is the server's job | `ropa-packages.md` §4.3: a form can then show the same error the server would return |
 
 ## Errors encountered

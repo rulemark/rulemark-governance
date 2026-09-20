@@ -15,10 +15,51 @@ export const TEST_DATABASE_URL =
   process.env['DATABASE_URL'] ?? 'postgres://ropa:ropa@localhost:5432/ropa';
 
 export interface DbContext {
-  /** Drizzle, bound to this test's transaction. */
+  /**
+   * Drizzle, bound to this test's transaction.
+   *
+   * Do **not** call `.transaction()` on it. The handle is already inside a
+   * transaction this harness opened with a plain `BEGIN`, and Drizzle's
+   * `transaction()` on a database handle issues its own `BEGIN`/`ROLLBACK`
+   * rather than a savepoint — which would end the harness's transaction and
+   * leave the rest of the test autocommitting. Use `savepoint()` below, or
+   * `withRealTransaction()` when the transaction itself is what you are
+   * testing.
+   */
   readonly db: Database;
   /** The same transaction, for SQL that TypeScript would refuse to write. */
   readonly sql: PoolClient;
+}
+
+/**
+ * Runs `work` inside a savepoint and rolls it back, whatever the outcome. This
+ * is the nesting that `db.transaction()` cannot give us here.
+ */
+export async function savepoint<T>(
+  client: PoolClient,
+  name: string,
+  work: () => Promise<T>,
+): Promise<T> {
+  await client.query(`SAVEPOINT ${name}`);
+  try {
+    return await work();
+  } finally {
+    await client.query(`ROLLBACK TO SAVEPOINT ${name}`);
+  }
+}
+
+/**
+ * Gives a database handle on its own connection, outside the per-test
+ * transaction, so a test can open a real transaction and watch it commit or
+ * roll back. Anything it commits is real, so callers clean up after themselves.
+ */
+export async function withRealTransaction<T>(work: (database: Database) => Promise<T>): Promise<T> {
+  const pool = createPool(TEST_DATABASE_URL, 1);
+  try {
+    return await work(createDb(pool));
+  } finally {
+    await pool.end();
+  }
 }
 
 /**

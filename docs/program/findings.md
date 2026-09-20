@@ -61,6 +61,14 @@
 - **The CI drift check uses `git status`, not `git diff`.** A newly generated migration is an untracked file, which `git diff --exit-code` does not see.
 - Vitest runs test files in parallel, and a unique constraint blocks across uncommitted transactions, so the database tests live in one file for now. Revisit with the isolation question in Phase 8.
 
+### Phase 4 (2026-09-20)
+- **A deletion needs its own revision version.** Writing the deletion revision with the deleted row's version collides with `revision_version_once`: that version was already spent on the revision that created the state. The deletion is version N+1, which also keeps `snapshot.version` equal to `revision.version` — the invariant an `asOf` read relies on.
+- **`db.transaction()` on a handle that is already inside a transaction is not a savepoint.** Drizzle issues a real `BEGIN`/`ROLLBACK` on a database handle; only a `PgTransaction` nests as a savepoint. In the test harness, which opens its own `BEGIN`, that ended the outer transaction and left the rest of the test autocommitting — which silently committed rows and broke unrelated tests. The harness now documents this and offers `savepoint()` and `withRealTransaction()`.
+- **A test that alters schema can corrupt the database.** A cleanup that did `ALTER TABLE revision DISABLE TRIGGER`, then threw on a foreign key before re-enabling, left `revision_append_only` disabled for every later run. The lesson stuck: nothing in a test disables a constraint, and the committing test now deletes only its own record and leaves history alone, because that is what append-only means.
+- **Database tests must not assume an empty table.** Once any test commits, unscoped assertions (`select().from(party)`, `DELETE FROM revision`) pick up other tests' rows and report their errors. Every assertion is now scoped by id or slug, and counter assertions are relative rather than absolute.
+- The `Transaction` type covers a `Database` as well as Drizzle's transaction handle: a connection can already be inside a transaction without Drizzle having opened it, which is how the harness isolates tests and how a caller holding a checked-out client works.
+- `Problem` moved from `src/api/` to `src/shared/`, so the domain can throw the app's error vocabulary without depending on the HTTP layer.
+
 ## Issues encountered
 | Issue | Resolution |
 |---|---|

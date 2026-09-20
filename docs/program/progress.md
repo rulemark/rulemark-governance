@@ -98,6 +98,25 @@ with no `dist/` and no `.tsbuildinfo`.
   triggers, code allocation and the migration itself
 - CI now fails on Drizzle schema/migration drift
 
+### Phase 4 — Persistence machinery (complete)
+- `src/domain/concurrency.ts` — `ETag` from the version, `If-Match` parsing with
+  428 and 400; `*` is refused because honouring it would skip the check the
+  header exists for
+- `src/domain/snapshots.ts` — one hand-written schema per entity, stamped with
+  `schemaVersion`. Written by hand on purpose: generating them from the tables
+  would silently redefine history whenever a column changed
+- `src/domain/codes.ts` — allocation from `code_counter` inside the transaction
+- `src/domain/events.ts` — the `record.changed` envelope, one outbox row per
+  destination
+- `src/domain/aggregate.ts` — create, update and delete as the §6.1 sequence:
+  version check in the `UPDATE` itself, revision snapshot, outbox rows, commit
+- `src/domain/identifiers.ts` — id, code or slug told apart without a query
+- `src/domain/aggregates.ts` — the rows ↔ aggregate mapping for all eight
+  foundation records
+- `Problem` moved to `src/shared/` so the domain need not import from `api/`
+- 21 new database tests, including a real (committing) transaction test that
+  proves the record, its history and its events land together or not at all
+
 ## Test Results
 | Test | Command | Expected | Actual | Status |
 |---|---|---|---|---|
@@ -117,6 +136,9 @@ with no `dist/` and no `.tsbuildinfo`.
 | Migrations on an empty database | `DROP DATABASE`, `CREATE DATABASE`, `npm run db:migrate` | 11 tables, 4 counter rows, 11 triggers | as expected | ✅ |
 | Schema/migration drift | `npm run db:generate` | "No schema changes" | as expected | ✅ |
 | Whole gate from nothing | empty database, no `dist/`, no `.tsbuildinfo` | 185 tests pass | as expected | ✅ |
+| Phase 4 persistence suite | `npm run test` | save, concurrency, codes, identifiers | all pass | ✅ |
+| Atomicity, for real | `db.transaction()` on its own connection, made to throw | no row, no revision, no outbox row | as expected | ✅ |
+| Whole gate from nothing, twice | fresh database, no build artifacts, run twice | 216 tests pass both times | as expected | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -126,8 +148,8 @@ with no `dist/` and no `.tsbuildinfo`.
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Build step 1, Phases 1–3 complete; Phase 4 (persistence machinery) next |
+| Where am I? | Build step 1, Phases 1–4 complete; Phase 5 (authentication and authorization) next |
 | Where am I going? | Phases 2–9: schemas, database, persistence, auth, endpoints, OpenAPI, CI, deploy |
 | What's the goal? | A running, authenticated, documented API on Render with foundation records working end to end |
 | What have I learned? | See findings.md |
-| What have I done? | Design complete and pushed; monorepo scaffolded; the API app boots, logs, handles errors and shuts down cleanly; the shared schemas package defines every foundation shape and the API consumes it; eleven tables exist in Postgres with their constraints and triggers proven by test |
+| What have I done? | Design complete and pushed; monorepo scaffolded; the API app boots, logs, handles errors and shuts down cleanly; the shared schemas package defines every foundation shape and the API consumes it; eleven tables exist in Postgres with their constraints and triggers proven by test; records save with versioning, revisions and outbox rows in one transaction |

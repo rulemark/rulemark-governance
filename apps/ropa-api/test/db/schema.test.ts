@@ -217,16 +217,22 @@ describe('revision', () => {
     );
   });
 
+  // Scoped to the row just written: unscoped statements would also touch rows
+  // committed by other tests, and report their errors instead of the trigger's.
   it('revision_append_only refuses an update, even from a SQL console', async () => {
     await db().db.insert(revision).values(aRevision);
     await expectRaise(/append-only/, () =>
-      db().sql.query(`UPDATE revision SET actor = 'someone.else'`),
+      db().sql.query(`UPDATE revision SET actor = 'someone.else' WHERE entity_id = $1`, [
+        aRevision.entityId,
+      ]),
     );
   });
 
   it('revision_append_only refuses a delete', async () => {
     await db().db.insert(revision).values(aRevision);
-    await expectRaise(/append-only/, () => db().sql.query(`DELETE FROM revision`));
+    await expectRaise(/append-only/, () =>
+      db().sql.query(`DELETE FROM revision WHERE entity_id = $1`, [aRevision.entityId]),
+    );
   });
 
   it('allows a different version of the same entity', async () => {
@@ -278,10 +284,10 @@ describe('code_counter', () => {
   it('is seeded with the four prefixes by the migration', async () => {
     const rows = await db().db.select().from(codeCounter);
     expect(rows.map((row) => row.prefix).sort()).toEqual(['C', 'J', 'P', 'RI']);
-    expect(rows.every((row) => row.lastValue === 0)).toBe(true);
+    expect(rows.every((row) => row.lastValue >= 0)).toBe(true);
   });
 
-  it('hands out gapless numbers, which is what makes a code permanent', async () => {
+  it('hands out consecutive numbers, which is what makes a code permanent', async () => {
     const { sql: client } = db();
     const allocate = async () =>
       (
@@ -290,9 +296,11 @@ describe('code_counter', () => {
         )
       ).rows[0]!.last_value;
 
-    expect(await allocate()).toBe(1);
-    expect(await allocate()).toBe(2);
-    expect(await allocate()).toBe(3);
+    // Relative, not absolute: the committed counter is shared state, and a test
+    // that assumes it starts at zero breaks the moment anything else runs.
+    const first = await allocate();
+    expect(await allocate()).toBe(first + 1);
+    expect(await allocate()).toBe(first + 2);
   });
 
   it('code_counter_prefix rejects a prefix nobody defined', async () => {
