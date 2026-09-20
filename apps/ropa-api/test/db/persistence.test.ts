@@ -23,7 +23,12 @@ import {
 } from '../../src/domain/aggregates.js';
 import { allocateCode } from '../../src/domain/codes.js';
 import { findByIdentifier, identifierKind } from '../../src/domain/identifiers.js';
-import { PartySnapshot, SNAPSHOT_SCHEMA_VERSION } from '../../src/domain/snapshots.js';
+import { requireRef } from '../../src/domain/refs.js';
+import {
+  PartySnapshot,
+  SNAPSHOT_SCHEMA_VERSION,
+  snapshotSchemaFor,
+} from '../../src/domain/snapshots.js';
 import { Problem } from '../../src/shared/problems.js';
 import { TEST_DATABASE_URL, useDatabase, withRealTransaction } from './harness.js';
 
@@ -530,5 +535,36 @@ describe('the actor on a revision (§1.6)', () => {
     const response = await request(appSaving()).post('/v1/parties').send({ slug: 'pm-nobody' });
     expect(response.status).toBe(401);
     expect(await db().db.select().from(party).where(eq(party.slug, 'pm-nobody'))).toHaveLength(0);
+  });
+});
+
+describe('failing loudly rather than quietly', () => {
+  it('refuses to build a record around a reference that is gone', () => {
+    // A required reference missing from the database means a foreign key was
+    // not enforced, or a row vanished mid-request. Half a record is worse than
+    // an error.
+    expect(() => requireRef(new Map(), 'missing-id', 'defaultTerms')).toThrow(
+      /Dangling reference: defaultTerms/,
+    );
+  });
+
+  it('says the database is unmigrated when a code counter is missing', async () => {
+    const { sql: client } = db();
+    await client.query(`DELETE FROM code_counter WHERE prefix = 'J'`);
+
+    // Not "undefined is not a function" three frames later.
+    await expect(allocateCode(db().db, 'J')).rejects.toThrow(/db:migrate/);
+  });
+
+  it('has a snapshot schema for every entity type it writes revisions for', () => {
+    for (const aggregate of [partyAggregate, agreementTermsAggregate, offeringAggregate]) {
+      expect(() => snapshotSchemaFor(aggregate.entityType), aggregate.entityType).not.toThrow();
+    }
+  });
+
+  it('refuses an entity type with no snapshot schema', () => {
+    // Adding an aggregate without a schema would otherwise be discovered by
+    // writing unvalidated history.
+    expect(() => snapshotSchemaFor('activity')).toThrow(/No snapshot schema/);
   });
 });

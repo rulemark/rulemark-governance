@@ -93,6 +93,14 @@
 - **The document is generated from the same `ResourceDefinition` objects as the router**, so an endpoint cannot exist undocumented or be documented with the wrong permission. Filters became declarative for the same reason; they were functions, which a document cannot describe.
 - A generator is exactly the thing that can produce plausible nonsense, so the document is validated as OpenAPI 3.1 by a test, and a second test asserts every documented route is routable — verified to fail by documenting a path the router does not serve.
 
+### Phase 8 (2026-09-20)
+- **The README's getting-started did not work.** `npm run db:seed` was in the quickstart and in the root scripts, but the seed is step 2, so a clone failed on step four. The script is gone and the README says where demo data comes from instead.
+- **Formatting was never checked.** `npm run format` writes but nothing verified, so drift accumulated silently. `format:check` now runs in CI — and it immediately found seven files, including generated ones. Generated files (`drizzle/`, `openapi.json`) are Prettier-ignored: formatting them puts Prettier and the generator in a fight the drift check then reports as a failure.
+- **`npm run check` did not mean what CI means.** It now runs typecheck, lint, format:check, test and test:dist, so "it passes locally" and "it passes in CI" are the same claim.
+- **Seven exported symbols nothing used.** `hasPermission`, `arrayInList`, `referencedElsewhere` and an exported `loadEnvFile` were removed; `TOKEN_ISSUER`/`TOKEN_AUDIENCE` earned their keep with a test pinning the claims §1.9 specifies. The seventh, `SNAPSHOT_SCHEMAS`, turned out to mark a real gap.
+- **Snapshots were validated on write but not on read**, though DB §6.2 asks for both. `GET /{ref}/revisions/{version}` now parses the stored snapshot before returning it: a snapshot that no longer matches its schema is how an aggregate's shape changed without an upgrader, and returning it quietly would hand a caller history that does not mean what it says.
+- **Coverage's zero-percent files were an artifact, not a gap.** The bootstrap, the migrator and the OpenAPI writer all run in child processes, so v8 sees none of their lines although each is covered. They are excluded from the report with that reason written down, rather than counted as untested or papered over with shallow tests.
+
 ## Issues encountered
 | Issue | Resolution |
 |---|---|

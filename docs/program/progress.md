@@ -158,6 +158,20 @@ with no `dist/` and no `.tsbuildinfo`.
 - The intermittent test failure was tracked down to supertest's per-request
   ephemeral servers; each file now starts one server and reuses it
 
+### Phase 8 — CI and test hardening (complete)
+- `npm run check` is now the whole gate: typecheck, lint, format:check, test,
+  test:dist. CI runs the same plus the two drift checks, which need git
+- CI hardened: `permissions: contents: read`, a ten-minute timeout, and a
+  concurrency group that supersedes superseded runs except on main
+- `format:check` added — it had never been verified, and found seven files
+- Generated files are Prettier-ignored, so the formatter and the generators
+  cannot disagree
+- Dead code removed; the one "unused" export that mattered led to snapshots
+  being validated on read as well as on write (DB §6.2)
+- Coverage tooling added: 95% of statements, with the child-process entry
+  points excluded and the reason recorded
+- README fixed: it told a newcomer to run a script that does not exist
+
 ## Test Results
 | Test | Command | Expected | Actual | Status |
 |---|---|---|---|---|
@@ -195,6 +209,9 @@ with no `dist/` and no `.tsbuildinfo`.
 | That guard can fail | document a path the router does not serve | the test fails | as expected | ✅ |
 | Swagger UI and the authorize flow | `/api-docs`, then mint → bearer → create a party | 200, then 201 | as expected | ✅ |
 | Flake rate | 20 consecutive full runs after the server-reuse fix | 0 failures | 0 failures | ✅ |
+| Whole gate, one command | `npm run check` | typecheck, lint, format, 400 tests | all pass | ✅ |
+| Coverage | `npm run coverage` | no meaningful gaps | 95% statements, 96% lines | ✅ |
+| README getting-started | followed from a clean clone | every command exists | fixed (db:seed did not) | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -204,8 +221,8 @@ with no `dist/` and no `.tsbuildinfo`.
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Build step 1, Phases 1–7 complete; Phase 8 (CI and test hardening) next |
+| Where am I? | Build step 1, Phases 1–8 complete; Phase 9 (deploy to Render) next |
 | Where am I going? | Phases 2–9: schemas, database, persistence, auth, endpoints, OpenAPI, CI, deploy |
 | What's the goal? | A running, authenticated, documented API on Render with foundation records working end to end |
 | What have I learned? | See findings.md |
-| What have I done? | Design complete and pushed; monorepo scaffolded; the API app boots, logs, handles errors and shuts down cleanly; the shared schemas package defines every foundation shape and the API consumes it; eleven tables exist in Postgres with their constraints and triggers proven by test; records save with versioning, revisions and outbox rows in one transaction; tokens are minted and permissions enforced per route; all six foundation record types are createable, readable, replaceable and deletable over HTTP, with history; the API documents itself and Swagger UI can drive it |
+| What have I done? | Design complete and pushed; monorepo scaffolded; the API app boots, logs, handles errors and shuts down cleanly; the shared schemas package defines every foundation shape and the API consumes it; eleven tables exist in Postgres with their constraints and triggers proven by test; records save with versioning, revisions and outbox rows in one transaction; tokens are minted and permissions enforced per route; all six foundation record types are createable, readable, replaceable and deletable over HTTP, with history; the API documents itself and Swagger UI can drive it; the gate is one command and CI runs it |

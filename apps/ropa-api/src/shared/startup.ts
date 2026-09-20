@@ -15,7 +15,7 @@ import { ConfigError, loadConfig, type Config } from './config.js';
  * is relative to this file because npm runs workspace scripts from the
  * workspace directory, and `src/` and `dist/` sit at the same depth.
  */
-export function loadEnvFile(): void {
+function loadEnvFile(): void {
   if (process.env['NODE_ENV'] === 'production') return;
   loadDotenv({ path: fileURLToPath(new URL('../../../../.env', import.meta.url)), quiet: true });
 }

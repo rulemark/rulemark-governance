@@ -5,14 +5,7 @@
     "noEmit": true,
     "declaration": false,
     "declarationMap": false,
-    "customConditions": [
-      "development"
-    ]
+    "customConditions": ["development"]
   },
-  "include": [
-    "src",
-    "test",
-    "vitest.config.ts",
-    "vitest.dist.config.ts"
-  ]
+  "include": ["src", "test", "vitest.config.ts", "vitest.dist.config.ts"]
 }

@@ -5,9 +5,21 @@ on:
     branches: [main]
   pull_request:
 
+# Least privilege: nothing here writes to the repository.
+permissions:
+  contents: read
+
+# A newer push supersedes a run in progress, except on main, where every commit
+# should be known to be green on its own.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   check:
     runs-on: ubuntu-latest
+    # The whole job takes about a minute; ten is a hung process, not a slow one.
+    timeout-minutes: 10
 
     services:
       postgres:
@@ -39,6 +51,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
+      - run: npm run format:check
       - run: npm run test
       - run: npm run build
 

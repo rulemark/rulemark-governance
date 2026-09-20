@@ -15,5 +15,15 @@ export default defineConfig({
     // can collide with which uncommitted one — `party_one_self` alone makes
     // that a losing game. The whole suite takes a couple of seconds.
     fileParallelism: false,
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.ts'],
+      // Entry points run in a child process (the bootstrap, the migrator, the
+      // openapi writer), so v8 sees none of their lines even though they are
+      // covered by test/bootstrap.test.ts, test/dist.test.ts and the global
+      // setup. Counting them as untested would be worse than leaving them out.
+      exclude: ['src/index.ts', 'src/db/migrate.ts', 'src/api/openapi/write.ts'],
+      reporter: ['text-summary', 'text'],
+    },
   },
 });

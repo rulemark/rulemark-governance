@@ -6,7 +6,7 @@ Ship the foundation of the RoPA service: a running, documented, authenticated Ex
 Build step 1 from `docs/ropa/ropa-api.md` §8. Activities (the discriminated union, role rules, lifecycle) are **step 2**, but every mechanism they need is built here.
 
 ## Current Phase
-Phases 1–7 complete. Phase 8 (CI and test hardening) next.
+Phases 1–8 complete. Phase 9 (deploy to Render) next.
 
 ## Definition of done for step 1
 - `npm run dev` serves the API locally; `/healthz`, `/openapi.json` and `/api-docs` respond.
@@ -97,11 +97,13 @@ Reference: `ropa-api.md` §1.9, `ropa-packages.md` §5.4, §7
 Reference: `ropa-database.md` §10, `workspace-skeleton.md` §3.5
 > Tests are written test-first inside each phase (see Decisions). This phase is what's
 > left over: the CI wiring, the shared Postgres harness, and gap-filling.
-- [ ] Vitest against Docker Postgres in CI; migrations once per run; transaction-per-test isolation
+- [x] Vitest against Docker Postgres in CI; migrations once per run; transaction-per-test isolation
 - [x] Built-artifact smoke test (`npm run test:dist`), wired into CI — brought forward after it caught a real gap in Phase 2
 - [x] Drizzle schema/migration drift check in CI — brought forward with Phase 3
-- [ ] Review coverage across phases 1–7 and fill the gaps
-- [ ] Enable the commented-out CI drift checks (Drizzle, OpenAPI)
+- [x] Review coverage across phases 1–7 and fill the gaps — 95% of statements; dead code removed, and snapshots are now validated on read
+- [x] Enable the commented-out CI drift checks (Drizzle, OpenAPI)
+- [x] `npm run check` runs the same gate CI does, including formatting
+- [x] CI hardened: least-privilege token, job timeout, concurrency group
 - **Done when:** `npm run check` passes locally and in CI
 - **Status:** pending
 
@@ -122,7 +124,7 @@ Activities (discriminated union, role rules, lifecycle, client scoping), the vie
 2. ~~Which Zod→OpenAPI library?~~ **Resolved (2026-09-20): neither.** Zod 4's own `z.toJSONSchema` emits draft 2020-12, which is OpenAPI 3.1's dialect, and paths are generated from the resource definitions so the document cannot drift from the routes.
 3. ~~Logging: anything else needed for Render's log stream?~~ **Resolved (2026-09-19):** JSON at `info`, `pino-pretty` in development, one line per request carrying the problem, a passing `/healthz` at `debug`, `authorization` redacted.
 4. ~~Do packages build with tsup from the start, or stay source-only?~~ **Resolved (2026-09-19):** source-only until the first publish.
-5. Test isolation: transaction-per-test is in place and works (`test/db/harness.ts`). Still open for the cases that use transactions themselves, such as the dispatcher: a fresh schema per suite, or serialised files? *Phase 8.*
+5. ~~Test isolation.~~ **Resolved (2026-09-20):** transaction-per-test for anything that does not manage its own transaction (`test/db/harness.ts`), and commit-and-clean-up for the tests whose subject *is* the transaction (the endpoints, the atomicity checks). Files run one at a time, so no fresh schema per suite is needed. The dispatcher in step 2 is the next thing to test this against.
 
 ## Decisions
 | Decision | Where it came from |
@@ -141,6 +143,8 @@ Activities (discriminated union, role rules, lifecycle, client scoping), the vie
 | **`db:migrate` runs the built output**, and the root script builds first | Render sets `NODE_ENV=production` for Node services, so the pre-deploy command cannot rely on `tsx` being installed |
 | **Each test file starts one HTTP server and reuses it** | `request(app)` starts and stops an ephemeral server per call; hundreds per run caused requests to be answered by a server that no longer had the expected routes |
 | **Filters are declared, not implemented as functions** | The router applies them and the OpenAPI document describes them from the same statement |
+| **Generated files are Prettier-ignored** (`drizzle/`, `openapi.json`) | Formatting them puts Prettier and the generator in a fight, which the drift checks then report as a failure |
+| **`npm run check` is the whole gate**, not a subset of it | "It passes locally" and "it passes in CI" should be the same claim |
 | **Vitest runs test files one at a time** (`fileParallelism: false`) | One database is shared and some tests commit; `party_one_self` alone makes reasoning about collisions a losing game. The suite still runs in about four seconds |
 | **The endpoint tests commit and clean up**, rather than using the per-test transaction | The router opens its own transaction per write, and a handle already inside one does not nest |
 | **A deletion gets its own revision version (N+1)**, not the deleted row's | `revision_version_once` rightly refuses a second row for a spent version, and `asOf` relies on `snapshot.version` matching `revision.version` |

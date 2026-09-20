@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import express, { Router } from 'express';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 
@@ -6,6 +6,8 @@ import { loadConfig } from '../shared/config.js';
 import { createLogger } from '../shared/logger.js';
 import { createApp } from './app.js';
 import { conflict, validationFailed } from '../shared/problems.js';
+import { requires } from './middleware/authorize.js';
+import { problemHandler } from './middleware/errors.js';
 
 const TEST_ENV = {
   LOG_LEVEL: 'silent',
@@ -192,5 +194,58 @@ describe('logging', () => {
 
     expect(JSON.stringify(lines)).not.toMatch(/super-secret-token/);
     expect(JSON.stringify(lines)).toMatch(/\[redacted\]/);
+  });
+});
+
+describe('defensive paths', () => {
+  it('hands an error on rather than rewriting a response already in flight', () => {
+    // Once the status line is out, nothing can be turned into problem+json.
+    // Trying would throw "Cannot set headers after they are sent"; the handler
+    // must delegate to Express, which closes the connection.
+    const failure = new Error('failed after the response started');
+    const sent: string[] = [];
+    const res = {
+      headersSent: true,
+      status: () => {
+        sent.push('status');
+        return res;
+      },
+      type: () => {
+        sent.push('type');
+        return res;
+      },
+      json: () => {
+        sent.push('json');
+        return res;
+      },
+      locals: {},
+    };
+    const forwarded: unknown[] = [];
+
+    problemHandler({ includeDetail: false })(
+      failure,
+      { originalUrl: '/half-written' } as never,
+      res as never,
+      ((error: unknown) => forwarded.push(error)) as never,
+    );
+
+    expect(forwarded).toEqual([failure]);
+    expect(sent).toEqual([]);
+  });
+
+  it('refuses a route whose permission guard runs without authentication', async () => {
+    // `requires()` sits behind `authenticate` in the real app. If a future
+    // route is mounted above it, the answer must be 401, not a crash and not
+    // an accidental pass.
+    const router = Router();
+    const app = express();
+    router.get('/unguarded', requires('record:read'), (_req, res) => {
+      res.json({ reached: true });
+    });
+    app.use(router);
+    app.use(problemHandler({ includeDetail: false }));
+
+    const response = await request(app).get('/unguarded');
+    expect(response.status).toBe(401);
   });
 });

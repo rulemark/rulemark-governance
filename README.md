@@ -43,9 +43,14 @@ git config core.hooksPath .githooks
 npm ci
 cp .env.example .env             # local settings; git-ignored, never deployed
 docker compose up -d db          # Postgres 18
-npm run db:migrate && npm run db:seed
+npm run db:migrate               # creates the schema
 npm run dev                      # API on :3000, docs at /api-docs
 ```
+
+There is no demo data yet: the Hireloop seed (`npm run db:seed`) arrives with
+build step 2. Until then, create records through the API — open
+`http://localhost:3000/api-docs`, mint a token at `POST /v1/tokens` using the
+`TOKEN_MINT_SECRET` from your `.env`, press **Authorize**, and post a party.
 
 On Render nothing reads `.env`: every variable comes from the service's
 environment, and the generated secrets come from the Blueprint. A variable that

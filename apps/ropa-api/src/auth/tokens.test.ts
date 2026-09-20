@@ -2,7 +2,13 @@ import type { Principal } from '@rulemark/ropa-schemas';
 import { describe, expect, it } from 'vitest';
 
 import { Problem } from '../shared/problems.js';
-import { TOKEN_LIFETIME_SECONDS, signToken, verifyToken } from './tokens.js';
+import {
+  TOKEN_AUDIENCE,
+  TOKEN_ISSUER,
+  TOKEN_LIFETIME_SECONDS,
+  signToken,
+  verifyToken,
+} from './tokens.js';
 
 const SECRET = 'a-secret-long-enough-for-hs256-signing';
 const PRIYA: Principal = {
@@ -35,6 +41,21 @@ describe('signToken', () => {
     const { expiresIn } = await signToken(PRIYA, SECRET);
     expect(expiresIn).toBe(TOKEN_LIFETIME_SECONDS);
     expect(TOKEN_LIFETIME_SECONDS).toBe(8 * 60 * 60);
+  });
+
+  it('carries the claims §1.9 specifies', async () => {
+    const { token } = await signToken(PRIYA, SECRET);
+    const [, payload] = token.split('.');
+    const claims = JSON.parse(Buffer.from(payload!, 'base64url').toString('utf8')) as Record<
+      string,
+      unknown
+    >;
+
+    expect(claims['iss']).toBe(TOKEN_ISSUER);
+    expect(claims['aud']).toBe(TOKEN_AUDIENCE);
+    expect(claims['sub']).toBe('priya.raman');
+    expect(claims['exp']).toBe((claims['iat'] as number) + TOKEN_LIFETIME_SECONDS);
+    expect(typeof claims['jti']).toBe('string');
   });
 
   it('gives each token its own id, so one can be traced', async () => {

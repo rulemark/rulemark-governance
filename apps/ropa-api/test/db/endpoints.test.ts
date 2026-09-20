@@ -8,6 +8,7 @@ import { recordsRouter } from '../../src/api/resources/index.js';
 import { createDb, createPool, type Database } from '../../src/db/client.js';
 import { agreement, agreementTerms, offering, party, system } from '../../src/db/schema/index.js';
 import { dataCategory, securityMeasure, subjectCategory } from '../../src/db/schema/index.js';
+import { PartySnapshot } from '../../src/domain/snapshots.js';
 import { loadConfig } from '../../src/shared/config.js';
 import { TEST_DATABASE_URL } from './harness.js';
 
@@ -398,6 +399,16 @@ describe('history (§2)', () => {
     expect(response.status).toBe(200);
     expect(response.body.snapshot.legalName).toBe('Mailcrest Inc.');
     expect(response.body.snapshot.schemaVersion).toBe(1);
+  });
+
+  it('validates the stored snapshot on the way out (DB §6.2)', async () => {
+    const response = await request(server)
+      .get(`/v1/parties/${PREFIX}mailcrest/revisions/1`)
+      .set(auth());
+
+    // Parsed, not passed through: every field the schema requires is present
+    // and correctly shaped.
+    expect(() => PartySnapshot.parse(response.body.snapshot)).not.toThrow();
   });
 
   it('answers 404 for a version that was never written', async () => {

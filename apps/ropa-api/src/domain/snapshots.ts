@@ -125,6 +125,19 @@ export const SNAPSHOT_SCHEMAS = {
 
 export type SnapshotEntityType = keyof typeof SNAPSHOT_SCHEMAS;
 
+/**
+ * The schema for an entity type. Throws rather than returning undefined: a
+ * missing entry means a new aggregate was added without a snapshot schema,
+ * which would otherwise be discovered by writing unvalidated history.
+ */
+export function snapshotSchemaFor(entityType: RevisionEntityType): z.ZodType {
+  const schema = SNAPSHOT_SCHEMAS[entityType as SnapshotEntityType] as z.ZodType | undefined;
+  if (schema === undefined) {
+    throw new Error(`No snapshot schema for entity type "${entityType}"`);
+  }
+  return schema;
+}
+
 export type PartySnapshot = z.infer<typeof PartySnapshot>;
 export type AgreementTermsSnapshot = z.infer<typeof AgreementTermsSnapshot>;
 export type OfferingSnapshot = z.infer<typeof OfferingSnapshot>;

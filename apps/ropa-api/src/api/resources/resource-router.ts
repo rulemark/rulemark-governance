@@ -17,6 +17,7 @@ import { etagFor, requireIfMatch } from '../../domain/concurrency.js';
 import { findByIdentifier, type Identifiable } from '../../domain/identifiers.js';
 import { decodeCursor, pageOf, parsePaging } from '../../domain/pagination.js';
 import type { Transaction } from '../../domain/transaction.js';
+import { snapshotSchemaFor } from '../../domain/snapshots.js';
 import {
   badRequest,
   conflict,
@@ -328,7 +329,11 @@ export function resourceRouter<TRow extends RowShape, TSnapshot, TInput>(
           validFrom: entry.validFrom.toISOString(),
           actor: entry.actor,
           changeNote: entry.changeNote,
-          snapshot: entry.snapshot,
+          // Parsed on the way out as well as on the way in (DB §6.2). A stored
+          // snapshot that no longer matches its schema is how an aggregate's
+          // shape changed without an upgrader, and returning it quietly would
+          // hand a caller history that does not mean what it says.
+          snapshot: snapshotSchemaFor(aggregate.entityType).parse(entry.snapshot),
         });
       } catch (error) {
         next(error);

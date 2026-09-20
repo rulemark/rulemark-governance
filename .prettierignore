@@ -5,3 +5,8 @@ package-lock.json
 # Markdown is hand-formatted; Prettier's table padding makes diffs unreadable
 docs/
 *.md
+
+# Generated, and checked for drift in CI. Formatting these would put Prettier
+# and the generator in a fight that the drift check then reports as a failure.
+apps/ropa-api/drizzle/
+packages/ropa-client/openapi.json

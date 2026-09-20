@@ -4,7 +4,7 @@ import type { PgColumn, PgTable } from 'drizzle-orm/pg-core';
 import type { z } from 'zod';
 
 import { eventOutbox, revision } from '../db/schema/history.js';
-import { conflict, notFound, preconditionFailed } from '../shared/problems.js';
+import { notFound, preconditionFailed } from '../shared/problems.js';
 import { DEFAULT_EVENT_DESTINATIONS, recordChangedEvent } from './events.js';
 import { toSnapshotTimestamps } from './snapshots.js';
 import type { Transaction } from './transaction.js';
@@ -207,9 +207,4 @@ async function recordRevision<TRow extends RowShape, TSnapshot>(
       revisionId: written.id,
     })),
   );
-}
-
-/** A delete refused because another record still points at this one (§4, 409). */
-export function referencedElsewhere(entityType: string, detail: string) {
-  return conflict(`This ${entityType} is still referenced: ${detail}`);
 }

@@ -8,6 +8,12 @@ import type { AnyPgColumn } from 'drizzle-orm/pg-core';
  */
 
 /**
+ * Step 2 adds `arrayInList` here for the activity aggregate's enum arrays
+ * (`lawful_bases`, `special_conditions`); no table in step 1 has one, and an
+ * untested helper nobody calls is a liability rather than a head start.
+ */
+
+/**
  * Values are inlined as SQL literals, not bound as parameters. A CHECK
  * constraint is DDL: `sql`${value}`` would emit `IN ($1, $2)`, which is not a
  * constraint anyone can apply. Everything passed here is a compile-time
@@ -37,9 +43,4 @@ export function slugCheck(column: AnyPgColumn): SQL {
 /** ISO 3166-1 alpha-2. */
 export function countryCheck(column: AnyPgColumn): SQL {
   return sql`${column} ~ '^[A-Z]{2}$'`;
-}
-
-/** Every element of a text[] is an allowed value (§4.1). */
-export function arrayInList(column: AnyPgColumn, values: readonly string[]): SQL {
-  return sql`${column} <@ ARRAY[${literals(values)}]::text[]`;
 }
