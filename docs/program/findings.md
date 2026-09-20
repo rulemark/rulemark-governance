@@ -22,7 +22,8 @@
 ## Environment
 - Repo: `rulemark/rulemark-governance` (private), default branch `main`.
 - Identity pinned per repo: `core.sshCommand` → `~/.ssh/id_ed25519_rulemark`; author `matt@rulemark.io`; commits signed; `.githooks/pre-push` guards account, org and author.
-- Local Postgres: `docker compose up -d db` (Postgres 18, `postgres://ropa:ropa@localhost:5432/ropa`).
+- Local Postgres: `docker compose up -d db` (Postgres 18.6, `postgres://ropa:ropa@localhost:5432/ropa`), with a `pg_isready` healthcheck so the container reports readiness.
+- **The `postgres:18` volume mount is `/var/lib/postgresql`, not `/var/lib/postgresql/data`.** From 18 the image keeps data in a major-version subdirectory (`/var/lib/postgresql/18/docker`) so `pg_upgrade --link` works across a version bump; mounting the old path makes the entrypoint refuse to start with exit code 1 (docker-library/postgres#1259). Verified 2026-09-20: `uuidv7()` is available with no extension, as the schema design assumes.
 
 ## Build findings
 

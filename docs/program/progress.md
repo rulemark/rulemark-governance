@@ -64,6 +64,21 @@ with no `dist/` and no `.tsbuildinfo`.
   build with `tsc`; the bundler choice moves to first publish, and is no longer
   presumed to be tsup
 
+## Session: 2026-09-20
+- Fixed `docker-compose.yml`: `postgres:18` refuses to start when the volume is
+  mounted at `/var/lib/postgresql/data`. Mount the parent instead. The volume was
+  empty, so nothing was lost
+- Added a `pg_isready` healthcheck to the db service
+- Verified Postgres 18.6 answers on `localhost:5432` with the `.env.example`
+  credentials, and that `uuidv7()` works without an extension
+- Created the local `.env` from `.env.example` (git-ignored). Confirmed dotenv
+  reads every variable, that `PRINCIPALS` survives as parseable JSON, that
+  `LOG_LEVEL=debug` from `.env` reaches the running service, and that a shell
+  variable still overrides it
+- Confirmed the suites pass identically with and without `.env`, so no test
+  depends on a developer having one
+- README getting-started now includes `cp .env.example .env`
+
 ## Test Results
 | Test | Command | Expected | Actual | Status |
 |---|---|---|---|---|

@@ -41,10 +41,16 @@ git config core.hooksPath .githooks
 
 ```bash
 npm ci
+cp .env.example .env             # local settings; git-ignored, never deployed
 docker compose up -d db          # Postgres 18
 npm run db:migrate && npm run db:seed
 npm run dev                      # API on :3000, docs at /api-docs
 ```
+
+On Render nothing reads `.env`: every variable comes from the service's
+environment, and the generated secrets come from the Blueprint. A variable that
+is already set always wins over `.env`, so an override in your shell works as
+you would expect.
 
 Requires Node 24 (see `.nvmrc`).
 

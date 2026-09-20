@@ -8,7 +8,16 @@ services:
     ports:
       - '5432:5432'
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      # From 18 the image stores data in a major-version subdirectory
+      # (/var/lib/postgresql/18/docker) so pg_upgrade --link works across a
+      # version bump. Mount the parent, not .../data, or the entrypoint refuses
+      # to start. See docker-library/postgres#1259.
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ropa -d ropa']
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 volumes:
   pgdata:
