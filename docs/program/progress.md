@@ -192,6 +192,13 @@ with no `dist/` and no `.tsbuildinfo`.
 - `db:generate` builds first; a test rejects any check constraint containing
   `undefined` or `NaN`
 
+### `trust proxy` corrected (2026-09-21)
+- `trust proxy` 1 → 2: Render's edge is behind Cloudflare, so `req.ip` was
+  resolving to an edge node rather than the caller, and the token rate limiter
+  keys on it
+- `trust-proxy.test.ts` pins it, including that a prepended address is ignored
+- The request log now carries `client.ip` and `client.ips`
+
 ## Test Results
 | Test | Command | Expected | Actual | Status |
 |---|---|---|---|---|
@@ -236,6 +243,7 @@ with no `dist/` and no `.tsbuildinfo`.
 | Idempotent | run it a second time | nothing changes | 0 created, 39 already there | ✅ |
 | Tests isolated from dev data | demo data loaded, then the suite | unaffected | 305 pass, test database separate | ✅ |
 | Unbounded input | 5,000-char slug, 1 MB name | rejected | rejected, in Zod and in Postgres | ✅ |
+| `req.ip` behind two proxies | `x-forwarded-for: caller, edge` | the caller | was the edge; fixed and pinned | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |

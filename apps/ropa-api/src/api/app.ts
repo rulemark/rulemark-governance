@@ -25,10 +25,22 @@ export interface AppOptions {
 export function createApp({ config, logger = createLogger(config), router }: AppOptions): Express {
   const app = express();
 
-  // Render terminates TLS and puts exactly one proxy in front of the service.
-  // `true` would trust the whole X-Forwarded-For chain, so any caller could
-  // prepend an address and pick their own identity for rate limiting.
-  app.set('trust proxy', 1);
+  /**
+   * Two proxies sit in front of this service, not one: Render's own edge, and
+   * Cloudflare in front of that. A real request arrives with
+   * `x-forwarded-for: <caller>, <cloudflare>` and a `remoteAddress` of Render's
+   * internal proxy.
+   *
+   * The number matters because the token rate limiter keys on `req.ip`. Too
+   * few hops and that is an edge node's address, so every caller behind that
+   * edge shares one bucket. Too many — `true` especially — and a caller picks
+   * their own address by sending the header themselves.
+   *
+   * It is pinned by `trust-proxy.test.ts`, including that a prepended address
+   * is still ignored. It does encode Render's current topology, so if they put
+   * something else in front, that test is what should fail.
+   */
+  app.set('trust proxy', 2);
   app.disable('x-powered-by');
 
   // First, so every later log line and every problem response carries the id.
@@ -46,9 +58,18 @@ export function createApp({ config, logger = createLogger(config), router }: App
       },
       // The problem left by the error handler, so one line tells the whole
       // story. The error itself travels separately, as `res.err`.
-      customProps: (_req, res) => {
+      //
+      // `client` is here because `trust proxy` is a setting whose mistakes are
+      // invisible: the rate limiter keys on `req.ip`, and if the hop count is
+      // wrong that is an edge node's address rather than the caller's, with
+      // nothing in the logs to say so. `ips` is the chain it derived it from.
+      customProps: (rawRequest, res) => {
+        const req = rawRequest as express.Request;
         const { problem } = (res as express.Response).locals;
-        return problem === undefined ? {} : { problem };
+        return {
+          client: { ip: req.ip, ips: req.ips },
+          ...(problem === undefined ? {} : { problem }),
+        };
       },
     }),
   );

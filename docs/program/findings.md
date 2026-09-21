@@ -119,6 +119,13 @@
 - **`drizzle-kit` reads a workspace package through its built output.** Importing `MAX_SLUG` into the Drizzle schema and generating without rebuilding produced `length(slug) <= undefined` — valid SQL, and meaningless, exactly like the `$1` placeholders in Phase 3. `db:generate` now builds first, like `db:migrate` and `openapi:write`, and a test fails on any check constraint containing `undefined` or `NaN`.
 - Schemas now carry `.meta({ examples })`, which Zod passes into JSON Schema, so the rendered docs show `mailcrest` rather than a wall of generated text.
 
+### `trust proxy` was off by one, found in a production log line (2026-09-21)
+- **Two proxies sit in front of the service on Render, not one.** A real request arrives with `remoteAddress` set to Render's internal proxy and `x-forwarded-for: <caller>, <Cloudflare edge>` — Render's edge is itself behind Cloudflare (`cf-ray`, `cdn-loop: cloudflare`).
+- `trust proxy: 1`, set in Phase 6 after `express-rate-limit` refused to accept `true`, therefore resolved `req.ip` to **the Cloudflare edge address**, not the caller. The token rate limiter keys on `req.ip`, so every caller arriving through one edge shared a single bucket of 20 attempts per 15 minutes. Strict rather than lax, so not a hole — but wrong, and it would have locked out innocent callers under any real traffic.
+- It is now `2`, and **pinned by a test rather than by a guess**: `trust-proxy.test.ts` drives the real forwarding chain through supertest and asserts `req.ip` is the caller. It failed for exactly the right reason before the change. A second case proves a caller who prepends their own address is still ignored, because Cloudflare appends the address it observed, leaving a forged entry outside the trusted hops.
+- The request log now carries `client.ip` and `client.ips`. This setting's mistakes are otherwise invisible — nothing in a log said which address the limiter was keying on.
+- The number encodes Render's current topology. If they put something else in front, the test is what should fail; that is the point of having one.
+
 ## Issues encountered
 | Issue | Resolution |
 |---|---|
