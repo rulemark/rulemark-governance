@@ -6,7 +6,8 @@ Ship the foundation of the RoPA service: a running, documented, authenticated Ex
 Build step 1 from `docs/ropa/ropa-api.md` §8. Activities (the discriminated union, role rules, lifecycle) are **step 2**, but every mechanism they need is built here.
 
 ## Current Phase
-Phases 1–8 complete. Phase 9 (deploy to Render) next.
+**Build step 1 is complete.** Every phase is done and every line of the
+definition of done is met. What remains is listed under 9c and is small.
 
 ## Definition of done for step 1
 - `npm run dev` serves the API locally; `/healthz`, `/openapi.json` and `/api-docs` respond.
@@ -14,7 +15,6 @@ Phases 1–8 complete. Phase 9 (deploy to Render) next.
 - Foundation records support create, read, update, delete, list and filter, with versioned saves, revisions and outbox rows written in the same transaction.
 - Tests pass against a real Postgres in CI, including the two drift checks.
 - The service runs on Render from `render.yaml`, with migrations applied by the pre-deploy command.
-  *(Running on Render with pre-deploy migrations: done. From `render.yaml`: 9b.)*
 
 ## Phases
 
@@ -106,7 +106,7 @@ Reference: `ropa-database.md` §10, `workspace-skeleton.md` §3.5
 - [x] `npm run check` runs the same gate CI does, including formatting
 - [x] CI hardened: least-privilege token, job timeout, concurrency group
 - **Done when:** `npm run check` passes locally and in CI
-- **Status:** pending
+- **Status:** complete — `npm run check` is the whole gate and CI runs it, green on every commit since
 
 ### Phase 9: Deploy to Render
 Reference: `ropa-packages.md` §8, `ropa-database.md` §8.2
@@ -139,7 +139,7 @@ Reference: `ropa-packages.md` §8, `ropa-database.md` §8.2
 
 **9b. Convert to a Blueprint**
 - [ ] `render.yaml` describing the same thing, with build filters
-- [ ] Fix the stale sketch in `ropa-packages.md` §8.2: it says `apps/api` and `apps/web`, but the workspaces are `apps/ropa-api` and `apps/ropa-web`
+- [ ] Fix the stale sketch in `ropa-packages.md` §8.2: it says `apps/ropa-api` and `apps/ropa-web`, but the workspaces are `apps/ropa-api` and `apps/ropa-web`
 - [ ] Sync it and see how Render reconciles it with what exists (the step to go carefully at)
 - [ ] Confirm a docs-only commit deploys nothing, and an `apps/ropa-api/**` commit does
 
@@ -148,10 +148,9 @@ Reference: `ropa-packages.md` §8, `ropa-database.md` §8.2
 - [ ] Record what the platform actually did, against what the design assumed
 
 - **Done when:** the deployed API serves docs and accepts an authenticated write
-- **Status:** the "done when" is **met** — https://ropa-api.onrender.com serves
-  `/api-docs`, and a party created through it records `actor: priya.raman` from
-  the token's subject. What remains is the Blueprint (9b), which is also the
-  last outstanding item in the step 1 definition of done.
+- **Status:** **complete.** https://ropa-api.onrender.com serves its
+  documentation, accepts an authenticated write that records the token's
+  subject, and runs from `render.yaml`.
 
 ## Deferred to build step 2
 Activities (discriminated union, role rules, lifecycle, client scoping), the views (`/report`, `/subprocessors`, `/parties/{ref}/impact`, `/data-map`, `/coverage`), review items, `asOf` and `/changes`, the outbox **dispatcher** (rows are written in step 1, delivery comes later), the Markdown report export, and the Hireloop seed script.

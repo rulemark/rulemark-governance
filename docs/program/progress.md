@@ -208,6 +208,16 @@ with no `dist/` and no `.tsbuildinfo`.
   422 naming `/slug`, a party created with its slug derived from the name, and
   its revision recording `actor: priya.raman` from the token's subject
 
+### Build step 1 complete (2026-09-21)
+- `render.yaml` adopted both resources: Render matched them by name, moved no
+  data and regenerated no secrets. Two lines of the first plan were the file's
+  fault, not the platform's — `production` against the dashboard's `Production`,
+  and a `rootDir` that restated a default
+- Design documents corrected: the workspace rename had left `apps/api` and
+  `packages/schemas` scattered through them. The archived design-phase plan was
+  deliberately left as it was written
+- README carries the demo tour, against the live URL
+
 ## Test Results
 | Test | Command | Expected | Actual | Status |
 |---|---|---|---|---|
@@ -263,8 +273,8 @@ with no `dist/` and no `.tsbuildinfo`.
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Build step 1, Phases 1–8 complete; Phase 9 deployed and verified by hand, Blueprint (9b) remaining |
-| Where am I going? | Phases 2–9: schemas, database, persistence, auth, endpoints, OpenAPI, CI, deploy |
+| Where am I? | **Build step 1 is complete.** Nine phases, all green, deployed and running from a Blueprint |
+| Where am I going? | Build step 2: activities, the views, review items, `asOf` and `/changes`, the outbox dispatcher, the Hireloop seed |
 | What's the goal? | A running, authenticated, documented API on Render with foundation records working end to end |
 | What have I learned? | See findings.md |
 | What have I done? | Design complete and pushed; monorepo scaffolded; the API app boots, logs, handles errors and shuts down cleanly; the shared schemas package defines every foundation shape and the API consumes it; eleven tables exist in Postgres with their constraints and triggers proven by test; records save with versioning, revisions and outbox rows in one transaction; tokens are minted and permissions enforced per route; all six foundation record types are createable, readable, replaceable and deletable over HTTP, with history; the API documents itself and Swagger UI can drive it; the gate is one command and CI runs it |

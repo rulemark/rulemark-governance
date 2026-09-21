@@ -13,7 +13,7 @@
 | 5 | Changelogs | Hand-written until the first publish; add Changesets when publishing starts (§6.4) |
 | 6 | OpenAPI document | Shipped **inside the client package**, not as a separate package (§5.4) |
 | 8 | Browser → API path | The browser calls **the frontend's own origin**; Next.js proxies to the API over Render's private network (§8.1). No CORS. The API is also **public** for Swagger UI, the client package and other consumers |
-| 7 | Frontend location | **In this monorepo**, as `apps/web`. Its framework is still undecided (e.g. Next.js with SSR). It deploys as its own Render service (§8). The packages work in both a browser and Node, so SSR is already covered (§9) |
+| 7 | Frontend location | **In this monorepo**, as `apps/ropa-web`. Its framework is still undecided (e.g. Next.js with SSR). It deploys as its own Render service (§8). The packages work in both a browser and Node, so SSR is already covered (§9) |
 
 **Why the name carries the service.** The scope is per-organisation, not per-project, and this is the first of several governance services. `@rulemark/ropa-*` leaves room for `@rulemark/monitor-*` and the rest without renaming anything.
 
@@ -26,16 +26,16 @@ service-ropa/                     # repository root, npm workspaces
 ├── render.yaml                   # Blueprint: one Render service per app (§8)
 ├── design/                       # these documents
 ├── packages/
-│   ├── schemas/                  # @rulemark/ropa-schemas — wire schemas, types, enums, rule helpers
-│   └── client/                   # @rulemark/ropa-client — typed API client + openapi.json
+│   ├── ropa-schemas/             # @rulemark/ropa-schemas — wire schemas, types, enums, rule helpers
+│   └── ropa-client/              # @rulemark/ropa-client — typed API client + openapi.json
 └── apps/
-    ├── api/                      # the service: Express, Drizzle, domain, migrations, seeds (DB §11)
-    └── web/                      # the frontend (framework TBD); consumes both packages
+    ├── ropa-api/                 # the service: Express, Drizzle, domain, migrations, seeds (DB §11)
+    └── ropa-web/                 # the frontend (framework TBD); consumes both packages
 ```
 
-**Dependency direction.** Both apps depend on the packages; the packages depend on nothing in the repository; **`apps/web` never imports `apps/api`**. Everything the frontend needs from the service arrives through `@rulemark/ropa-client` and `@rulemark/ropa-schemas`, which is the same path an outside consumer would take. If that rule ever feels restrictive, the missing piece belongs in a package.
+**Dependency direction.** Both apps depend on the packages; the packages depend on nothing in the repository; **`apps/ropa-web` never imports `apps/ropa-api`**. Everything the frontend needs from the service arrives through `@rulemark/ropa-client` and `@rulemark/ropa-schemas`, which is the same path an outside consumer would take. If that rule ever feels restrictive, the missing piece belongs in a package.
 
-`apps/api` keeps the structure from DB §11; `src/api/schemas/` moves out into `packages/schemas`.
+`apps/ropa-api` keeps the structure from DB §11; `src/api/schemas/` moves out into `packages/ropa-schemas`.
 
 **What lives in the repository root:** the workspace definition, the shared TypeScript base config, lint and formatting configuration, the CI workflow, and `render.yaml`. Each app owns its own build, start and test scripts.
 
@@ -43,7 +43,7 @@ service-ropa/                     # repository root, npm workspaces
 
 The rule that makes publishing safe: **only wire shapes are shared.**
 
-| Shared (`packages/*`) | Private (`apps/api`) |
+| Shared (`packages/*`) | Private (`apps/ropa-api`) |
 |---|---|
 | Zod schemas for requests, responses and views | Drizzle schema, SQL, migrations |
 | Inferred TypeScript types | Domain aggregates, repositories, snapshot formats and upgraders |
@@ -51,7 +51,7 @@ The rule that makes publishing safe: **only wire shapes are shared.**
 | Pure rule helpers (§4.3) | Outbox dispatcher, view SQL, seeds |
 | The generated `openapi.json` | Configuration and secrets |
 
-A frontend must never be able to import a table definition. Anything that needs a database connection or knows how rows are stored stays in `apps/api`.
+A frontend must never be able to import a table definition. Anything that needs a database connection or knows how rows are stored stays in `apps/ropa-api`.
 
 ## 4. `@rulemark/ropa-schemas`
 
@@ -143,7 +143,7 @@ RopaError                      // base: status, problem details, raw response
 
 ### 5.4 The OpenAPI document
 
-The client package also ships the generated `openapi.json`, so consumers in other languages can generate their own client. It's produced by `apps/api` from the shared schemas and copied in at build time (§7).
+The client package also ships the generated `openapi.json`, so consumers in other languages can generate their own client. It's produced by `apps/ropa-api` from the shared schemas and copied in at build time (§7).
 
 ## 6. Versioning and release
 
@@ -175,15 +175,15 @@ Note that **adding an enum value is minor for the server but can break a consume
 1. Changesets record intent in the PR.
 2. CI builds, type-checks, tests, then verifies the committed `openapi.json` is current.
 3. A release PR bumps versions and changelogs; merging it publishes both packages with provenance.
-4. Until then, `apps/api` depends on `"@rulemark/ropa-schemas": "*"` and npm workspaces resolves it locally. Nothing about the code changes when publishing starts.
+4. Until then, `apps/ropa-api` depends on `"@rulemark/ropa-schemas": "*"` and npm workspaces resolves it locally. Nothing about the code changes when publishing starts.
 
 ## 7. Build and tooling
 
 - **Build (packages):** plain `tsc`, emitting ESM and type declarations into `dist/`, with an `exports` map. Subpath exports (`@rulemark/ropa-schemas/enums`) keep imports small. Each entry carries a **`development` condition** pointing at the TypeScript source, so `tsx` and Vitest need no build step, while everything else — the built service included — loads `dist/`. Node refuses to strip types inside `node_modules`, so a package whose entry point is TypeScript cannot be loaded by `node dist/index.js`; the condition is what makes source-only development and a working production build coexist.
 - **A bundler is deferred to the first publish** (§6.4), which is when CJS output and a single-file build start to matter. Nothing consumes CJS today: both apps are ESM. The export map does not change when a bundler arrives, so this is a one-line swap in a build script, not a redo. **Pick the tool then rather than now:** this document originally named `tsup`, whose last release was November 2025; the activity has since moved to `tsdown`, from the Rolldown team. Neither is deprecated, and the choice should be made against whatever is current at the time.
-- **TypeScript:** one `tsconfig.base.json`, strict, with project references so `apps/api` type-checks against the packages' sources during development.
+- **TypeScript:** one `tsconfig.base.json`, strict, with project references so `apps/ropa-api` type-checks against the packages' sources during development.
 - **Root scripts:** `build`, `typecheck`, `lint`, `test`, `db:migrate`, `db:seed`, `openapi:write`, each delegating to workspaces.
-- **OpenAPI generation:** `apps/api` builds the document from the shared schemas (it owns the routes) and `openapi:write` writes it to `packages/client/openapi.json`. CI fails if that file is stale, which is the same trick as the Drizzle migration check (DB §8.1).
+- **OpenAPI generation:** `apps/ropa-api` builds the document from the shared schemas (it owns the routes) and `openapi:write` writes it to `packages/ropa-client/openapi.json`. CI fails if that file is stale, which is the same trick as the Drizzle migration check (DB §8.1).
 - **Contract tests:** the API integration tests call the service **through `@rulemark/ropa-client`**. The client gets exercised on every run, and any drift between schemas, routes and client shows up as a test failure.
 
 ## 8. Deployment topology
@@ -204,7 +204,7 @@ The API service is public **and** reachable on Render's internal hostname, so bo
 - **The token stays server-side.** The browser never holds an API token. The Next server attaches it (API §1.9), which is the standard backend-for-frontend split.
 - **The actor can't be forged.** Because the proxy adds the token, the subject written into every revision comes from the server, not from something the browser can set.
 - **From rewrites to a route handler.** A `next.config` rewrite is a static pass-through, which is fine before auth. To attach a per-user token it becomes a catch-all Route Handler at the same path (`/api/ropa/[...path]`). Both must pass `If-Match`, `ETag` and `Authorization` straight through.
-- **Two client instances in `apps/web`:** one for the browser with a relative base URL (`/api/ropa`) and one for server-side rendering with the internal hostname. `fetch` accepts a relative URL in the browser but not in Node, so the base URL can't be shared. The token option differs too: server-side instances carry one, browser instances don't.
+- **Two client instances in `apps/ropa-web`:** one for the browser with a relative base URL (`/api/ropa`) and one for server-side rendering with the internal hostname. `fetch` accepts a relative URL in the browser but not in Node, so the base URL can't be shared. The token option differs too: server-side instances carry one, browser instances don't.
 
 ### 8.2 Services on Render
 
@@ -212,32 +212,33 @@ Render supports monorepos through a **root directory** and **build filters**. Ro
 
 **Recommended setup:** leave the service's root directory at the repository root, because npm workspaces need a root-level install, and use **build filters** so unrelated changes don't trigger deploys.
 
+**This is now real: see [`render.yaml`](../../render.yaml) at the repository
+root**, which describes the deployed stack and is the source of truth for it.
+What follows is the reasoning; the file is the specification.
+
+The Blueprint declares a **project** and its **environments**, and the resources
+nest inside an environment rather than sitting at the top level:
+
 ```yaml
-services:
-  - type: web
-    name: ropa-api
-    runtime: node
-    plan: starter                      # paid instance: pre-deploy available (DB §8.2)
-    buildCommand: npm ci && npm run build
-    preDeployCommand: npm run db:migrate
-    startCommand: npm start -w apps/api
-    envVars:
-      - key: JWT_SECRET                # API §1.9
-        generateValue: true            # Render generates it; never in the repository
-      - key: TOKEN_MINT_SECRET
-        generateValue: true
-      - key: PRINCIPALS
-        sync: false                    # set in the dashboard: demo subjects and their roles
-    buildFilter:
-      paths:
-        - apps/api/**
-        - packages/**
-        - package.json
-        - package-lock.json
-      ignoredPaths:
-        - design/**
-        - apps/web/**
+projects:
+  - name: rulemark-governance
+    environments:
+      - name: Production
+        databases: [ropa-db]
+        services: [ropa-api]
 ```
+
+Three things learned by deploying, which this sketch originally got wrong:
+
+- **Private networking is scoped to an environment** (`networking.isolation` is
+  an environment-level key). The services of the suite must share one to reach
+  each other, and a `staging` environment is a complete second copy, its own
+  database included.
+- **Render matches resources by name when a Blueprint is first synced**, so a
+  stack built by hand can be adopted rather than recreated — but the names must
+  match exactly, capitalisation included.
+- **The build must install devDependencies explicitly.** `NODE_ENV=production`
+  makes npm omit them, and the build runs `tsc`, which is one.
 
 The frontend is a second service in the same Blueprint, with its own filter:
 
@@ -246,8 +247,8 @@ The frontend is a second service in the same Blueprint, with its own filter:
     name: ropa-web
     runtime: node
     plan: starter
-    buildCommand: npm ci && npm run build -w apps/web
-    startCommand: npm start -w apps/web
+    buildCommand: npm ci && npm run build -w apps/ropa-web
+    startCommand: npm start -w apps/ropa-web
     envVars:
       - key: ROPA_API_URL
         fromService: { type: web, name: ropa-api, property: hostport }   # private network
@@ -255,17 +256,17 @@ The frontend is a second service in the same Blueprint, with its own filter:
         fromService: { type: web, name: ropa-api, envVarKey: TOKEN_MINT_SECRET }
     buildFilter:
       paths:
-        - apps/web/**
+        - apps/ropa-web/**
         - packages/**
         - package.json
         - package-lock.json
       ignoredPaths:
-        - design/**
+        - docs/**
 ```
 
 Notes:
 - A change under `packages/**` rebuilds **both** services, since both depend on them. That's correct: a schema change affects both sides of the contract.
-- A change under `apps/api/**` alone doesn't rebuild the frontend, and vice versa.
+- A change under `apps/ropa-api/**` alone doesn't rebuild the frontend, and vice versa.
 - Documentation-only commits redeploy nothing.
 - Manual deploys always run, whatever the filters say.
 - Whether the frontend calls the API over Render's **private network** (server-side rendering) or from the browser (which needs a public URL and CORS) is a decision for when we pick the framework. The Blueprint sketch above assumes server-side calls.
@@ -292,7 +293,7 @@ The frontend gets types, validation, and calls from one place, and a stale deplo
 
 ## 10. Questions
 
-**Resolved (2026-09-19):** scope `@rulemark` (§1); changelogs hand-written for now (§1); OpenAPI stays in the client (§5.4); the frontend lives in this monorepo as `apps/web` (§1, §2, §8).
+**Resolved (2026-09-19):** scope `@rulemark` (§1); changelogs hand-written for now (§1); OpenAPI stays in the client (§5.4); the frontend lives in this monorepo as `apps/ropa-web` (§1, §2, §8).
 
 **Still open**
 1. **npm scope availability.** `@rulemark` has to be registered on npm as an organisation or user scope; it may already be taken by someone else. To check when we get to publishing. Fallback: unscoped `rulemark-ropa-schemas` / `rulemark-ropa-client`.

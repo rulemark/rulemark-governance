@@ -534,7 +534,7 @@ The migrator is also safe to run at startup (it takes a Postgres advisory lock, 
 
 ## 11. Project layout
 
-> Superseded by `ropa-packages.md` §2: the repository is a monorepo. This layout is now the inside of `apps/api`, with `src/api/schemas/` moved out to `packages/schemas`.
+> Superseded by `ropa-packages.md` §2: the repository is a monorepo. This layout is now the inside of `apps/ropa-api`, with `src/api/schemas/` moved out to `packages/ropa-schemas`.
 
 ```
 service-ropa/

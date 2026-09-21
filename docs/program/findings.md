@@ -126,6 +126,15 @@
 - The request log now carries `client.ip` and `client.ips`. This setting's mistakes are otherwise invisible — nothing in a log said which address the limiter was keying on.
 - The number encodes Render's current topology. If they put something else in front, the test is what should fail; that is the point of having one.
 
+### What Render actually did, against what the design assumed (2026-09-21)
+- **A Blueprint adopts existing resources by name.** The first sync offered "Associate existing services" rather than creating duplicates, and applying it moved no data. The uncertainty flagged before any of this was created turned out to be unfounded — but only because the names matched.
+- **Names must match exactly, capitalisation included.** `production` in the file read as a *different* environment from the dashboard's `Production`, and the plan offered to create one and move both resources into it. Non-destructive, but it would have left an empty environment behind. Changing one letter made three lines of the plan disappear.
+- **Private networking is scoped to an environment.** `networking.isolation` is an environment-level key, which settles the question raised before the project was created: the suite's services must share an environment to reach each other privately, and a `staging` environment is a complete second copy, its own database included.
+- **Read the plan, then shorten the diff.** Two lines of the first plan were noise: `rootDir: .` restated a default that had been left blank, and the environment mismatch above. A Blueprint that describes what exists should produce a short plan; a long one usually means the file is wrong, not the platform.
+- **Associating a database changes nothing about it.** `ropa-db` showed no update after the sync because every setting already matched — association is metadata. The service redeployed because it had two real changes.
+- `NODE_ENV` was never an explicit variable: Render sets it for the Node runtime. Declaring it makes it visible in the dashboard and in the file.
+- **From now on the dashboard is not where changes are made.** Both resources are Blueprint-managed, so a dashboard edit is overwritten by the next sync. The exception is `PRINCIPALS`, which is `sync: false` precisely so it can differ per environment without living in the repository.
+
 ## Issues encountered
 | Issue | Resolution |
 |---|---|
