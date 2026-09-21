@@ -13,7 +13,10 @@ projects:
   # creates a second project rather than describing the existing one.
   - name: rulemark-governance
     environments:
-      - name: production
+      # Matching the dashboard's capitalisation exactly: Render read
+      # `production` as a different environment from the existing `Production`
+      # and offered to create one and move the resources into it.
+      - name: Production
         # Private networking is scoped to an environment, so the services of
         # the demo suite — RoPA now, the Monitor and the Snapshot later — have
         # to share one to reach each other. A `staging` environment would be a
@@ -46,9 +49,10 @@ projects:
             plan: 0.5c-512mb
             branch: main
 
-            # The repository root, not apps/ropa-api: npm workspaces need a
-            # root-level install, so a narrower rootDir breaks `npm ci`.
-            rootDir: .
+            # rootDir is deliberately omitted: it defaults to the repository
+            # root, which is what npm workspaces need — a narrower one breaks
+            # `npm ci`. Saying `.` explicitly reads as a change against a field
+            # that was left blank, for no difference in behaviour.
 
             # --include=dev because the build runs tsc, a devDependency, and
             # NODE_ENV=production makes npm omit those.
