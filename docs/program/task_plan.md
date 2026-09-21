@@ -109,12 +109,37 @@ Reference: `ropa-database.md` §10, `workspace-skeleton.md` §3.5
 
 ### Phase 9: Deploy to Render
 Reference: `ropa-packages.md` §8, `ropa-database.md` §8.2
-- [ ] `render.yaml`: web service (Starter), Render Postgres 18, env group, generated secrets
-- [ ] `preDeployCommand: npm run db:migrate`; health check on `/healthz`; build filters
-- [ ] First deploy; verify `/healthz`, `/api-docs`, token minting against the deployed service
-- [ ] README: the demo tour
+
+> **How this phase is being run.** The user drives the Render dashboard and I
+> narrate, because the point is to learn the platform rather than to have it
+> done. So it is by hand first, then converted to a Blueprint — expecting to
+> delete and recreate the web service at that point, which is the cost of
+> learning both.
+
+**9a. By hand, to see the pieces**
+- [x] Project `rulemark-governance`, environment `production`
+- [x] Postgres `ropa-db`: version 18, Frankfurt, paid instance, user `ropa`
+- [ ] Restrict external database access once the first deploy is verified
+- [ ] Web service `ropa-api`: root directory at the repository root (npm workspaces need a root install)
+- [ ] Build `npm ci && npm run build`; pre-deploy `npm run db:migrate`; start `npm start -w apps/ropa-api`
+- [ ] Health check path `/healthz`
+- [ ] Environment: `DATABASE_URL` from the database, `JWT_SECRET` and `TOKEN_MINT_SECRET` generated, `PRINCIPALS` set by hand, `NODE_ENV=production`
+- [ ] First deploy; watch build → pre-deploy → start, and the health check gate
+- [ ] Verify against the deployed URL: `/healthz`, `/openapi.json`, `/api-docs`, mint a token, create a party
+- [ ] `DEMO_API_URL=… npm run demo:data` to fill it
+
+**9b. Convert to a Blueprint**
+- [ ] `render.yaml` describing the same thing, with build filters
+- [ ] Fix the stale sketch in `ropa-packages.md` §8.2: it says `apps/api` and `apps/web`, but the workspaces are `apps/ropa-api` and `apps/ropa-web`
+- [ ] Sync it and see how Render reconciles it with what exists (the step to go carefully at)
+- [ ] Confirm a docs-only commit deploys nothing, and an `apps/ropa-api/**` commit does
+
+**9c. Finish**
+- [ ] README: the demo tour, against the deployed URL
+- [ ] Record what the platform actually did, against what the design assumed
+
 - **Done when:** the deployed API serves docs and accepts an authenticated write
-- **Status:** pending
+- **Status:** in progress — 9a database done
 
 ## Deferred to build step 2
 Activities (discriminated union, role rules, lifecycle, client scoping), the views (`/report`, `/subprocessors`, `/parties/{ref}/impact`, `/data-map`, `/coverage`), review items, `asOf` and `/changes`, the outbox **dispatcher** (rows are written in step 1, delivery comes later), the Markdown report export, and the Hireloop seed script.

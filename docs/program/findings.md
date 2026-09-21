@@ -107,6 +107,12 @@
 - **Tests now use their own database, beside the development one.** Loading demo data broke twelve tests: a committed `self` party makes `party_one_self` reject every other one, including inside a transaction that rolls back, because a unique index sees committed rows regardless. Sharing a server but not a database is the fix; `test/db/global-setup.ts` creates `<database>_test` if it is missing. Tests were already robust to *rows*, but could never have been robust to a globally unique constraint.
 - The dataset is validated by a test against the same Input schemas the API uses, including that every reference points at a record defined *earlier* in the list — a forward reference would pass against an already-seeded database and fail only on a fresh one.
 
+### Phase 9, Render by hand (2026-09-21)
+- **Render suffixes the database name.** Asking for `ropa` produced `ropa_rcz5`; it is made unique rather than ignored. Nothing depends on it — `fromDatabase` injects the whole `DATABASE_URL` — but the "local and deployed read the same" argument for setting it only half holds. The **user** was accepted verbatim (`ropa`).
+- Render's hierarchy is workspace → project → environment → services. The governance suite goes in one project and one environment, because the services are designed to reach each other over the private network. **Unverified:** whether private networking is scoped per environment or per workspace; it decides whether a `staging` environment must be a complete second copy.
+- The free database instance type expires after 30 days regardless of the account plan, so a Pro workspace still has to choose a paid instance deliberately.
+- Decisions taken at creation, none of them changeable afterwards: name `ropa-db`, database `ropa_rcz5`, user `ropa`, version **18** (required for `uuidv7()`), region **Frankfurt** (must match the web service, or there is no private network).
+
 ## Issues encountered
 | Issue | Resolution |
 |---|---|
