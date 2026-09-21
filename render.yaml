@@ -1,0 +1,116 @@
+# Render Blueprint — the governance demo stack.
+#
+# Describes what is currently configured by hand, so it can be reviewed field
+# by field before being synced. Two things only work from a Blueprint: preview
+# environments, and wiring values between resources (`fromDatabase`,
+# `generateValue`) instead of copying them by hand.
+#
+# Design: ropa-packages.md §8.2, ropa-database.md §8.2.
+# Spec:   https://render.com/docs/blueprint-spec
+
+projects:
+  # CONFIRM these two names match the dashboard exactly. If they do not, a sync
+  # creates a second project rather than describing the existing one.
+  - name: rulemark-governance
+    environments:
+      - name: production
+        # Private networking is scoped to an environment, so the services of
+        # the demo suite — RoPA now, the Monitor and the Snapshot later — have
+        # to share one to reach each other. A `staging` environment would be a
+        # complete second copy, database included.
+        #
+        # Worth considering, deliberately rather than by default:
+        #   networking:
+        #     isolation: enabled
+        # It confines private traffic to this environment. Nothing outside it
+        # needs to reach these services, and "which services can talk to which"
+        # is the trust-boundary question this demo is about.
+
+        databases:
+          - name: ropa-db
+            databaseName: ropa
+            user: ropa
+            region: frankfurt
+            # Required, not preferred: every primary key defaults to uuidv7(),
+            # built in from 18 (ropa-database.md §3). A string, per the spec.
+            postgresMajorVersion: '18'
+            # Paid: the free tier expires after 30 days whatever the account
+            # plan, and pre-deploy commands need a paid service.
+            plan: 0.1c-256mb
+
+        services:
+          - type: web
+            name: ropa-api
+            runtime: node
+            region: frankfurt # must match the database
+            plan: 0.5c-512mb
+            branch: main
+
+            # The repository root, not apps/ropa-api: npm workspaces need a
+            # root-level install, so a narrower rootDir breaks `npm ci`.
+            rootDir: .
+
+            # --include=dev because the build runs tsc, a devDependency, and
+            # NODE_ENV=production makes npm omit those.
+            buildCommand: npm ci --include=dev && npm run build
+
+            # After the build, before the new version goes live, on its own
+            # instance. A failure fails the deploy and the previous version
+            # keeps serving, which is why migrations belong here.
+            #
+            # The workspace script rather than the root one: the root script
+            # builds first, and on Render the build has already happened.
+            preDeployCommand: npm run db:migrate -w apps/ropa-api
+            startCommand: npm start -w apps/ropa-api
+
+            # Gates the traffic cutover: the new instance must answer before
+            # anything is routed to it. A passing check logs at debug, so
+            # Render's polling stays quiet.
+            healthCheckPath: /healthz
+
+            # Not `commit`: a commit that fails the suite or a drift check
+            # should never reach production. CI runs 422 tests, both drift
+            # checks and a boot of the built artifact.
+            autoDeployTrigger: checksPass
+
+            # A docs-only commit deploys nothing. A change under packages/**
+            # does rebuild, correctly — the API's schemas come from there.
+            # These paths are relative to the repository root, unlike the
+            # commands above, which are relative to rootDir.
+            buildFilter:
+              paths:
+                - apps/ropa-api/**
+                - packages/**
+                - package.json
+                - package-lock.json
+              ignoredPaths:
+                - docs/**
+                - apps/ropa-web/**
+
+            envVars:
+              # Also stops dotenv loading, and hides internal error detail.
+              - key: NODE_ENV
+                value: production
+
+              # Injected whole; no connection string is ever copied by hand.
+              - key: DATABASE_URL
+                fromDatabase:
+                  name: ropa-db
+                  property: connectionString
+
+              # Render invents these; they never exist in the repository.
+              # Rotating JWT_SECRET invalidates every existing token, which is
+              # acceptable for a demo (ropa-api.md §1.9).
+              - key: JWT_SECRET
+                generateValue: true
+              - key: TOKEN_MINT_SECRET
+                generateValue: true
+
+              # Set in the dashboard: the demo subjects and their roles. Not a
+              # secret, but it differs per environment, and a preview
+              # environment wants its own.
+              - key: PRINCIPALS
+                sync: false
+
+              # PORT is deliberately absent. Render assigns it and the service
+              # reads it; setting it here is how you make the health check fail.
