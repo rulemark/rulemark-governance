@@ -15,6 +15,13 @@
       "when": 1789903127305,
       "tag": "0001_triggers_and_code_counters",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789987260174,
+      "tag": "0002_bound_slug_length",
+      "breakpoints": true
     }
   ]
 }

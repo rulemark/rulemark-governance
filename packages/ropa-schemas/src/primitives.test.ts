@@ -2,15 +2,26 @@ import { describe, expect, it } from 'vitest';
 
 import {
   AsOf,
+  Code,
   CountryCode,
   Cursor,
+  Email,
   Identifier,
   IsoDate,
   IsoDateTime,
   IsoDuration,
+  MAX_CODE,
+  MAX_EMAIL,
+  MAX_NAME,
+  MAX_SLUG,
+  MAX_TEXT,
+  MAX_URL,
+  Name,
   Ref,
   RegionCode,
   Slug,
+  Text,
+  Url,
   Uuid,
 } from './primitives.js';
 
@@ -144,5 +155,43 @@ describe('Cursor', () => {
   it('is an opaque non-empty string', () => {
     expect(Cursor.safeParse('eyJpZCI6IjAxOTkifQ').success).toBe(true);
     expect(Cursor.safeParse('').success).toBe(false);
+  });
+});
+
+describe('length bounds', () => {
+  /**
+   * A pattern says what a value looks like, not how much of it there may be.
+   * Without these, the API accepted a 5,000-character slug and a megabyte-long
+   * name — which is how the Swagger UI example came to be a wall of text.
+   */
+  it('bounds a slug', () => {
+    expect(Slug.safeParse('a'.repeat(MAX_SLUG)).success).toBe(true);
+    expect(Slug.safeParse('a'.repeat(MAX_SLUG + 1)).success).toBe(false);
+  });
+
+  it('bounds a code', () => {
+    expect(Code.safeParse(`P${'9'.repeat(MAX_CODE)}`).success).toBe(false);
+  });
+
+  it('bounds a name', () => {
+    expect(Name.safeParse('x'.repeat(MAX_NAME)).success).toBe(true);
+    expect(Name.safeParse('x'.repeat(MAX_NAME + 1)).success).toBe(false);
+  });
+
+  it('bounds free text, an email and a URL', () => {
+    expect(Text.safeParse('x'.repeat(MAX_TEXT + 1)).success).toBe(false);
+    expect(Email.safeParse(`${'x'.repeat(MAX_EMAIL)}@example.com`).success).toBe(false);
+    expect(Url.safeParse(`https://example.com/${'x'.repeat(MAX_URL)}`).success).toBe(false);
+  });
+
+  it('bounds an identifier, which arrives in a path segment', () => {
+    expect(Identifier.safeParse('x'.repeat(MAX_SLUG + 1)).success).toBe(false);
+  });
+
+  it('leaves the values the story actually uses well inside the bounds', () => {
+    for (const slug of ['mailcrest', 'standard-dpa-v3', 'encryption-at-rest']) {
+      expect(Slug.safeParse(slug).success, slug).toBe(true);
+    }
+    expect(Name.safeParse('Aurelia Health N.V.').success).toBe(true);
   });
 });

@@ -1,21 +1,21 @@
 import { z } from 'zod';
 
 import { PARTY_KINDS } from '../enums.js';
-import { CountryCode, Slug } from '../primitives.js';
+import { CountryCode, Email, Name, Slug, Url } from '../primitives.js';
 import { changeNote, optionalSlug, recordMeta } from './common.js';
 
 /** DM §3.5. One `party` table covers us, our clients, our vendors and everyone else. */
 const fields = {
   kind: z.enum(PARTY_KINDS),
-  legalName: z.string().min(1).describe('The registered name. Doubles as the party’s name.'),
+  legalName: Name.describe('The registered name. Doubles as the party’s name.'),
   country: CountryCode.describe('Where the legal entity is established.'),
-  contactName: z.string().min(1),
-  contactEmail: z.email(),
-  dpoName: z.string().min(1).describe('Required on the self party (Art. 30(1)(a)).'),
-  dpoEmail: z.email().describe('Required on the self party (Art. 30(1)(a)).'),
-  trustUrl: z.url().describe('A vendor’s trust or security page.'),
-  dpaUrl: z.url().describe('A vendor’s published DPA.'),
-  subprocessorListUrl: z.url().describe('What the Subprocessor Monitor watches.'),
+  contactName: Name,
+  contactEmail: Email,
+  dpoName: Name.describe('Required on the self party (Art. 30(1)(a)).'),
+  dpoEmail: Email.describe('Required on the self party (Art. 30(1)(a)).'),
+  trustUrl: Url.describe('A vendor’s trust or security page.'),
+  dpaUrl: Url.describe('A vendor’s published DPA.'),
+  subprocessorListUrl: Url.describe('What the Subprocessor Monitor watches.'),
 };
 
 export const PartyInputBase = z.object({
@@ -58,7 +58,7 @@ export const Party = z.object({
   slug: Slug,
   kind: fields.kind,
   /** Mirrors `legalName`, so every record answers to `name` (§4). */
-  name: z.string().min(1),
+  name: Name,
   legalName: fields.legalName,
   country: fields.country,
   contactName: fields.contactName.nullable(),

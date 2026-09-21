@@ -184,6 +184,14 @@ with no `dist/` and no `.tsbuildinfo`.
 - Tests moved to their own database (`ropa_test`, created by the global setup).
   Demo data in the development database had broken twelve of them
 
+### Input bounds and readable examples (2026-09-21)
+- Every identifier and text field in `@rulemark/ropa-schemas` is now bounded:
+  slug 100, code 20, name 200, text 2000, email 254, URL 2048
+- `slugCheck` bounds length in the database too (migration 0002)
+- Schemas carry `.meta({ examples })`, so Swagger UI shows real values
+- `db:generate` builds first; a test rejects any check constraint containing
+  `undefined` or `NaN`
+
 ## Test Results
 | Test | Command | Expected | Actual | Status |
 |---|---|---|---|---|
@@ -227,6 +235,7 @@ with no `dist/` and no `.tsbuildinfo`.
 | Demo data over HTTP | `npm run demo:data` | records created | 38 created, 1 already there | ✅ |
 | Idempotent | run it a second time | nothing changes | 0 created, 39 already there | ✅ |
 | Tests isolated from dev data | demo data loaded, then the suite | unaffected | 305 pass, test database separate | ✅ |
+| Unbounded input | 5,000-char slug, 1 MB name | rejected | rejected, in Zod and in Postgres | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |

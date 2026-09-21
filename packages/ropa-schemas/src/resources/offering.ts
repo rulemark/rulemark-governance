@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { Identifier, Ref, Slug } from '../primitives.js';
+import { Identifier, Name, Ref, Slug } from '../primitives.js';
 import { changeNote, optionalSlug, recordMeta } from './common.js';
 
 /**
@@ -9,7 +9,7 @@ import { changeNote, optionalSlug, recordMeta } from './common.js';
  */
 export const OfferingInput = z.object({
   slug: optionalSlug,
-  name: z.string().min(1),
+  name: Name,
   defaultTerms: Identifier.describe('The outbound terms clients sign by default.'),
   changeNote,
 });
@@ -17,7 +17,7 @@ export const OfferingInput = z.object({
 export const Offering = z.object({
   ...recordMeta,
   slug: Slug,
-  name: z.string().min(1),
+  name: Name,
   defaultTerms: Ref,
 });
 

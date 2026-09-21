@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../constants.js';
-import { Cursor, IsoDateTime, Slug, Uuid } from '../primitives.js';
+import { Cursor, IsoDateTime, MAX_TEXT, Slug, Uuid } from '../primitives.js';
 
 /**
  * Input and Output are separate schemas for every record, because the API
@@ -17,7 +17,7 @@ import { Cursor, IsoDateTime, Slug, Uuid } from '../primitives.js';
 export const changeNote = z
   .string()
   .min(1)
-  .max(2000)
+  .max(MAX_TEXT)
   .optional()
   .describe('Why this change was made. Stored on the revision, never returned.');
 

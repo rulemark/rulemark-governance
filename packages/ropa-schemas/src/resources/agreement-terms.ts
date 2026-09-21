@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { AGREEMENT_DIRECTIONS, AUTHORIZATION_TYPES } from '../enums.js';
-import { RegionCode, Slug } from '../primitives.js';
+import { Name, RegionCode, Slug, Url } from '../primitives.js';
 import { changeNote, optionalSlug, recordMeta } from './common.js';
 
 /**
@@ -9,7 +9,7 @@ import { changeNote, optionalSlug, recordMeta } from './common.js';
  * clients sign one standard DPA while Aurelia signs its own.
  */
 const fields = {
-  name: z.string().min(1),
+  name: Name,
   direction: z
     .enum(AGREEMENT_DIRECTIONS)
     .describe('Outbound: we are the processor for a client. Inbound: a vendor processes for us.'),
@@ -18,7 +18,7 @@ const fields = {
   allowedRegions: z
     .array(RegionCode)
     .describe('Where processing may happen. Empty means no restriction.'),
-  documentUrl: z.url(),
+  documentUrl: Url,
 };
 
 export const AgreementTermsInput = z.object({

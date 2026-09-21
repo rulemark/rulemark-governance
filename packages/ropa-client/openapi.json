@@ -75,21 +75,40 @@
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-            "description": "A UUID. Records are keyed by UUIDv7."
+            "description": "A UUID. Records are keyed by UUIDv7.",
+            "examples": [
+              "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+            ]
           },
           "slug": {
             "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-            "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\"."
+            "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\".",
+            "examples": [
+              "mailcrest",
+              "standard-dpa-v3"
+            ]
           },
           "code": {
             "type": "string",
+            "minLength": 2,
+            "maxLength": 20,
             "pattern": "^[A-Z]+-?\\d+$",
-            "description": "A stable, system-assigned code shown next to the name: \"P3\"."
+            "description": "A stable, system-assigned code shown next to the name: \"P3\".",
+            "examples": [
+              "P3",
+              "RI-42"
+            ]
           },
           "name": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 200,
+            "examples": [
+              "Mailcrest Inc."
+            ]
           }
         },
         "required": [
@@ -106,7 +125,10 @@
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-            "description": "A UUID. Records are keyed by UUIDv7."
+            "description": "A UUID. Records are keyed by UUIDv7.",
+            "examples": [
+              "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+            ]
           },
           "version": {
             "type": "integer",
@@ -117,18 +139,30 @@
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
-            "description": "An RFC 3339 timestamp."
+            "description": "An RFC 3339 timestamp.",
+            "examples": [
+              "2026-03-16T10:00:00Z"
+            ]
           },
           "updatedAt": {
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
-            "description": "An RFC 3339 timestamp."
+            "description": "An RFC 3339 timestamp.",
+            "examples": [
+              "2026-03-16T10:00:00Z"
+            ]
           },
           "slug": {
             "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-            "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\"."
+            "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\".",
+            "examples": [
+              "mailcrest",
+              "standard-dpa-v3"
+            ]
           },
           "kind": {
             "type": "string",
@@ -141,23 +175,40 @@
           },
           "name": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 200,
+            "examples": [
+              "Mailcrest Inc."
+            ]
           },
           "legalName": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 200,
+            "examples": [
+              "Mailcrest Inc."
+            ],
             "description": "The registered name. Doubles as the party’s name."
           },
           "country": {
             "type": "string",
             "pattern": "^[A-Z]{2}$",
-            "description": "Where the legal entity is established."
+            "description": "Where the legal entity is established.",
+            "examples": [
+              "NL",
+              "US",
+              "DE"
+            ]
           },
           "contactName": {
             "anyOf": [
               {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "maxLength": 200,
+                "examples": [
+                  "Mailcrest Inc."
+                ]
               },
               {
                 "type": "null"
@@ -168,8 +219,12 @@
             "anyOf": [
               {
                 "type": "string",
+                "maxLength": 254,
                 "format": "email",
-                "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                "examples": [
+                  "dpo@hireloop.example"
+                ]
               },
               {
                 "type": "null"
@@ -181,6 +236,10 @@
               {
                 "type": "string",
                 "minLength": 1,
+                "maxLength": 200,
+                "examples": [
+                  "Mailcrest Inc."
+                ],
                 "description": "Required on the self party (Art. 30(1)(a))."
               },
               {
@@ -192,8 +251,12 @@
             "anyOf": [
               {
                 "type": "string",
+                "maxLength": 254,
                 "format": "email",
                 "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                "examples": [
+                  "dpo@hireloop.example"
+                ],
                 "description": "Required on the self party (Art. 30(1)(a))."
               },
               {
@@ -205,7 +268,11 @@
             "anyOf": [
               {
                 "type": "string",
+                "maxLength": 2048,
                 "format": "uri",
+                "examples": [
+                  "https://mailcrest.example/dpa"
+                ],
                 "description": "A vendor’s trust or security page."
               },
               {
@@ -217,7 +284,11 @@
             "anyOf": [
               {
                 "type": "string",
+                "maxLength": 2048,
                 "format": "uri",
+                "examples": [
+                  "https://mailcrest.example/dpa"
+                ],
                 "description": "A vendor’s published DPA."
               },
               {
@@ -229,7 +300,11 @@
             "anyOf": [
               {
                 "type": "string",
+                "maxLength": 2048,
                 "format": "uri",
+                "examples": [
+                  "https://mailcrest.example/dpa"
+                ],
                 "description": "What the Subprocessor Monitor watches."
               },
               {
@@ -265,7 +340,10 @@
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-            "description": "A UUID. Records are keyed by UUIDv7."
+            "description": "A UUID. Records are keyed by UUIDv7.",
+            "examples": [
+              "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+            ]
           },
           "version": {
             "type": "integer",
@@ -276,22 +354,38 @@
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
-            "description": "An RFC 3339 timestamp."
+            "description": "An RFC 3339 timestamp.",
+            "examples": [
+              "2026-03-16T10:00:00Z"
+            ]
           },
           "updatedAt": {
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
-            "description": "An RFC 3339 timestamp."
+            "description": "An RFC 3339 timestamp.",
+            "examples": [
+              "2026-03-16T10:00:00Z"
+            ]
           },
           "slug": {
             "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-            "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\"."
+            "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\".",
+            "examples": [
+              "mailcrest",
+              "standard-dpa-v3"
+            ]
           },
           "name": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 200,
+            "examples": [
+              "Mailcrest Inc."
+            ]
           },
           "direction": {
             "type": "string",
@@ -326,10 +420,19 @@
                 {
                   "type": "string",
                   "pattern": "^[A-Z]{2}$",
-                  "description": "An ISO 3166-1 alpha-2 country code."
+                  "description": "An ISO 3166-1 alpha-2 country code.",
+                  "examples": [
+                    "NL",
+                    "US",
+                    "DE"
+                  ]
                 }
               ],
-              "description": "\"EEA\", or an ISO 3166-1 alpha-2 country code."
+              "description": "\"EEA\", or an ISO 3166-1 alpha-2 country code.",
+              "examples": [
+                "EEA",
+                "IE"
+              ]
             },
             "description": "Where processing may happen. Empty means no restriction."
           },
@@ -337,7 +440,11 @@
             "anyOf": [
               {
                 "type": "string",
-                "format": "uri"
+                "maxLength": 2048,
+                "format": "uri",
+                "examples": [
+                  "https://mailcrest.example/dpa"
+                ]
               },
               {
                 "type": "null"
@@ -367,7 +474,10 @@
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-            "description": "A UUID. Records are keyed by UUIDv7."
+            "description": "A UUID. Records are keyed by UUIDv7.",
+            "examples": [
+              "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+            ]
           },
           "version": {
             "type": "integer",
@@ -378,22 +488,38 @@
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
-            "description": "An RFC 3339 timestamp."
+            "description": "An RFC 3339 timestamp.",
+            "examples": [
+              "2026-03-16T10:00:00Z"
+            ]
           },
           "updatedAt": {
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
-            "description": "An RFC 3339 timestamp."
+            "description": "An RFC 3339 timestamp.",
+            "examples": [
+              "2026-03-16T10:00:00Z"
+            ]
           },
           "slug": {
             "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-            "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\"."
+            "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\".",
+            "examples": [
+              "mailcrest",
+              "standard-dpa-v3"
+            ]
           },
           "name": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 200,
+            "examples": [
+              "Mailcrest Inc."
+            ]
           },
           "defaultTerms": {
             "$ref": "#/components/schemas/Ref"
@@ -417,7 +543,10 @@
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-            "description": "A UUID. Records are keyed by UUIDv7."
+            "description": "A UUID. Records are keyed by UUIDv7.",
+            "examples": [
+              "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+            ]
           },
           "version": {
             "type": "integer",
@@ -428,13 +557,19 @@
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
-            "description": "An RFC 3339 timestamp."
+            "description": "An RFC 3339 timestamp.",
+            "examples": [
+              "2026-03-16T10:00:00Z"
+            ]
           },
           "updatedAt": {
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
-            "description": "An RFC 3339 timestamp."
+            "description": "An RFC 3339 timestamp.",
+            "examples": [
+              "2026-03-16T10:00:00Z"
+            ]
           },
           "party": {
             "$ref": "#/components/schemas/Ref"
@@ -456,7 +591,10 @@
             "type": "string",
             "format": "date",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-            "description": "A date, \"YYYY-MM-DD\"."
+            "description": "A date, \"YYYY-MM-DD\".",
+            "examples": [
+              "2026-03-16"
+            ]
           },
           "endedAt": {
             "anyOf": [
@@ -464,7 +602,10 @@
                 "type": "string",
                 "format": "date",
                 "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-                "description": "A date, \"YYYY-MM-DD\"."
+                "description": "A date, \"YYYY-MM-DD\".",
+                "examples": [
+                  "2026-03-16"
+                ]
               },
               {
                 "type": "null"
@@ -492,7 +633,10 @@
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-            "description": "A UUID. Records are keyed by UUIDv7."
+            "description": "A UUID. Records are keyed by UUIDv7.",
+            "examples": [
+              "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+            ]
           },
           "version": {
             "type": "integer",
@@ -503,22 +647,38 @@
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
-            "description": "An RFC 3339 timestamp."
+            "description": "An RFC 3339 timestamp.",
+            "examples": [
+              "2026-03-16T10:00:00Z"
+            ]
           },
           "updatedAt": {
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
-            "description": "An RFC 3339 timestamp."
+            "description": "An RFC 3339 timestamp.",
+            "examples": [
+              "2026-03-16T10:00:00Z"
+            ]
           },
           "slug": {
             "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-            "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\"."
+            "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\".",
+            "examples": [
+              "mailcrest",
+              "standard-dpa-v3"
+            ]
           },
           "name": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 200,
+            "examples": [
+              "Mailcrest Inc."
+            ]
           },
           "kind": {
             "type": "string",
@@ -538,6 +698,7 @@
               {
                 "type": "string",
                 "minLength": 1,
+                "maxLength": 100,
                 "description": "The Render resource id the Architecture Snapshot joins on: \"srv-…\", \"dpg-…\"."
               },
               {
@@ -550,6 +711,7 @@
               {
                 "type": "string",
                 "minLength": 1,
+                "maxLength": 100,
                 "description": "Required for a Render-hosted system: \"frankfurt\"."
               },
               {
@@ -582,7 +744,10 @@
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-            "description": "A UUID. Records are keyed by UUIDv7."
+            "description": "A UUID. Records are keyed by UUIDv7.",
+            "examples": [
+              "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+            ]
           },
           "version": {
             "type": "integer",
@@ -593,28 +758,45 @@
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
-            "description": "An RFC 3339 timestamp."
+            "description": "An RFC 3339 timestamp.",
+            "examples": [
+              "2026-03-16T10:00:00Z"
+            ]
           },
           "updatedAt": {
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
-            "description": "An RFC 3339 timestamp."
+            "description": "An RFC 3339 timestamp.",
+            "examples": [
+              "2026-03-16T10:00:00Z"
+            ]
           },
           "slug": {
             "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-            "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\"."
+            "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\".",
+            "examples": [
+              "mailcrest",
+              "standard-dpa-v3"
+            ]
           },
           "name": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 200,
+            "examples": [
+              "Mailcrest Inc."
+            ]
           },
           "description": {
             "anyOf": [
               {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "maxLength": 2000
               },
               {
                 "type": "null"
@@ -640,7 +822,10 @@
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-            "description": "A UUID. Records are keyed by UUIDv7."
+            "description": "A UUID. Records are keyed by UUIDv7.",
+            "examples": [
+              "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+            ]
           },
           "version": {
             "type": "integer",
@@ -651,28 +836,45 @@
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
-            "description": "An RFC 3339 timestamp."
+            "description": "An RFC 3339 timestamp.",
+            "examples": [
+              "2026-03-16T10:00:00Z"
+            ]
           },
           "updatedAt": {
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
-            "description": "An RFC 3339 timestamp."
+            "description": "An RFC 3339 timestamp.",
+            "examples": [
+              "2026-03-16T10:00:00Z"
+            ]
           },
           "slug": {
             "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-            "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\"."
+            "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\".",
+            "examples": [
+              "mailcrest",
+              "standard-dpa-v3"
+            ]
           },
           "name": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 200,
+            "examples": [
+              "Mailcrest Inc."
+            ]
           },
           "description": {
             "anyOf": [
               {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "maxLength": 2000
               },
               {
                 "type": "null"
@@ -708,7 +910,10 @@
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-            "description": "A UUID. Records are keyed by UUIDv7."
+            "description": "A UUID. Records are keyed by UUIDv7.",
+            "examples": [
+              "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+            ]
           },
           "version": {
             "type": "integer",
@@ -719,28 +924,45 @@
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
-            "description": "An RFC 3339 timestamp."
+            "description": "An RFC 3339 timestamp.",
+            "examples": [
+              "2026-03-16T10:00:00Z"
+            ]
           },
           "updatedAt": {
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
-            "description": "An RFC 3339 timestamp."
+            "description": "An RFC 3339 timestamp.",
+            "examples": [
+              "2026-03-16T10:00:00Z"
+            ]
           },
           "slug": {
             "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-            "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\"."
+            "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\".",
+            "examples": [
+              "mailcrest",
+              "standard-dpa-v3"
+            ]
           },
           "name": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 200,
+            "examples": [
+              "Mailcrest Inc."
+            ]
           },
           "description": {
             "anyOf": [
               {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "maxLength": 2000
               },
               {
                 "type": "null"
@@ -777,11 +999,19 @@
           },
           "subject": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 200,
+            "examples": [
+              "Mailcrest Inc."
+            ]
           },
           "name": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 200,
+            "examples": [
+              "Mailcrest Inc."
+            ]
           },
           "roles": {
             "type": "array",
@@ -840,15 +1070,33 @@
             "type": "boolean"
           },
           "subject": {
-            "type": [
-              "string",
-              "null"
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "examples": [
+                  "Mailcrest Inc."
+                ]
+              },
+              {
+                "type": "null"
+              }
             ]
           },
           "name": {
-            "type": [
-              "string",
-              "null"
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "examples": [
+                  "Mailcrest Inc."
+                ]
+              },
+              {
+                "type": "null"
+              }
             ]
           },
           "roles": {
@@ -959,8 +1207,14 @@
         "properties": {
           "slug": {
             "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-            "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\"."
+            "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\".",
+            "examples": [
+              "mailcrest",
+              "standard-dpa-v3"
+            ]
           },
           "kind": {
             "type": "string",
@@ -974,46 +1228,83 @@
           "legalName": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 200,
+            "examples": [
+              "Mailcrest Inc."
+            ],
             "description": "The registered name. Doubles as the party’s name."
           },
           "country": {
             "type": "string",
             "pattern": "^[A-Z]{2}$",
-            "description": "Where the legal entity is established."
+            "description": "Where the legal entity is established.",
+            "examples": [
+              "NL",
+              "US",
+              "DE"
+            ]
           },
           "contactName": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 200,
+            "examples": [
+              "Mailcrest Inc."
+            ]
           },
           "contactEmail": {
             "type": "string",
+            "maxLength": 254,
             "format": "email",
-            "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+            "examples": [
+              "dpo@hireloop.example"
+            ]
           },
           "dpoName": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 200,
+            "examples": [
+              "Mailcrest Inc."
+            ],
             "description": "Required on the self party (Art. 30(1)(a))."
           },
           "dpoEmail": {
             "type": "string",
+            "maxLength": 254,
             "format": "email",
             "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+            "examples": [
+              "dpo@hireloop.example"
+            ],
             "description": "Required on the self party (Art. 30(1)(a))."
           },
           "trustUrl": {
             "type": "string",
+            "maxLength": 2048,
             "format": "uri",
+            "examples": [
+              "https://mailcrest.example/dpa"
+            ],
             "description": "A vendor’s trust or security page."
           },
           "dpaUrl": {
             "type": "string",
+            "maxLength": 2048,
             "format": "uri",
+            "examples": [
+              "https://mailcrest.example/dpa"
+            ],
             "description": "A vendor’s published DPA."
           },
           "subprocessorListUrl": {
             "type": "string",
+            "maxLength": 2048,
             "format": "uri",
+            "examples": [
+              "https://mailcrest.example/dpa"
+            ],
             "description": "What the Subprocessor Monitor watches."
           },
           "changeNote": {
@@ -1034,12 +1325,22 @@
         "properties": {
           "slug": {
             "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-            "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\"."
+            "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\".",
+            "examples": [
+              "mailcrest",
+              "standard-dpa-v3"
+            ]
           },
           "name": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 200,
+            "examples": [
+              "Mailcrest Inc."
+            ]
           },
           "direction": {
             "type": "string",
@@ -1075,16 +1376,29 @@
                 {
                   "type": "string",
                   "pattern": "^[A-Z]{2}$",
-                  "description": "An ISO 3166-1 alpha-2 country code."
+                  "description": "An ISO 3166-1 alpha-2 country code.",
+                  "examples": [
+                    "NL",
+                    "US",
+                    "DE"
+                  ]
                 }
               ],
-              "description": "\"EEA\", or an ISO 3166-1 alpha-2 country code."
+              "description": "\"EEA\", or an ISO 3166-1 alpha-2 country code.",
+              "examples": [
+                "EEA",
+                "IE"
+              ]
             },
             "description": "Where processing may happen. Empty means no restriction."
           },
           "documentUrl": {
             "type": "string",
-            "format": "uri"
+            "maxLength": 2048,
+            "format": "uri",
+            "examples": [
+              "https://mailcrest.example/dpa"
+            ]
           },
           "changeNote": {
             "description": "Why this change was made. Stored on the revision, never returned.",
@@ -1105,18 +1419,31 @@
         "properties": {
           "slug": {
             "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-            "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\"."
+            "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\".",
+            "examples": [
+              "mailcrest",
+              "standard-dpa-v3"
+            ]
           },
           "name": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 200,
+            "examples": [
+              "Mailcrest Inc."
+            ]
           },
           "defaultTerms": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200,
-            "description": "The outbound terms clients sign by default."
+            "maxLength": 100,
+            "description": "The outbound terms clients sign by default.",
+            "examples": [
+              "mailcrest"
+            ]
           },
           "changeNote": {
             "description": "Why this change was made. Stored on the revision, never returned.",
@@ -1136,32 +1463,47 @@
           "party": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200,
-            "description": "An id, code or slug: \"mailcrest\", \"P3\" or a UUID."
+            "maxLength": 100,
+            "description": "An id, code or slug: \"mailcrest\", \"P3\" or a UUID.",
+            "examples": [
+              "mailcrest"
+            ]
           },
           "terms": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200,
-            "description": "An id, code or slug: \"mailcrest\", \"P3\" or a UUID."
+            "maxLength": 100,
+            "description": "An id, code or slug: \"mailcrest\", \"P3\" or a UUID.",
+            "examples": [
+              "mailcrest"
+            ]
           },
           "offering": {
             "description": "Required when the terms are outbound.",
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 100,
+            "examples": [
+              "mailcrest"
+            ]
           },
           "signedAt": {
             "type": "string",
             "format": "date",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-            "description": "A date, \"YYYY-MM-DD\"."
+            "description": "A date, \"YYYY-MM-DD\".",
+            "examples": [
+              "2026-03-16"
+            ]
           },
           "endedAt": {
             "description": "Set through a PUT to end the agreement.",
             "type": "string",
             "format": "date",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+            "examples": [
+              "2026-03-16"
+            ]
           },
           "changeNote": {
             "description": "Why this change was made. Stored on the revision, never returned.",
@@ -1181,12 +1523,22 @@
         "properties": {
           "slug": {
             "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-            "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\"."
+            "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\".",
+            "examples": [
+              "mailcrest",
+              "standard-dpa-v3"
+            ]
           },
           "name": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 200,
+            "examples": [
+              "Mailcrest Inc."
+            ]
           },
           "kind": {
             "type": "string",
@@ -1204,18 +1556,23 @@
           "renderResourceId": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 100,
             "description": "The Render resource id the Architecture Snapshot joins on: \"srv-…\", \"dpg-…\"."
           },
           "region": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 100,
             "description": "Required for a Render-hosted system: \"frankfurt\"."
           },
           "hostingParty": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200,
-            "description": "An id, code or slug: \"mailcrest\", \"P3\" or a UUID."
+            "maxLength": 100,
+            "description": "An id, code or slug: \"mailcrest\", \"P3\" or a UUID.",
+            "examples": [
+              "mailcrest"
+            ]
           },
           "changeNote": {
             "description": "Why this change was made. Stored on the revision, never returned.",
@@ -1235,16 +1592,27 @@
         "properties": {
           "slug": {
             "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-            "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\"."
+            "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\".",
+            "examples": [
+              "mailcrest",
+              "standard-dpa-v3"
+            ]
           },
           "name": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 200,
+            "examples": [
+              "Mailcrest Inc."
+            ]
           },
           "description": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 2000
           },
           "changeNote": {
             "description": "Why this change was made. Stored on the revision, never returned.",
@@ -1262,16 +1630,27 @@
         "properties": {
           "slug": {
             "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-            "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\"."
+            "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\".",
+            "examples": [
+              "mailcrest",
+              "standard-dpa-v3"
+            ]
           },
           "name": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 200,
+            "examples": [
+              "Mailcrest Inc."
+            ]
           },
           "description": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 2000
           },
           "changeNote": {
             "description": "Why this change was made. Stored on the revision, never returned.",
@@ -1299,16 +1678,27 @@
         "properties": {
           "slug": {
             "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-            "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\"."
+            "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\".",
+            "examples": [
+              "mailcrest",
+              "standard-dpa-v3"
+            ]
           },
           "name": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 200,
+            "examples": [
+              "Mailcrest Inc."
+            ]
           },
           "description": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 2000
           },
           "changeNote": {
             "description": "Why this change was made. Stored on the revision, never returned.",
@@ -1326,11 +1716,16 @@
         "properties": {
           "subject": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 200,
+            "examples": [
+              "Mailcrest Inc."
+            ]
           },
           "secret": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 2000,
             "description": "Checked against TOKEN_MINT_SECRET."
           }
         },

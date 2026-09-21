@@ -1,5 +1,6 @@
 import { sql, type SQL } from 'drizzle-orm';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
+import { MAX_SLUG } from '@rulemark/ropa-schemas';
 
 /**
  * The shared check patterns from `ropa-database.md` §4.1, written once so every
@@ -37,7 +38,11 @@ export function inList(column: AnyPgColumn, values: readonly string[]): SQL {
  * segment can always be told apart from an id without a lookup (DM §3.0).
  */
 export function slugCheck(column: AnyPgColumn): SQL {
-  return sql`${column} ~ '^[a-z0-9]+(-[a-z0-9]+)*$' AND ${column} !~ '^[0-9a-f]{8}-[0-9a-f]{4}-'`;
+  // Bounded as well as shaped. A pattern says what a slug looks like, not how
+  // much of it there may be, and a slug reaches URLs, indexes and other
+  // services' foreign keys. The API bounds it too (`MAX_SLUG`); this is the
+  // safety net, in the layer that is true whatever writes the row (DB §2).
+  return sql`${column} ~ '^[a-z0-9]+(-[a-z0-9]+)*$' AND ${column} !~ '^[0-9a-f]{8}-[0-9a-f]{4}-' AND length(${column}) <= ${sql.raw(String(MAX_SLUG))}`;
 }
 
 /** ISO 3166-1 alpha-2. */

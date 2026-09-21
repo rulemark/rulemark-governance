@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { DATA_CATEGORY_SPECIALS } from '../enums.js';
-import { Slug } from '../primitives.js';
+import { Name, Slug, Text } from '../primitives.js';
 import { changeNote, optionalSlug, recordMeta } from './common.js';
 
 /**
@@ -11,16 +11,16 @@ import { changeNote, optionalSlug, recordMeta } from './common.js';
  */
 const inputFields = {
   slug: optionalSlug,
-  name: z.string().min(1),
-  description: z.string().min(1).optional(),
+  name: Name,
+  description: Text.optional(),
   changeNote,
 };
 
 const outputFields = {
   ...recordMeta,
   slug: Slug,
-  name: z.string().min(1),
-  description: z.string().min(1).nullable(),
+  name: Name,
+  description: Text.nullable(),
 };
 
 const special = z

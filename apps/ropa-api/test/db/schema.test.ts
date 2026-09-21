@@ -332,6 +332,22 @@ describe('the migration itself', () => {
     ]);
   });
 
+  it('left no check constraint referring to an unresolved constant', async () => {
+    // `length(slug) <= undefined` is what a constant imported from a workspace
+    // package looks like when the package was not rebuilt before generating.
+    // It is accepted by Postgres and means nothing.
+    const { rows } = await db().sql.query<{ constraint_name: string }>(
+      `SELECT constraint_name FROM information_schema.check_constraints
+       WHERE check_clause LIKE '%undefined%' OR check_clause LIKE '%NaN%'`,
+    );
+    expect(rows).toEqual([]);
+  });
+
+  it('bounds the length of a slug, not just its shape', async () => {
+    await expectViolation('party_slug', () => insertParty(aVendor({ slug: 'a'.repeat(101) })));
+    await expect(insertParty(aVendor({ slug: 'a'.repeat(100) }))).resolves.toBeDefined();
+  });
+
   it('left no enum check with an unbound parameter in it', async () => {
     // The generator will happily emit `IN ($1, $2)` if a check is built from
     // bound values instead of literals, which is not a constraint at all.

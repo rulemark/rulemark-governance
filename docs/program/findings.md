@@ -113,6 +113,12 @@
 - The free database instance type expires after 30 days regardless of the account plan, so a Pro workspace still has to choose a paid instance deliberately.
 - Decisions taken at creation, none of them changeable afterwards: name `ropa-db`, database `ropa_rcz5`, user `ropa`, version **18** (required for `uuidv7()`), region **Frankfurt** (must match the web service, or there is no private network).
 
+### Unbounded strings, found by reading the generated docs (2026-09-21)
+- **A pattern says what a value looks like, not how much of it there may be.** `Slug` had a regex and no `maxLength`, so the API accepted a 5,000-character slug; `legalName` and the other free-text fields were capped only by the 1 MB body limit. Postgres did not help: `slugCheck` enforced shape, and the columns are `text`. Every identifier and text field is now bounded in `primitives.ts`, and `slugCheck` bounds length too — the safety net belongs in the layer that is true whatever writes the row (DB §2).
+- **This was found by looking at Swagger UI.** The example generator produced a 4,000-character slug, because that is a legal value under the old schema. Generated documentation showing an absurd example is documentation telling you something true.
+- **`drizzle-kit` reads a workspace package through its built output.** Importing `MAX_SLUG` into the Drizzle schema and generating without rebuilding produced `length(slug) <= undefined` — valid SQL, and meaningless, exactly like the `$1` placeholders in Phase 3. `db:generate` now builds first, like `db:migrate` and `openapi:write`, and a test fails on any check constraint containing `undefined` or `NaN`.
+- Schemas now carry `.meta({ examples })`, which Zod passes into JSON Schema, so the rendered docs show `mailcrest` rather than a wall of generated text.
+
 ## Issues encountered
 | Issue | Resolution |
 |---|---|
