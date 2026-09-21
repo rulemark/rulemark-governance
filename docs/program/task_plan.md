@@ -128,8 +128,14 @@ Reference: `ropa-packages.md` §8, `ropa-database.md` §8.2
 - [x] First deploy; build → pre-deploy → start, health check gate
 - [x] Verify against the deployed URL: `/healthz`, `/openapi.json`, `/api-docs`, mint a token, create a party
 - [x] A second deploy carrying a migration (0002), applied by the pre-deploy command
-- [ ] `DEMO_API_URL=… npm run demo:data` to fill it
+- [x] `DEMO_API_URL=… npm run demo:data` to fill it — 39 records, the mint secret passed inline so local and deployed stay independent
 - [ ] Shorten the pre-deploy command to `npm run db:migrate -w apps/ropa-api`: the root script rebuilds what the build step just built
+
+> **A wart demo:data exposed.** It calls `loadConfigOrExit()`, so it insists on
+> a valid `DATABASE_URL` and `JWT_SECRET` even though it only ever needs a URL
+> and the mint secret. Fine from a developer's laptop; wrong for the case it
+> exists for, such as a CI job filling a preview environment with no local
+> setup. Worth narrowing to its own config.
 
 **9b. Convert to a Blueprint**
 - [ ] `render.yaml` describing the same thing, with build filters
