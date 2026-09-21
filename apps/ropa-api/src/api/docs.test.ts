@@ -55,6 +55,27 @@ describe('GET /openapi.json', () => {
   });
 });
 
+describe('GET /', () => {
+  it('sends a visitor to the documentation', async () => {
+    const response = await request(server).get('/');
+    // Temporary, not 301: a permanent redirect is cached hard by browsers and
+    // is effectively irreversible for anyone who has visited once.
+    expect(response.status).toBe(302);
+    expect(response.headers.location).toBe('/api-docs');
+  });
+
+  it('answers the HEAD probe a platform uses to find the port', async () => {
+    const response = await request(server).head('/');
+    expect(response.status).toBe(302);
+  });
+
+  it('leaves every other unknown path as a 404 problem', async () => {
+    const response = await request(server).get('/not-a-route');
+    expect(response.status).toBe(404);
+    expect(response.headers['content-type']).toMatch(/problem\+json/);
+  });
+});
+
 describe('GET /api-docs', () => {
   it('serves Swagger UI without a token', async () => {
     const response = await request(server).get('/api-docs/').redirects(1);

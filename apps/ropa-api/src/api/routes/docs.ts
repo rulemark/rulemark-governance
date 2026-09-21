@@ -15,6 +15,18 @@ export function docsRouter(): Router {
   // while the process runs.
   const document = buildOpenApiDocument();
 
+  /**
+   * The front door. Someone handed the service's URL should land on something
+   * that explains it, not on a 404 in problem+json.
+   *
+   * Temporary rather than permanent: a 301 is cached hard by browsers and is
+   * effectively irreversible for anyone who has visited once, and `/` is worth
+   * keeping free — a future frontend may well want it.
+   */
+  router.get('/', (_req, res) => {
+    res.redirect('/api-docs');
+  });
+
   router.get('/openapi.json', (_req, res) => {
     res.type('application/json').send(JSON.stringify(document, null, 2));
   });
