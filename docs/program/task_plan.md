@@ -14,6 +14,7 @@ Phases 1–8 complete. Phase 9 (deploy to Render) next.
 - Foundation records support create, read, update, delete, list and filter, with versioned saves, revisions and outbox rows written in the same transaction.
 - Tests pass against a real Postgres in CI, including the two drift checks.
 - The service runs on Render from `render.yaml`, with migrations applied by the pre-deploy command.
+  *(Running on Render with pre-deploy migrations: done. From `render.yaml`: 9b.)*
 
 ## Phases
 
@@ -120,13 +121,15 @@ Reference: `ropa-packages.md` §8, `ropa-database.md` §8.2
 - [x] Project `rulemark-governance`, environment `production`
 - [x] Postgres `ropa-db`: version 18, Frankfurt, paid instance, user `ropa`
 - [ ] Restrict external database access once the first deploy is verified
-- [ ] Web service `ropa-api`: root directory at the repository root (npm workspaces need a root install)
-- [ ] Build `npm ci && npm run build`; pre-deploy `npm run db:migrate`; start `npm start -w apps/ropa-api`
-- [ ] Health check path `/healthz`
-- [ ] Environment: `DATABASE_URL` from the database, `JWT_SECRET` and `TOKEN_MINT_SECRET` generated, `PRINCIPALS` set by hand, `NODE_ENV=production`
-- [ ] First deploy; watch build → pre-deploy → start, and the health check gate
-- [ ] Verify against the deployed URL: `/healthz`, `/openapi.json`, `/api-docs`, mint a token, create a party
+- [x] Web service `ropa-api`: root directory at the repository root (npm workspaces need a root install)
+- [x] Build `npm ci --include=dev && npm run build`; pre-deploy `npm run db:migrate`; start `npm start -w apps/ropa-api`
+- [x] Health check path `/healthz`; auto-deploy **After CI Checks Pass**; build filters set
+- [x] Environment: `DATABASE_URL` from the database, `JWT_SECRET` and `TOKEN_MINT_SECRET` generated in the dashboard, `PRINCIPALS` by hand, `NODE_ENV=production`
+- [x] First deploy; build → pre-deploy → start, health check gate
+- [x] Verify against the deployed URL: `/healthz`, `/openapi.json`, `/api-docs`, mint a token, create a party
+- [x] A second deploy carrying a migration (0002), applied by the pre-deploy command
 - [ ] `DEMO_API_URL=… npm run demo:data` to fill it
+- [ ] Shorten the pre-deploy command to `npm run db:migrate -w apps/ropa-api`: the root script rebuilds what the build step just built
 
 **9b. Convert to a Blueprint**
 - [ ] `render.yaml` describing the same thing, with build filters
@@ -139,7 +142,10 @@ Reference: `ropa-packages.md` §8, `ropa-database.md` §8.2
 - [ ] Record what the platform actually did, against what the design assumed
 
 - **Done when:** the deployed API serves docs and accepts an authenticated write
-- **Status:** in progress — 9a database done
+- **Status:** the "done when" is **met** — https://ropa-api.onrender.com serves
+  `/api-docs`, and a party created through it records `actor: priya.raman` from
+  the token's subject. What remains is the Blueprint (9b), which is also the
+  last outstanding item in the step 1 definition of done.
 
 ## Deferred to build step 2
 Activities (discriminated union, role rules, lifecycle, client scoping), the views (`/report`, `/subprocessors`, `/parties/{ref}/impact`, `/data-map`, `/coverage`), review items, `asOf` and `/changes`, the outbox **dispatcher** (rows are written in step 1, delivery comes later), the Markdown report export, and the Hireloop seed script.

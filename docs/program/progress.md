@@ -199,6 +199,15 @@ with no `dist/` and no `.tsbuildinfo`.
 - `trust-proxy.test.ts` pins it, including that a prepended address is ignored
 - The request log now carries `client.ip` and `client.ips`
 
+### First deployment verified (2026-09-21)
+- https://ropa-api.onrender.com, Frankfurt, behind Render's edge and Cloudflare
+- Two deploys through the full loop: push → CI green → Render deploys. The
+  second carried migration 0002, applied by the pre-deploy command against the
+  live database with the previous version still serving
+- Verified on the deployed service: the docs, an over-long slug refused with a
+  422 naming `/slug`, a party created with its slug derived from the name, and
+  its revision recording `actor: priya.raman` from the token's subject
+
 ## Test Results
 | Test | Command | Expected | Actual | Status |
 |---|---|---|---|---|
@@ -244,6 +253,7 @@ with no `dist/` and no `.tsbuildinfo`.
 | Tests isolated from dev data | demo data loaded, then the suite | unaffected | 305 pass, test database separate | ✅ |
 | Unbounded input | 5,000-char slug, 1 MB name | rejected | rejected, in Zod and in Postgres | ✅ |
 | `req.ip` behind two proxies | `x-forwarded-for: caller, edge` | the caller | was the edge; fixed and pinned | ✅ |
+| Authenticated write, deployed | `POST /v1/parties` with a minted token | 201, revision names the token's subject | as expected | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -253,7 +263,7 @@ with no `dist/` and no `.tsbuildinfo`.
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Build step 1, Phases 1–8 complete; Phase 9 (deploy to Render) next |
+| Where am I? | Build step 1, Phases 1–8 complete; Phase 9 deployed and verified by hand, Blueprint (9b) remaining |
 | Where am I going? | Phases 2–9: schemas, database, persistence, auth, endpoints, OpenAPI, CI, deploy |
 | What's the goal? | A running, authenticated, documented API on Render with foundation records working end to end |
 | What have I learned? | See findings.md |
