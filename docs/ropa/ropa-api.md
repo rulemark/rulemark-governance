@@ -629,8 +629,8 @@ Review items have no revisions, so `review_item.changed` is their history, and i
 
 1. **Foundation:** conventions (§1), auth (§1.9: minting, verification, the permission map), taxonomies, parties, agreement terms, agreements, offerings, systems. Revisions are **written** from day one, because they can't be recreated later. Auth comes first too: retrofitting the actor into existing revisions isn't possible.
 2. **Activities:** CRUD, role rules, activate/retire. `GET /subprocessors` and `GET /report` in **JSON and Markdown** (current state). Markdown comes this early because it feeds the architecture document (Q5). This is enough for Ch2–Ch4.
-3. **Governance views:** `/parties/{ref}/impact`, `/data-map`, `/coverage`, review items. Enough for Ch5–Ch7 and the Monitor/DSAR integrations.
-4. **History:** `asOf`, `/revisions`, `/changes`, event outbox and push delivery. Enough for Ch8 and the audit log.
+3. **Governance views:** `/parties/{ref}/impact`, `/data-map`, `/coverage`, review items. Enough for Ch5–Ch7 and the Monitor/DSAR integrations. **Done 2026-09-26.**
+4. **History:** `asOf`, `/revisions`, `/changes`, event outbox and push delivery, and the Render cron job that opens review items from coverage findings. Enough for Ch8, the audit log, and a finding reaching a person without anyone asking.
 5. **Conveniences:** CSV report format; engagement sub-resource (§3.5).
 
 **Decided during build step 2 (2026-09-26)**, for the steps that follow:
@@ -642,7 +642,9 @@ Review items have no revisions, so `review_item.changed` is their history, and i
 
 **Decided during build step 3 (2026-09-26)**, for the steps that follow:
 - **Review items emit `review_item.changed`, not revisions** (§6). `/changes` reads revisions, so it won't replay them. Step 4 should take them from the outbox, which keeps rows after delivery, and order them by `occurredAt`, since they have no `version`. The dispatcher's ordering query must allow for outbox rows with no `revision_id`.
-- **A Render cron job opens review items from coverage findings**, in step 4 or a small step of its own (to be settled when step 3 closes). It calls `GET /coverage`, opens a review item with `source: schedule` for each finding whose `key` has no open item (§5.5; the key goes in `details`), and is the only way `review_overdue` will ever be acted on, since nothing else notices time passing. It needs a new `render.yaml` resource, its own principal and token (`review:read`, `review:create`), and a route to the API over the private network. The Snapshot takes `unmapped_system` with `source: snapshot` when it exists; the shared `key` keeps the two from opening duplicates.
+- **A Render cron job opens review items from coverage findings**, in step 4 (settled when step 3 closed). It calls `GET /coverage`, opens a review item with `source: schedule` for each finding whose `key` has no open item (§5.5; the key goes in `details`), and is the only way `review_overdue` will ever be acted on, since nothing else notices time passing. It needs a new `render.yaml` resource, its own principal and token (`review:read`, `review:create`), and a route to the API over the private network. The Snapshot takes `unmapped_system` with `source: snapshot` when it exists; the shared `key` keeps the two from opening duplicates. `service:snapshot` has `review:create` but not `review:read`, so it can't dedupe yet: add it when either caller is built.
+- **`asOf` for the step 3 views needs no new view logic either.** Impact and the data map are pure functions over activity snapshots (`partyImpact`, `dataMap`), like the step 2 views; step 4 feeds them snapshots, and the agreements and terms they read, as of the date. Coverage alone stays current-only: it refuses `asOf` with `422 not_supported`, not `not_yet_supported`, because "where do the record and the architecture disagree" is a question about today.
+- **Review-item history lives only in the outbox**, and DB §7's cleanup deletes delivered rows after 30 days. As designed, the two conflict: the audit log would keep the events, but `/changes` could only replay a month of review items. Step 4 must settle it before building the cleanup.
 
 ## 9. Open questions
 
