@@ -200,6 +200,40 @@
 - **Still later, deliberately.** The engagement sub-resource (API §3.5) is
   step 5, as the scope note says.
 
+- **How Phase 5 built it.**
+  - `domain/views/subprocessors.ts` holds the whole of DM §3.8 and §7 as
+    pure functions: `isEffectiveFor`, `coversClient`, `standardSubprocessors`
+    and `clientSubprocessors`. They take snapshots and a day, and scope rows
+    and engagements count only while they are in force on that day. Unit
+    tests replay Chapters 4 and 5 without a database.
+  - The route (`api/routes/views.ts`) reads inside one `repeatable read`,
+    `read only` transaction, so agreements, activities and names come from
+    the same moment.
+  - **The agreement rule has one home**, `domain/agreements.ts`: an outbound
+    agreement signed on or before the day and not ended by it. The save
+    rules and the view both use it.
+  - **The client view names the client's own terms.** Aurelia's scope shows
+    her DPA (specific, 60 days), not the offering's default. The monitor will
+    need exactly this to tell who is notified and who must approve (Ch5).
+  - **Choices the spec left open:** `?asOf=` answers 422 `not_yet_supported`,
+    because answering for today when a date was asked would be quietly
+    wrong. A client with no agreement in force answers 422
+    `no_active_agreement`. A client on several offerings answers 422
+    `several_offerings`, because the response names one offering and one set
+    of terms. The story never has such a client. Neither-or-both
+    `offering`/`client` is `exactly_one_scope`.
+  - The tests were checked by making every engagement effective for every
+    client: six tests failed, including the "differs exactly as Chapter 4
+    says" one.
+  - `openapi.json` compared as JSON: one path, one schema and two tags
+    (`activities`, `views`) added; nothing else changed.
+- **Not built, and not in the plan: `subprocessors.changed` events.** DB
+  §6.1 step 5 says a save that alters a derived subprocessor list writes a
+  `subprocessors.changed` outbox row, with the list before and after for the
+  affected offering and clients. The list exists now, so this is buildable,
+  but no phase lists it and the scope note leaves the dispatcher to step 4.
+  Decide where it belongs.
+
 ## Issues encountered
 | Issue | Resolution |
 |---|---|

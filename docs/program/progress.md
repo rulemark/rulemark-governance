@@ -41,6 +41,12 @@
   lifecycle in `src/domain/activity/lifecycle.ts`; the response shape in
   `output.ts`; a batched loader. `openapi.json` regenerated (additive). 37
   HTTP tests in `test/db/activity-endpoints.test.ts`, written first
+- **Phase 5 complete.** `GET /v1/subprocessors` by offering or client
+  (`api/routes/views.ts`), over pure functions in `domain/views/`;
+  `SubprocessorsQuery` and `SubprocessorsResponse` in the package's new
+  `views` module; the agreement rule moved to `domain/agreements.ts`. Open
+  question 4 resolved: views over aggregates. 13 unit tests, 12 HTTP tests
+  and 2 package tests, written first
 
 ## Test Results
 | Test | Command | Expected | Actual | Status |
@@ -52,6 +58,7 @@
 | Phase 2: the activity tables | `npm run check`; `drizzle-kit generate` | Clean, all pass; no pending changes | Clean; 346 + 192 + 4 pass; "No schema changes" | ✅ |
 | Phase 3: saving with children | `npm run check`; diff broken on purpose | Clean, all pass; the diff tests fail when deletes are skipped | Clean; 374 + 192 + 4 pass; 3 tests failed as expected, then restored | ✅ |
 | Phase 4: endpoints and lifecycle | `npm run check`; role rules disabled on purpose; `openapi.json` compared as JSON | Clean, all pass; role-rule tests fail when disabled; only additions | Clean; 421 + 194 + 4 pass; 3 tests failed as expected, then restored; no path or schema removed or changed | ✅ |
+| Phase 5: `/subprocessors` | `npm run check`; every engagement made effective on purpose; `openapi.json` compared as JSON | Clean, all pass; the Ch4 tests fail; only additions | Clean; 447 + 196 + 4 pass; 6 tests failed as expected, then restored; one path, one schema, two tags added | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -61,7 +68,7 @@
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Build step 2, Phase 5 (`GET /subprocessors`); Phases 1–4 complete |
+| Where am I? | Build step 2, Phase 6 (`GET /report`); Phases 1–5 complete |
 | Where am I going? | Activities and their rules, then `/subprocessors` and `/report`, then the Hireloop seed |
 | What's the goal? | Make the record a record: an Art. 30 entry that can be drafted, activated and read |
 | What have I learned? | See findings.md, and `plan-archive/2/findings.md` for step 1 |

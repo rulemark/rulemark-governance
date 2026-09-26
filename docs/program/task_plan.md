@@ -9,7 +9,7 @@ turn the stored record into something a person reads.
 Build step 2 from `docs/ropa/ropa-api.md` §8. **Enough for story chapters 2–4.**
 
 ## Current Phase
-Phase 5
+Phase 6
 
 ## Definition of done for step 2
 - A controller activity and a processor activity can be created, edited,
@@ -79,11 +79,11 @@ Reference: `ropa-api.md` §2, §3.1, §3.4, §1.5
 
 ### Phase 5: `GET /subprocessors`
 Reference: `ropa-api.md` §5.2; `ropa-data-model.md` §3.8, §7
-- [ ] Covered clients and effective engagements, as DM §3.8 defines them
-- [ ] Scoped by `offering` — the standard terms, ignoring per-client exceptions
-- [ ] Scoped by `client` — that client's actual engagements
+- [x] Covered clients and effective engagements, as DM §3.8 defines them
+- [x] Scoped by `offering` — the standard terms, ignoring per-client exceptions
+- [x] Scoped by `client` — that client's actual engagements
 - **Done when:** for the same offering, Aurelia's list differs from Northwind's in exactly the way Chapter 4 describes
-- **Status:** pending
+- **Status:** complete
 
 ### Phase 6: `GET /report`
 Reference: `ropa-api.md` §5.1
@@ -118,7 +118,7 @@ Reference: `ropa-database.md` §9; `ropa-story.md`
 1. ~~Zod discriminated unions and the Input/Output split: `z.discriminatedUnion` on `role`, or one object with a `superRefine` that branches?~~ **Resolved 2026-09-26: a discriminated union**, with forbidden fields checked on the field itself. It gives `oneOf` *and* the better field errors; see findings.md. *Phase 1.*
 2. Markdown generation: hand-rolled template strings, or a builder? It has to be diffable and stable, because it feeds the architecture document. *Phase 6.*
 3. ~~The children diff is the first place two writers can conflict *within* one aggregate. `If-Match` covers the root; is that enough?~~ **Resolved 2026-09-26: yes.** Every save locks the root row with its version check before touching a nested row, and nothing writes a nested row any other way, so a second writer on the same version always gets 412, even when editing a different engagement. Tested. *Phase 3.*
-4. Do the views read through the domain layer over aggregates, or as SQL? DB §6.3 says the former, so `asOf` can reuse them in step 4 — confirm that holds once the queries are real. *Phase 5.*
+4. ~~Do the views read through the domain layer over aggregates, or as SQL?~~ **Resolved 2026-09-26: over aggregates.** SQL only chooses which live processor activities of the offering to load; who counts is decided by pure functions over `ActivitySnapshot`s (`domain/views/subprocessors.ts`), which step 4 can feed from revisions. *Phase 5.*
 5. Test isolation for the dispatcher, still open from step 1: it manages its own transactions, so transaction-per-test will not do. *Step 4.*
 
 ## Decisions carried forward
@@ -136,6 +136,8 @@ Reference: `ropa-database.md` §9; `ropa-story.md`
 | "Active agreement" is judged as of the save's effective date (`validFrom`), not today | Step 2, Phase 3; lets the seed replay the story |
 | Lifecycle actions check `If-Match` before judging content, so a stale approver hears 412, not 422 | Step 2, Phase 4 (API §1.8) |
 | `joint_controller` is refused as a validation problem whose field error has code `not_yet_supported`, not as its own problem type | Step 2, Phase 4 |
+| Views are pure functions over aggregates; SQL only selects what to load | Step 2, open question 4 |
+| `/subprocessors?client=` uses the client's own terms; a client on several offerings is refused (422 `several_offerings`) until the response can name more than one | Step 2, Phase 5 |
 
 ## Errors encountered
 | Error | Attempt | Resolution |
