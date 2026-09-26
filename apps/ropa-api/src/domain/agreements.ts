@@ -1,4 +1,5 @@
-import { and, eq, gt, inArray, isNull, lte, or, type SQL } from 'drizzle-orm';
+import type { AgreementDirection } from '@rulemark/ropa-schemas';
+import { and, desc, eq, gt, inArray, isNull, lte, or, type SQL } from 'drizzle-orm';
 
 import { agreement, agreementTerms } from '../db/schema/index.js';
 import type { Transaction } from './transaction.js';
@@ -15,9 +16,13 @@ export function isoDate(moment: Date): string {
   return moment.toISOString().slice(0, 10);
 }
 
-function inForce(day: string): SQL {
+/**
+ * Outbound by default: an agreement with a client. Inbound is a vendor's DPA
+ * with us, which the impact view reads for the vendor's notice (API §5.3).
+ */
+function inForce(day: string, direction: AgreementDirection = 'outbound'): SQL {
   return and(
-    eq(agreementTerms.direction, 'outbound'),
+    eq(agreementTerms.direction, direction),
     lte(agreement.signedAt, day),
     or(isNull(agreement.endedAt), gt(agreement.endedAt, day)),
   )!;
@@ -94,4 +99,53 @@ export async function clientsByOffering(
     byOffering.set(row.offeringId, clients);
   }
   return byOffering;
+}
+
+/**
+ * The client agreements in force for these offerings, with the terms each
+ * client signed: who a processor activity's engagements reach, and on what
+ * terms (API §5.3). One per client and offering, the most recently signed.
+ */
+export async function clientAgreementsFor(
+  tx: Transaction,
+  offeringIds: readonly string[],
+  asOf: Date,
+): Promise<{ clientId: string; offeringId: string; termsId: string }[]> {
+  if (offeringIds.length === 0) return [];
+  const rows = await tx
+    .select({
+      clientId: agreement.partyId,
+      offeringId: agreement.offeringId,
+      termsId: agreement.termsId,
+    })
+    .from(agreement)
+    .innerJoin(agreementTerms, eq(agreementTerms.id, agreement.termsId))
+    .where(and(inArray(agreement.offeringId, [...new Set(offeringIds)]), inForce(isoDate(asOf))))
+    .orderBy(desc(agreement.signedAt), agreement.id);
+
+  const seen = new Set<string>();
+  return rows.flatMap((row) => {
+    const key = `${row.clientId}/${row.offeringId}`;
+    if (row.offeringId === null || seen.has(key)) return [];
+    seen.add(key);
+    return [{ clientId: row.clientId, offeringId: row.offeringId, termsId: row.termsId }];
+  });
+}
+
+/**
+ * The terms of a vendor's inbound agreements in force: every one, since
+ * nothing ties an engagement to one of them (step 3, open question 5).
+ */
+export async function vendorTermsIdsOf(
+  tx: Transaction,
+  partyId: string,
+  asOf: Date,
+): Promise<string[]> {
+  const rows = await tx
+    .select({ termsId: agreement.termsId })
+    .from(agreement)
+    .innerJoin(agreementTerms, eq(agreementTerms.id, agreement.termsId))
+    .where(and(eq(agreement.partyId, partyId), inForce(isoDate(asOf), 'inbound')))
+    .orderBy(agreement.signedAt, agreement.id);
+  return [...new Set(rows.map((row) => row.termsId))];
 }

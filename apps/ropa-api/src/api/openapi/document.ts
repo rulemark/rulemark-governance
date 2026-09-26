@@ -9,6 +9,7 @@ import {
   AgreementTermsInput,
   DataCategory,
   DataCategoryInput,
+  ImpactResponse,
   DEFAULT_PAGE_SIZE,
   MAX_PAGE_SIZE,
   MeResponse,
@@ -107,6 +108,7 @@ const OUTPUT_SCHEMAS: readonly [string, z.ZodType][] = [
   ['Activity', Activity],
   ['ReviewItem', ReviewItem],
   ['SubprocessorsResponse', SubprocessorsResponse],
+  ['ImpactResponse', ImpactResponse],
   ['ReportResponse', ReportResponse],
   ['TokenResponse', TokenResponse],
   ['MeResponse', MeResponse],
@@ -704,6 +706,35 @@ export function buildOpenApiDocument(): JsonObject {
         },
       },
       'view:subprocessors',
+    ),
+  };
+
+  paths[`/${API_VERSION}/parties/{ref}/impact`] = {
+    get: guarded(
+      {
+        tags: ['views'],
+        summary: 'What depends on a vendor, and who must be told',
+        description:
+          'For the Monitor, when a vendor changes its subprocessors (§5.3). One entry per engagement with the party, in live activities. For a processor activity, the clients that engagement is used for, grouped by the terms they signed: `requiresApproval` when the terms need specific authorization, `noticeConflict` when the vendor gives less notice than the clients are owed (null when the vendor has no DPA in force), and `allowedRegions` when the terms restrict them. Groups of 10 or fewer list their clients.',
+        parameters: [
+          REF_PARAM('party: its id or slug'),
+          queryParam(
+            'expandClients',
+            'true: list the clients of every group, not only small ones.',
+            {
+              type: 'string',
+              enum: ['true', 'false'],
+            },
+          ),
+          queryParam('asOf', 'Not supported yet: answered with 422 not_yet_supported.'),
+        ],
+        responses: {
+          '200': json('ImpactResponse', 'The impact'),
+          '404': problem('No such party'),
+          ...COMMON_ERRORS,
+        },
+      },
+      'view:impact',
     ),
   };
 

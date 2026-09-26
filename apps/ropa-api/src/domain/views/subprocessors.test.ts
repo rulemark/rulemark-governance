@@ -1,6 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ActivitySnapshot } from '../snapshots.js';
+import {
+  ATS,
+  AURELIA,
+  GLITCHLOG,
+  MAILCREST,
+  NORTHWIND,
+  P1,
+  P2,
+  P3,
+  RENDER,
+  SCRIBE,
+  TODAY,
+  activity,
+  engagement,
+} from '../../../test/fixtures/story-snapshots.js';
 import { clientSubprocessors, isEffectiveFor, standardSubprocessors } from './subprocessors.js';
 
 /**
@@ -8,149 +22,6 @@ import { clientSubprocessors, isEffectiveFor, standardSubprocessors } from './su
  * the same code will answer `asOf` from revisions in step 4 (DB §6.3). These
  * are Chapter 4 and 5 of the story, written as snapshots.
  */
-
-const ATS = 'off-ats';
-const AURELIA = 'party-aurelia';
-const NORTHWIND = 'party-northwind';
-const RENDER = 'party-render';
-const MAILCREST = 'party-mailcrest';
-const GLITCHLOG = 'party-glitchlog';
-const SCRIBE = 'party-scribe';
-const TODAY = '2026-09-26';
-
-let sequence = 0;
-const nextId = (prefix: string) => `${prefix}-${String(++sequence).padStart(4, '0')}`;
-
-type Engagement = ActivitySnapshot['engagements'][number];
-
-function engagement(
-  partyId: string,
-  serviceDescription: string,
-  processingCountries: string[],
-  extra: Partial<Engagement> = {},
-): Engagement {
-  return {
-    id: nextId('eng'),
-    partyId,
-    role: 'subprocessor',
-    serviceDescription,
-    processingCountries,
-    startedAt: null,
-    endedAt: null,
-    dataCategoryIds: [],
-    transfers: [],
-    clientScope: [],
-    ...extra,
-  };
-}
-
-const transfer = (destinationCountry: string, mechanism: 'dpf' | 'sccs') => ({
-  id: nextId('tr'),
-  destinationCountry,
-  mechanism,
-  onwardVia: null,
-  documentRef: null,
-});
-
-const scoped = (mode: 'include' | 'exclude', clientPartyId: string) => ({
-  id: nextId('ecs'),
-  clientPartyId,
-  mode,
-  reason: 'Aurelia DPA',
-  agreementId: null,
-});
-
-function activity(code: string, overrides: Partial<ActivitySnapshot>): ActivitySnapshot {
-  return {
-    schemaVersion: 1,
-    id: `act-${code}`,
-    version: 1,
-    createdAt: '2026-02-10T09:00:00.000Z',
-    updatedAt: '2026-02-10T09:00:00.000Z',
-    code,
-    name: code,
-    description: null,
-    supersedesId: null,
-    role: 'processor',
-    roleRationale: null,
-    status: 'active',
-    owner: 'Priya Raman',
-    offeringId: ATS,
-    clientCoverage: 'all_enrolled',
-    purposes: [],
-    lawfulBases: [],
-    specialConditions: [],
-    processingCategories: ['hosting'],
-    dpiaRequired: null,
-    dpiaRef: null,
-    dpiaSupportRef: null,
-    reviewDueAt: null,
-    startedAt: '2026-02-10',
-    endedAt: null,
-    subjectCategoryIds: [],
-    dataCategoryIds: [],
-    systemIds: [],
-    securityMeasureIds: [],
-    retentionRules: [],
-    clientScope: [],
-    engagements: [],
-    ...overrides,
-  };
-}
-
-/** P1 after Aurelia signed (Ch4): Mailcrest twice, one region each. */
-const P1 = activity('P1', {
-  name: 'Candidate application management',
-  engagements: [
-    engagement(RENDER, 'Hosting', ['DE']),
-    engagement(MAILCREST, 'Candidate notifications (US region)', ['US'], {
-      transfers: [transfer('US', 'dpf')],
-      clientScope: [scoped('exclude', AURELIA)],
-    }),
-    engagement(MAILCREST, 'Candidate notifications (EU region)', ['IE'], {
-      clientScope: [scoped('include', AURELIA)],
-    }),
-    engagement(GLITCHLOG, 'Error tracking', ['US'], {
-      transfers: [transfer('US', 'sccs')],
-      clientScope: [scoped('exclude', AURELIA)],
-    }),
-  ],
-});
-
-/** P2, the opt-in Diversity module, which Aurelia enabled (Ch4). */
-const P2 = activity('P2', {
-  name: 'Diversity & accommodations module',
-  clientCoverage: 'opt_in',
-  clientScope: [
-    {
-      id: nextId('acs'),
-      clientPartyId: AURELIA,
-      mode: 'include',
-      reason: 'Client enabled the module',
-      agreementId: null,
-      startedAt: '2026-03-16',
-      endedAt: null,
-    },
-  ],
-  engagements: [engagement(RENDER, 'Hosting', ['DE'])],
-});
-
-/** P3 CV parsing, switched off for Aurelia as a whole (Ch5). */
-const P3 = activity('P3', {
-  name: 'CV parsing',
-  clientScope: [
-    {
-      id: nextId('acs'),
-      clientPartyId: AURELIA,
-      mode: 'exclude',
-      reason: 'Client objected',
-      agreementId: null,
-      startedAt: '2026-04-14',
-      endedAt: null,
-    },
-  ],
-  engagements: [engagement(SCRIBE, 'CV parsing', ['US'], { transfers: [transfer('US', 'sccs')] })],
-});
 
 const partiesOf = (groups: readonly { partyId: string }[]) => groups.map((group) => group.partyId);
 
