@@ -34,7 +34,82 @@
 
 ## Build findings
 <!-- Add as we go: surprises, library behaviour, decisions with rationale -->
--
+- **Where events go (open question 1, 2026-09-26).** Two questions in one.
+  *Who should hear what* is routing, in code: an outbox row is a promise that
+  a consumer will get the event whenever it exists. *Where it lives* is
+  configuration (`EVENT_DESTINATIONS`); an unconfigured destination's events
+  stay pending, and configuring it later delivers the backlog in order, which
+  is what an audit log wants.
+  - Something must receive on Render, or delivery is visible only in tests.
+    A minimal audit-log receiver as a **private service**: reachable only over
+    the private network (a Render feature the demo didn't show yet, and one
+    the Phase 6 cron job also uses). About $7/month: Render's docs confirm
+    private services can't use free instances; the figure is from
+    `service-ideas.md`, not checked live.
+  - Sized down: it logs and dedupes in memory. Its own Postgres waits for the
+    real service #1. `ropa-db` was ruled out: an audit log shouldn't share
+    storage with what it audits.
+  - Rejected: a free public web service (anyone could post fake events while
+    service auth is deferred), and an external webhook tester (the record's
+    history sent to a third party).
+- **The dispatcher runs in the web service (open question 2, 2026-09-26).**
+  Free, and what DB §7 and API §6 already planned for the demo. The shape
+  keeps the choice cheap: `dispatchOnce()` holds all the logic, the runner
+  only loops it, so a Render background worker later is a new resource with a
+  different start command. The one thing to get right is shutdown: Render
+  sends `SIGTERM` on deploy; stop claiming, finish the batch in flight.
+- **Review-item history gets its own table (open question 3, 2026-09-26).**
+  Step 3 left the outbox as the only store of review-item history, which
+  conflicted with DB §7's 30-day cleanup: `/changes` could replay a month, and
+  API §6's promise that the audit log can backfill anything it missed would
+  break for review items. A second problem: outbox rows exist per destination,
+  so history read from them depends on routing. `review_item_event`,
+  append-only under `revision_append_only`'s kind of trigger, fixes both, and
+  gives the Ch8 regulator the same guarantee for review items as for the
+  record. The cost: one table, and each event written twice (history and
+  delivery), in one transaction.
+- **`asOf` is the end of the day, UTC (open question 4, 2026-09-26).** A date
+  answers for two kinds of data: revisions carry instants (`valid_from`), so
+  it needs a cut-off; business dates (`signed_at`, scope and engagement dates)
+  are dates, and the pure views already take a `day`. "As it stood on
+  1 March" includes that day's changes, hence the end of it. UTC because
+  `isoDate` already decides "today" in UTC, so `asOf` today and no `asOf`
+  agree. Time zones on the `self` party were weighed and left out: a
+  regulator asks by the day, and a timestamp gives the hour. Future dates are
+  refused rather than answered as a prediction.
+- **Which saves emit `subprocessors.changed` (open question 5, 2026-09-26).**
+  Read from the event's purpose: Art. 28(2) notices, due before a change takes
+  effect. Three consequences:
+  - Only activity saves. An agreement signed takes a client's list from
+    nothing to everything, but that's onboarding: they saw the list before
+    signing (Ch4), and notices of it would be noise.
+  - Compared as planned, with `effectiveFrom`. Comparing today's lists misses
+    a future-dated change (Ch5's Scribe AI, effective 2026-05-15) when it is
+    recorded, and nothing saves on the day it lands.
+  - `changed[]` as well as `added[]`/`removed[]`. Ch6 adds no party: Mailcrest
+    stays, with an onward transfer to India. The story's operations line
+    ("PUT adds transfers → GET /subprocessors changes → outbound notices")
+    needs that to be an event.
+- **The cron job opens, never decides (open question 6, 2026-09-26).**
+  - "No open item" as the dedupe rule had a flaw: a dismissed finding would
+    reopen every night, overriding the person who dismissed it. A dismissal
+    blocks its key; a resolution doesn't, because a finding that recurs
+    after it means the fix didn't hold.
+  - It doesn't resolve items whose finding disappeared. The person who fixed
+    the record resolves the item and says what they did; "no longer reported"
+    says nothing about why, and a finding can vanish for a bad reason (the
+    activity retired). So its role has no `review:resolve`.
+  - The mint secret and the API's private address both come from `ropa-api`
+    through the Blueprint (`fromService`), so neither exists outside Render.
+- **Testing the dispatcher (open question 7, carried from step 2, 2026-09-26).**
+  Its transactions are the behaviour under test, so the harness's
+  rolled-back transaction can't hold it, and the test database's outbox holds
+  hundreds of committed rows from other files. The answer came from open
+  question 1: the dispatcher serves only configured destinations, so a test
+  that configures a unique one sees only its own rows. `now` as a parameter
+  turns the retry schedule into arithmetic; a real local receiver keeps the
+  "no mocks" rule; separate connections make `SKIP LOCKED`, ordering and
+  at-least-once directly observable.
 
 ## Issues encountered
 | Issue | Resolution |

@@ -11,7 +11,7 @@ Build step 4 from `docs/ropa/ropa-api.md` §8. **Enough for Ch8, the audit log,
 and a finding reaching a person on its own.**
 
 ## Current Phase
-Phase 1 (not started)
+Phase 1 (not started). All seven open questions resolved; ready to build
 
 ## Definition of done for step 4
 - `GET /report?view=all&asOf=2026-03-01` on the seeded record answers Chapter 8:
@@ -27,7 +27,8 @@ Phase 1 (not started)
   and for each client whose list changed.
 - The dispatcher delivers pending events to a configured destination, one
   record's events in version order, retrying with increasing delays, and a
-  delivered event is never sent again.
+  delivered event is never sent again. On Render, the audit-log receiver (a
+  private service) receives the whole backlog since the first deploy.
 - The coverage cron job runs on Render, opens one review item for Aurelia's
   region violation (`source: schedule`, the finding's `key` in `details`), and
   a second run opens none.
@@ -43,7 +44,8 @@ during build step 2" and "Decided during build step 3".
 
 ### Phase 1: Reading the record as of a date
 Reference: DB §6.2, §6.3; DM §6
-- [ ] Load every aggregate's latest revision at or before T (`revision_as_of`), dropping `deleted` ones
+- [ ] `asOf` resolved to a cut-off instant and a day: a date is the end of that day, UTC (`valid_from < next day 00:00Z`), and its own day for business dates; a timestamp is taken as given, its day its UTC date; a future `asOf` answers `422`
+- [ ] Load every aggregate's latest revision at or before the cut-off (`revision_as_of`), dropping `deleted` ones
 - [ ] Snapshots upgraded on read if an old `schemaVersion` ever exists (none yet: prove the path is there, don't build upgraders)
 - [ ] One "record as of T" the views read, with the same shape the live loaders give them: activities, agreements and terms, parties, systems, taxonomies
 - [ ] Names in Refs resolved from each record's own revision at T (DB §6.2), so a renamed party reads under its old name
@@ -53,7 +55,8 @@ Reference: DB §6.2, §6.3; DM §6
 ### Phase 2: `asOf` in the views
 Reference: API §5, §5.1, §5.2, §5.3, §5.4
 - [ ] `/report` (JSON and Markdown), `/subprocessors`, `/parties/{ref}/impact` and `/data-map` take `asOf`; `422 not_yet_supported` goes away
-- [ ] The response's `asOf` says what was asked for; `generatedAt` stays now
+- [ ] The response's `asOf` echoes what was asked for, date or timestamp (the schemas widen from `IsoDate`); `generatedAt` stays now
+- [ ] API §5 says it plainly: a date means the end of that day, UTC
 - [ ] "Active" and "in force" judged on the `asOf` day, not today (the pure functions already take `day`)
 - [ ] `/coverage` keeps refusing `asOf` (`not_supported`)
 - **Done when:** Ch8's two reports and §5.2's `asOf` example answer as the documents say
@@ -62,16 +65,20 @@ Reference: API §5, §5.1, §5.2, §5.3, §5.4
 ### Phase 3: `GET /changes`
 Reference: API §2 (history), §6 (reconciliation); step 3 open question 1
 - [ ] `from`, `to`, `entityType`; every revision in the range across the record, with `actor`, `changeNote`, `changeType`, `version`, `validFrom`
-- [ ] Review-item events from the outbox, ordered by `occurredAt` (they have no revision)
+- [ ] `review_item_event`: one row per open, resolve or dismiss, written in the same transaction as the change and the outbox row; append-only under the same trigger as `revision`; backfilled from the outbox's `audit-log` rows by the migration
+- [ ] Review-item events read from `review_item_event`, ordered by `occurredAt` (they have no revision)
 - [ ] Paged like every list (§1.3)
 - **Done when:** "what changed since March" (Ch8) lists the story's changes in order, review items included
 - **Status:** pending
 
 ### Phase 4: `subprocessors.changed`
 Reference: API §6; DB §6.1 step 5; step 2's decision in API §8
-- [ ] The save computes the offering's and each affected client's list before and after, with the functions `GET /subprocessors` uses, and writes `added[]`/`removed[]` when they differ
+- [ ] Only activity saves emit, and only when a list changes: never a draft save (drafts are on no list), never an agreement signed or ended (onboarding, not a change)
+- [ ] Lists compared **as planned**: future-dated engagements and scope rows count, so a change is heard when it is recorded, not when it takes effect; nothing fires when a date arrives
+- [ ] The save computes the offering's and each affected client's list before and after, with the functions `GET /subprocessors` uses, and writes `added[]`, `removed[]` and `changed[]` (a subprocessor still listed whose countries or transfers changed), each entry with its `effectiveFrom`
+- [ ] API §6's payload updated to match
 - [ ] In the same transaction as the save; destination `monitor`
-- **Done when:** saving P3 writes Scribe AI added; excluding Aurelia from P3 writes it removed for her alone
+- **Done when:** saving P3 writes Scribe AI added; excluding Aurelia from P3 writes it removed for her alone; the Ch6 edit to P1 writes Mailcrest `changed` (India, via Helpdesk Partners) for the offering and each client
 - **Status:** pending
 
 ### Phase 5: The dispatcher
@@ -80,16 +87,24 @@ Reference: DB §7; API §6 (delivery guarantees)
 - [ ] Failures retried at 1 min, 5 min, 30 min, then hourly; each attempt's error kept
 - [ ] One record's events in version order; rows with no `revision_id` (review items) ordered by `occurredAt`
 - [ ] `FOR UPDATE SKIP LOCKED`, so two dispatchers never send one event at once
-- [ ] Cleanup of delivered rows, once open question 3 is settled
-- **Done when:** events reach a destination, a failing one is retried on schedule, and none is delivered twice
+- [ ] Testable as decided (open question 7): the claim query and backoff take `now` as a parameter, not Postgres's `now()`; tests configure a unique destination (`test-<random>`) and see only its rows; a scriptable local receiver answers `2xx`, `500` or times out; real transactions on the test's own connections prove no double send (two `dispatchOnce()` at once), per-record order (v2 waits for v1), and at-least-once (a crash between send and record resends)
+- [ ] Runs inside `ropa-api`: `dispatchOnce()` (claim a batch, send, record) and a runner that loops it; on `SIGTERM` the runner stops claiming and lets the batch in flight finish
+- [ ] Cleanup of delivered rows older than 30 days (DB §7): safe now, since no history lives in the outbox
+- [ ] Routing in code (which destinations each event type is written for); addresses in `EVENT_DESTINATIONS` (`{"audit-log": "http://…/events"}`). A destination with no URL is skipped, its events left pending, not failed
+- [ ] **The audit-log receiver:** a thin `apps/audit-log` workspace, `POST /events`, answering `2xx` and ignoring an `id` it has already seen (in memory), logging each event. The stub of service #1, not the audit log itself
+- [ ] A `pserv` (private service) in `render.yaml`, smallest paid instance; `ropa-api`'s `EVENT_DESTINATIONS` points at its private address
+- **Done when:** events reach a destination, a failing one is retried on schedule, and none is delivered twice; on Render, the receiver's logs show the backlog since the first deploy arriving in order
 - **Status:** pending
 
 ### Phase 6: The coverage cron job
 Reference: API §8 ("Decided during build step 3"), §5.5
-- [ ] A principal and role for it: `view:coverage`, `review:read`, `review:create`
-- [ ] Calls `GET /coverage`, opens a review item with `source: schedule` for each finding whose `key` has no open item; the key goes in `details`
-- [ ] Reaches the API over Render's private network
-- [ ] A `cron` resource in `render.yaml`
+- [ ] Principal `svc:schedule`, new principal role `service:schedule`: `view:coverage`, `review:read`, `review:create`, and deliberately not `review:resolve`
+- [ ] Mints a fresh token each run (`POST /v1/tokens`); `TOKEN_MINT_SECRET` passed from `ropa-api` by the Blueprint (`fromService`), so it never leaves Render
+- [ ] Calls `GET /coverage`, opens a review item with `source: schedule` for each finding whose `key` has no **open or dismissed** item (a dismissal is a person's decision; a resolved item doesn't block, since a recurring finding means the fix didn't hold); the key goes in `details`
+- [ ] Never resolves or dismisses: a disappearing finding is closed by the person who fixed it, with a note saying why
+- [ ] Code in `apps/ropa-api/src/jobs/`, same build, its own start command
+- [ ] Reaches the API over Render's private network (`fromService`, `hostport`)
+- [ ] A `cron` resource in `render.yaml`, nightly at 02:00 UTC; verified with the dashboard's "Trigger run"
 - [ ] `service:snapshot` gains `review:read`, so the Snapshot can dedupe the same way
 - **Done when:** on Render, the job opens Aurelia's region violation once, and a second run opens nothing
 - **Status:** pending
@@ -100,13 +115,13 @@ Reference: API §8 ("Decided during build step 3"), §5.5
 - [ ] README tour: the regulator's question, `/changes`, and the cron job
 
 ## Open questions
-1. **Where do events go?** No consumer exists yet: the audit log (#1) and the Monitor (#5) are future services. Configure destinations as name → URL (an environment variable), and leave events for an unconfigured destination pending? Build a minimal receiver so delivery can be seen end to end? *Phase 5.*
-2. **Where does the dispatcher run?** A loop inside the web service (free, and `SKIP LOCKED` makes several instances safe), a Render background worker (API §6's "production shape", a paid instance), or a cron job every minute? *Phase 5.*
-3. **Outbox cleanup against review-item history.** DB §7 deletes delivered rows after 30 days, but the outbox is the only store of review-item history, which `/changes` replays. Keep `review_item.changed` rows, give review-item events a table of their own, or accept a month? *Phases 3 and 5.*
-4. **What `asOf=2026-03-01` means.** The start of the day or its end, and in which time zone? "The record as it stood on 1 March" suggests the end of the day. A timestamp would be taken as given. *Phase 1.*
-5. **Which saves emit `subprocessors.changed`.** Activity saves change lists; so does an agreement being signed or ending (a client's list goes from nothing to something), and a scope row reaching its dates. Which count as a change the Monitor must hear about? *Phase 4.*
-6. **The cron job's identity and schedule.** A new principal role (`service:schedule`), minting its own token with the mint secret, and the private-network address of the API. Nightly? And when a finding disappears, should the job resolve the item it opened, or leave that to a person? *Phase 6.*
-7. **Testing the dispatcher**, which manages its own transactions rather than one per test (carried from step 2). *Phase 5.*
+1. ~~**Where do events go?**~~ **Resolved (2026-09-26):** who hears what is routing, in code; where each destination lives is configuration (`EVENT_DESTINATIONS`, name → URL), and an unconfigured destination's events wait. A minimal audit-log receiver runs as a Render private service. See "Decisions carried forward" and `findings.md`. *Phase 5.*
+2. ~~**Where does the dispatcher run?**~~ **Resolved (2026-09-26):** a loop inside `ropa-api`, written as `dispatchOnce()` plus a runner, so moving it to a background worker later is a `render.yaml` change, not a code change. See "Decisions carried forward". *Phase 5.*
+3. ~~**Outbox cleanup against review-item history.**~~ **Resolved (2026-09-26):** review-item events get an append-only history table of their own, `review_item_event`; the outbox goes back to being only a delivery queue, and can be purged. See "Decisions carried forward" and `findings.md`. *Phases 3 and 5.*
+4. ~~**What `asOf=2026-03-01` means.**~~ **Resolved (2026-09-26):** the end of that day, UTC; a timestamp as given; a future `asOf` refused. See "Decisions carried forward". *Phase 1.*
+5. ~~**Which saves emit `subprocessors.changed`.**~~ **Resolved (2026-09-26):** activity saves only, lists compared as planned with `effectiveFrom`, and a `changed[]` beside `added[]`/`removed[]`. See "Decisions carried forward" and `findings.md`. *Phase 4.*
+6. ~~**The cron job's identity and schedule.**~~ **Resolved (2026-09-26):** `svc:schedule` with a `service:schedule` role (no `review:resolve`), minting its own token, over the private network, nightly at 02:00 UTC; an open **or dismissed** item blocks a key; the job never closes anything. See "Decisions carried forward" and `findings.md`. *Phase 6.*
+7. ~~**Testing the dispatcher**~~ **Resolved (2026-09-26):** real Postgres and real HTTP, no mocks: isolation by a unique destination name, time passed in as a parameter, a scriptable local receiver, and real transactions on the test's own connections. See "Decisions carried forward". *Phase 5.*
 
 ## Decisions carried forward
 | Decision | Where it came from |
@@ -127,6 +142,13 @@ Reference: API §8 ("Decided during build step 3"), §5.5
 | **Coverage findings carry a stable `key`**, a fixed severity per type, and the `targetType` + `target` a review item would point at. Every finding type is a review-item reason | Step 3 |
 | `vendorTerms` is a list; `noticeConflict` uses the shortest vendor notice, `null` without a vendor DPA | Step 3 |
 | The data map's vendor categories are an upper bound | Step 3 |
+| **Events: routing in code, addresses in configuration.** Outbox rows are written for every consumer that should hear an event, whether or not it is running; `EVENT_DESTINATIONS` maps a name to a URL, and an unconfigured destination's events wait. **A minimal audit-log receiver runs as a Render private service** (about $7/month, the smallest paid instance; private services have no free tier): it logs and dedupes in memory, its own storage deferred to service #1. Not a free public web service: with service auth deferred, anyone could post fake events to an audit log | Step 4, open question 1 |
+| **The dispatcher runs inside `ropa-api`**, free, as DB §7 and API §6 plan for the demo; `SKIP LOCKED` keeps several instances safe, and at-least-once delivery makes a restart mid-send one duplicate the receiver ignores. Written as `dispatchOnce()` plus a runner, so a background worker later is a new `render.yaml` resource with the same code. Not a worker now (a second paid instance for a few events a day), nor a cron job every minute (a minute's latency, and start-up paid 1,440 times a day) | Step 4, open question 2 |
+| **Review-item events have a history table of their own**, `review_item_event`, append-only like `revision`. The outbox is only a delivery queue: its rows exist per destination, so history read from it would depend on routing, and its cleanup would cut `/changes` to a month. Step 3's decision stands (events, not revisions); they get a proper home | Step 4, open question 3 |
+| **`asOf` as a date means the end of that day, in UTC**: revisions with `valid_from` before the next day's midnight UTC, and that day for business dates (agreements, scopes, engagements). A timestamp is taken as given. A future `asOf` is refused: the record can't know tomorrow, and judging "in force" on a future day reads as a prediction. UTC matches how the code already decides "today", so `asOf` today equals no `asOf`. Accepted: a save at 23:30 UTC counts as that day though it was past midnight in Amsterdam; a timestamp gives the hour when it matters | Step 4, open question 4 |
+| **`subprocessors.changed` is for changes clients have agreed to hear about** (Art. 28(2): before they take effect). Only activity saves emit, and only when a list changes; agreements signed or ended don't (the client got the list before signing). Lists are compared as planned, future-dated rows included, and each entry carries `effectiveFrom`. The payload gains `changed[]`: a subprocessor still listed whose countries or transfers changed (Ch6: Mailcrest's onward transfer to India) | Step 4, open question 5 |
+| **The coverage cron job opens, never decides.** `svc:schedule`, role `service:schedule` (`view:coverage`, `review:read`, `review:create`; no `review:resolve`), a token minted per run with the secret passed by the Blueprint, the API reached over the private network, nightly at 02:00 UTC. A key with an open or dismissed item is skipped: a dismissal stands. It never closes an item: the person who fixes a finding says why | Step 4, open question 6 |
+| **The dispatcher is tested against real Postgres and real HTTP.** A unique destination per test isolates its rows from every other file's committed events (unconfigured destinations are ignored); `now` is a parameter, so the retry schedule is tested by advancing a clock, not by sleeping; a local receiver is scripted to succeed, fail or time out; real transactions on the test's own connections make double sends, ordering and at-least-once observable. The runner's loop and shutdown are tested without a database | Step 4, open question 7 |
 | The seeded-story acceptance tests share one replay per file (`governance-views.test.ts`); pure-view tests share `test/fixtures/story-snapshots.ts` | Step 3 |
 
 ## Known gaps, not scheduled

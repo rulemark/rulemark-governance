@@ -10,6 +10,19 @@
   logic, and the outbox cleanup conflicts with review-item history
 - Archived step 3's planning files to `docs/program/plan-archive/4/`
 - Wrote the build step 4 plan (7 phases, 7 open questions) in `task_plan.md`
+- Resolved all seven open questions:
+  1. Events: routing in code, addresses in `EVENT_DESTINATIONS`; a minimal
+     audit-log receiver as a Render private service (about $7/month)
+  2. The dispatcher runs inside `ropa-api`, as `dispatchOnce()` plus a runner
+  3. Review-item events get their own append-only table, `review_item_event`;
+     the outbox is only a delivery queue
+  4. `asOf` as a date is the end of that day, UTC; future dates refused
+  5. `subprocessors.changed`: activity saves only, compared as planned with
+     `effectiveFrom`, and a `changed[]` for Ch6's onward transfer
+  6. The cron job: `svc:schedule`, opens never closes, a dismissal blocks its
+     key, nightly at 02:00 UTC over the private network
+  7. The dispatcher tested with real Postgres and HTTP, isolated by
+     destination name, with time as a parameter
 
 ## Test Results
 | Test | Command | Expected | Actual | Status |
@@ -24,7 +37,7 @@
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Build step 4, Phase 1 (reading the record as of a date), not started; open questions 1–7 to settle first |
+| Where am I? | Build step 4, Phase 1 (reading the record as of a date), not started; all open questions resolved |
 | Where am I going? | `asOf` loading, `asOf` in the views, `/changes`, `subprocessors.changed`, the dispatcher, the coverage cron job, then deploy |
 | What's the goal? | The record's past answerable (Ch8) and its changes heard: events delivered, findings carried to a person on a schedule |
 | What have I learned? | See findings.md, and `plan-archive/4/findings.md` for step 3 |
