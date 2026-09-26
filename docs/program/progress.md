@@ -20,11 +20,24 @@
   shortest notice, `null` with no vendor DPA
 - Resolved open question 6: the data map lists each engagement's categories as
   recorded, an upper bound; all six open questions now resolved
+- Phase 1 (review items), test-first, each guard checked by breaking it:
+  - Package: `ReviewItemInput`, `ReviewItem`, `CloseReviewItemInput`,
+    `ReviewItemsQuery`; `REVIEW_TARGET_TYPES`, `REVIEW_CHANGE_TYPES`;
+    `review_item.changed` in `EVENT_TYPES`
+  - Migrations `0005_review_items` (generated: table, checks incl. a new
+    `review_item_closed`, indexes, widened outbox CHECK) and
+    `0006_review_item_triggers` (hand-written: immutable code, updated_at)
+  - `domain/review-items.ts` (open, close, output, event) and its own router,
+    `api/routes/review-items.ts`; `enqueueEvent` shared with the aggregate save
+  - OpenAPI paths and schemas; `openapi.json` regenerated
+  - DM §3.11, §3.13, DB §4.5, API §2 and §6 updated
 
 ## Test Results
 | Test | Command | Expected | Actual | Status |
 |---|---|---|---|---|
 | Inherited from step 2 | `npm run check` | 707 tests pass | 707 pass | ✅ |
+| Phase 1 | `npm run check` | all pass | 777 pass (553 API, 219 package, 5 dist) | ✅ |
+| Phase 1 | `npm run db:generate` | no drift | "No schema changes" | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -34,7 +47,7 @@
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Build step 3, Phase 1 (review items), not started |
+| Where am I? | Build step 3, Phase 2 (`/parties/{ref}/impact`), not started |
 | Where am I going? | Review items, then `/impact`, `/data-map`, `/coverage`, then deploy |
 | What's the goal? | Answer the questions the record exists for: the Monitor's, the DSAR tracker's and the Snapshot's (Ch5–Ch7) |
 | What have I learned? | See findings.md, and `plan-archive/3/findings.md` for step 2 |

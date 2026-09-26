@@ -12,7 +12,7 @@ Build step 3 from `docs/ropa/ropa-api.md` §8. **Enough for Ch5–Ch7 and the
 Monitor and DSAR integrations.**
 
 ## Current Phase
-Phase 1 (not started)
+Phase 2 (not started)
 
 ## Definition of done for step 3
 - Review items can be opened, listed, read, resolved and dismissed through the
@@ -42,16 +42,18 @@ state only, as `/subprocessors` and `/report` do. See `ropa-api.md` §8,
 
 ### Phase 1: Review items
 Reference: DM §3.11, DB §4.5, API §2 (workflow), §1.8, §1.9
-- [ ] `ReviewItemInput` / `ReviewItem` in `@rulemark/ropa-schemas`, with `targetType` + `target` over the three foreign keys
-- [ ] The `review_item` table, `review_item_one_target` and `review_item_resolution`, the open-by-due index and one per target, and `forbid_immutable_change` on `code`
-- [ ] `RI-n` codes from the existing counter, inside the creating transaction
-- [ ] `GET/POST /review-items`, `GET /review-items/{ref}`, filters `status`, `source`, `reason`, `target`, `dueBefore`
-- [ ] `POST /review-items/{ref}/resolve` and `/dismiss` with a required `resolutionNote`, guarded by `… WHERE status = 'open'` (`409` otherwise)
-- [ ] Permissions `review:read`, `review:create`, `review:resolve`, as the permission map already declares
-- [ ] `review_item.changed` (`opened` | `resolved` | `dismissed`) in `EVENT_TYPES`, a migration widening `event_outbox_event_type`, and a `reviewItemChangedEvent` builder; one outbox row per open/resolve/dismiss, to `audit-log`, in the same transaction, with no `revision_id`
-- [ ] Document the event: DM §3.13, DB `event_outbox`, API §6's event table and envelope
+- [x] `ReviewItemInput` / `ReviewItem` in `@rulemark/ropa-schemas`, with `targetType` + `target` over the three foreign keys
+- [x] The `review_item` table, `review_item_one_target` and `review_item_resolution`, the open-by-due index and one per target, and `forbid_immutable_change` on `code`
+- [x] `RI-n` codes from the existing counter, inside the creating transaction
+- [x] `GET/POST /review-items`, `GET /review-items/{ref}`, filters `status`, `source`, `reason`, `target`, `dueBefore`
+- [x] `POST /review-items/{ref}/resolve` and `/dismiss` with a required `resolutionNote`, guarded by `… WHERE status = 'open'` (`409` otherwise)
+- [x] Permissions `review:read`, `review:create`, `review:resolve`, as the permission map already declares
+- [x] `review_item.changed` (`opened` | `resolved` | `dismissed`) in `EVENT_TYPES`, a migration widening `event_outbox_event_type`, and a `reviewItemChangedEvent` builder; one outbox row per open/resolve/dismiss, to `audit-log`, in the same transaction, with no `revision_id`
+- [x] Document the event: DM §3.13, DB `event_outbox`, API §6's event table and envelope
+- [x] `openedBy`, `closedBy`, `closedAt` columns, from the token (decided at the start of Phase 1)
+- **Decided at the start of Phase 1 (2026-09-26):** review items get their own router, not a `ResourceDefinition` (no versions, ETags, `PUT`/`DELETE` or revisions); `openedBy`/`closedBy`/`closedAt` from the token, so "who dismissed RI-7" is answerable without the audit log; `source` stays caller-set (`openedBy` records the authenticated principal); `?target=` needs `?targetType=`, like the body. **No `openedAt`:** `createdAt` is when the item was opened; a separate column would only serve backdating seeded items, so seeded items (if any) carry their real insert time
 - **Done when:** the Monitor's token can open the Ch6 item and read it, cannot resolve it, and a second resolve answers `409`
-- **Status:** pending
+- **Status:** complete
 
 ### Phase 2: `GET /parties/{ref}/impact`
 Reference: API §5.3; DM §3.8, §7

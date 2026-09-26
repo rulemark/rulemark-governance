@@ -324,6 +324,11 @@ Shared vocabularies. DSAR and Monitor reference them by `slug`.
 | due_at | date | no | Earliest deadline |
 | status | enum `open` \| `resolved` \| `dismissed` | yes | Default `open` |
 | resolution_note | text | if `status` is `resolved` or `dismissed` | What was decided |
+| opened_by | text | yes | Who opened it, from the token's `sub` (API §1.6), like `revision.actor` |
+| closed_by | text | if `status` is `resolved` or `dismissed` | Who closed it, from the token |
+| closed_at | timestamptz | if `status` is `resolved` or `dismissed` | When it was closed |
+
+Review items have no revisions: their history is the `review_item.changed` event (§3.13, API §6), which carries the whole item after each change. `opened_by`, `closed_by` and `closed_at` were added in build step 3 so the item itself answers "who dismissed RI-7, and when" without the audit log. There is no `opened_at`: `created_at` is when the item was opened.
 
 ### 3.12 `revision`: history for `asOf` reports
 
@@ -347,10 +352,10 @@ Events are written here **in the same transaction** as the revision they describ
 | Column | Type | Required | Notes |
 |---|---|---|---|
 | event_id | uuid | yes | The event's `id` in the envelope. Consumers use it to ignore duplicates. Unique with `destination` |
-| event_type | enum `record.changed` \| `subprocessors.changed` | yes | |
+| event_type | enum `record.changed` \| `subprocessors.changed` \| `review_item.changed` | yes | |
 | destination | text | yes | Consumer name from configuration: `audit-log`, `monitor` |
 | payload | jsonb | yes | The full event envelope, as it will be sent |
-| revision_id | FK → revision | no | The revision that caused it (`record.changed`) |
+| revision_id | FK → revision | no | The revision that caused it (`record.changed`). Empty for `review_item.changed`, which has no revision behind it |
 | attempts | int | yes | Default `0` |
 | next_attempt_at | timestamptz | yes | When the dispatcher should try next. Default: now |
 | last_error | text | no | Error from the most recent failed attempt |

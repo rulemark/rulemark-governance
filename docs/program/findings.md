@@ -104,6 +104,21 @@
     omits Render (P1, P3, C4) and Glitchlog on P1. Render is listed anyway: the
     story reaches it through `hireloop-db`, but it is a recorded engagement.
 
+- **Phase 1: what review items taught (2026-09-26).**
+  - `Identifiable.table` was `RootTable`, which demands a `version`. Review
+    items are found by code but aren't versioned, so it is now `KeyedTable`
+    (`id` only); `findByIdentifier` never used anything else.
+  - Express sets a weak `ETag` (`W/"…"`, a content hash) on every JSON
+    response. It is for caching and harmless, but a test asserting "no ETag"
+    fails on it; assert "no version ETag" (`"n"`) instead.
+  - `review_item_closed` sorts before `review_item_status`, so a bad-status
+    fixture must be closed in every other respect to reach the status check.
+  - The root `db:generate` script doesn't pass `--name` through; rename the
+    file and its `_journal.json` tag by hand, as earlier migrations were.
+  - For the cron job and the Snapshot (after step 3): `service:snapshot` has
+    `review:create` but **not `review:read`**, so it cannot look up open items
+    to dedupe on a finding's `key`. Add it when that job is built.
+
 ## Issues encountered
 | Issue | Resolution |
 |---|---|

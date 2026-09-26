@@ -202,7 +202,7 @@ Two deliberate splits:
 
 | Endpoint | Purpose |
 |---|---|
-| `GET/POST /review-items` · `GET /review-items/{ref}` | Open and read review items (filters: `status`, `source`, `reason`, `target`, `dueBefore`) |
+| `GET/POST /review-items` · `GET /review-items/{ref}` | Open and read review items (filters: `status`, `source`, `reason`, `targetType`, `target`, `dueBefore`; `target` needs `targetType`, because a slug alone could be a party's or a system's). Who opened an item comes from the token (`openedBy`) |
 | `POST /review-items/{ref}/resolve` · `POST /review-items/{ref}/dismiss` | Close with a required `resolutionNote`. Only `open` items can be closed (`409` otherwise, §1.8) |
 
 **Views** (read models, DM §7)
@@ -569,6 +569,9 @@ RoPA **pushes** events to its consumers (Q3). Delivery is HTTP `POST` to configu
 |---|---|---|---|
 | `record.changed` | Any revision | `entityType`, `entity` (Ref), `version`, `changeType` (`created` \| `updated` \| `activated` \| `retired` \| `deleted`), `actor`, `changeNote`, `validFrom` | Audit log (#1) |
 | `subprocessors.changed` | A save changes the derived subprocessor list of an offering or a client | `offering` or `client` (Ref), `added[]`, `removed[]` (party Refs) | Monitor (#5): outbound notices (Ch5) |
+| `review_item.changed` | A review item is opened, resolved or dismissed | `changeType` (`opened` \| `resolved` \| `dismissed`), `actor`, `reviewItem` (the whole item after the change, as `GET /review-items/{ref}` returns it) | Audit log (#1) |
+
+Review items have no revisions, so `review_item.changed` is their history, and it carries the whole item rather than pointing at a snapshot. Its outbox row has no `revision_id`. `occurredAt` is when the item was opened or closed. Built in step 3; delivered with the rest in step 4.
 
 **Envelope.** Every event has the same wrapper:
 

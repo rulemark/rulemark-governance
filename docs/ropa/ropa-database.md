@@ -296,7 +296,8 @@ CREATE INDEX engagement_client_scope_client ON engagement_client_scope (client_p
 ```sql
 CREATE TABLE review_item (
   id                 uuid PRIMARY KEY DEFAULT uuidv7(),
-  code               text NOT NULL UNIQUE CHECK (code ~ '^RI-[1-9][0-9]*$'),
+  code               text NOT NULL CONSTRAINT review_item_code_unique UNIQUE
+                       CONSTRAINT review_item_code CHECK (code ~ '^RI-[1-9][0-9]*$'),
   target_activity_id uuid REFERENCES processing_activity (id) ON DELETE RESTRICT,
   target_party_id    uuid REFERENCES party (id) ON DELETE RESTRICT,
   target_system_id   uuid REFERENCES system (id) ON DELETE RESTRICT,
@@ -308,8 +309,13 @@ CREATE TABLE review_item (
   due_at             date,
   status             text NOT NULL DEFAULT 'open' CHECK (status IN ('open','resolved','dismissed')),
   resolution_note    text,
+  opened_by          text NOT NULL,     -- from the token, like revision.actor
+  closed_by          text,
+  closed_at          timestamptz,
   CONSTRAINT review_item_one_target CHECK (num_nonnulls(target_activity_id, target_party_id, target_system_id) = 1),
-  CONSTRAINT review_item_resolution CHECK (status = 'open' OR resolution_note IS NOT NULL)
+  CONSTRAINT review_item_resolution CHECK (status = 'open' OR resolution_note IS NOT NULL),
+  -- closed says who and when; open says neither
+  CONSTRAINT review_item_closed CHECK ((status = 'open') = (closed_by IS NULL) AND (closed_by IS NULL) = (closed_at IS NULL))
 );
 CREATE INDEX review_item_open_due ON review_item (due_at) WHERE status = 'open';
 -- plus one index per target column
@@ -333,7 +339,7 @@ CREATE INDEX revision_changes ON revision (valid_from);                         
 CREATE TABLE event_outbox (
   id              uuid PRIMARY KEY DEFAULT uuidv7(),
   event_id        uuid NOT NULL,
-  event_type      text NOT NULL CHECK (event_type IN ('record.changed','subprocessors.changed')),
+  event_type      text NOT NULL CHECK (event_type IN ('record.changed','subprocessors.changed','review_item.changed')),
   destination     text NOT NULL,
   payload         jsonb NOT NULL,
   revision_id     uuid REFERENCES revision (id) ON DELETE RESTRICT,
