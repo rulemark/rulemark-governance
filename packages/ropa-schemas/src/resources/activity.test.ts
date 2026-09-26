@@ -2,10 +2,12 @@ import { describe, expect, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 
 import {
+  ActivateInput,
   Activity,
   ActivityInput,
   ProcessorActivityInput,
   ROLE_FIELDS,
+  RetireInput,
   describeRoleRules,
   validateActivityShape,
   type RoleField,
@@ -577,5 +579,18 @@ describe('the OpenAPI shape (§3.1)', () => {
       (member) => (member.properties['role'] as { const?: string }).const === 'processor',
     );
     expect(processor?.properties['purposes']).toEqual({ not: {} });
+  });
+});
+
+describe('the lifecycle bodies (§3.4)', () => {
+  it('lets activate carry a changeNote, and nothing else matters', () => {
+    expect(ActivateInput.parse({ changeNote: 'Reviewed' })).toEqual({ changeNote: 'Reviewed' });
+    expect(ActivateInput.parse({})).toEqual({});
+  });
+
+  it('lets retire carry an end date, which must be a real date', () => {
+    expect(RetireInput.parse({ endedAt: '2026-09-30' }).endedAt).toBe('2026-09-30');
+    expect(RetireInput.safeParse({ endedAt: '2026-02-30' }).success).toBe(false);
+    expect(RetireInput.parse({})).toEqual({});
   });
 });

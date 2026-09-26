@@ -17,6 +17,7 @@ import {
 } from '../aggregates.js';
 import { identifierKind, type Identifiable } from '../identifiers.js';
 import type { Transaction } from '../transaction.js';
+import type { ActivitySnapshot } from '../snapshots.js';
 import { activityAggregate, type ActivityRow } from './load.js';
 
 /**
@@ -334,4 +335,45 @@ export async function resolveActivity(
     throw validationFailed('This activity refers to records that do not exist', errors);
   }
   return resolved;
+}
+
+/**
+ * A stored aggregate in the form the rules take, so activation judges exactly
+ * what a save would. Paths then point at the stored lists, which are in id
+ * order: the order the record is read back in.
+ */
+export function resolvedFromSnapshot(snapshot: ActivitySnapshot): ResolvedActivity {
+  return {
+    root: {
+      name: snapshot.name,
+      description: snapshot.description,
+      supersedesId: snapshot.supersedesId,
+      role: snapshot.role,
+      roleRationale: snapshot.roleRationale,
+      owner: snapshot.owner,
+      offeringId: snapshot.offeringId,
+      clientCoverage: snapshot.clientCoverage,
+      purposes: snapshot.purposes,
+      lawfulBases: snapshot.lawfulBases,
+      specialConditions: snapshot.specialConditions,
+      processingCategories: snapshot.processingCategories,
+      dpiaRequired: snapshot.dpiaRequired,
+      dpiaRef: snapshot.dpiaRef,
+      dpiaSupportRef: snapshot.dpiaSupportRef,
+      reviewDueAt: snapshot.reviewDueAt,
+      startedAt: snapshot.startedAt,
+      endedAt: snapshot.endedAt,
+    },
+    subjectCategoryIds: snapshot.subjectCategoryIds,
+    dataCategoryIds: snapshot.dataCategoryIds,
+    systemIds: snapshot.systemIds,
+    securityMeasureIds: snapshot.securityMeasureIds,
+    retentionRules: snapshot.retentionRules,
+    clientScope: snapshot.clientScope,
+    engagements: snapshot.engagements.map((engagement) => ({
+      ...engagement,
+      // Engagement roles were checked against the activity role on save.
+      role: engagement.role as ResolvedEngagement['role'],
+    })),
+  };
 }

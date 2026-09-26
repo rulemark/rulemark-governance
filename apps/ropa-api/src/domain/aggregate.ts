@@ -121,13 +121,20 @@ export async function deleteAggregate<TRow extends RowShape, TSnapshot>(
   expectedVersion: number,
   context: SaveContext,
 ): Promise<void> {
-  const [row] = (await (tx.delete(spec.table) as AnyBuilder)
+  // Locked and snapshotted *before* the delete: once the row goes, an
+  // aggregate's nested rows cascade with it, and a snapshot taken afterwards
+  // would record an activity with no engagements.
+  const [row] = (await (tx.select() as AnyBuilder)
+    .from(spec.table)
     .where(and(eq(spec.table.id, id), eq(spec.table.version, expectedVersion)))
-    .returning()) as TRow[];
+    .for('update')) as TRow[];
 
   if (row === undefined) {
     await assertExists(tx, spec, id, expectedVersion);
   }
+
+  const snapshot = await spec.toSnapshot(row as TRow, tx);
+  await (tx.delete(spec.table) as AnyBuilder).where(eq(spec.table.id, id));
 
   // The deletion is itself a revision: history outlives the record, which is
   // why `revision.entity_id` carries no foreign key (§4.5).
@@ -137,7 +144,10 @@ export async function deleteAggregate<TRow extends RowShape, TSnapshot>(
   // refuses a second row for it. Keeping snapshot.version equal to
   // revision.version is what lets an asOf read trust either one.
   const deleted = { ...(row as TRow), version: (row as TRow).version + 1 };
-  await recordRevision(tx, spec, deleted, 'deleted', context);
+  await recordRevision(tx, spec, deleted, 'deleted', context, {
+    ...snapshot,
+    version: deleted.version,
+  });
 }
 
 /** Distinguishes "never existed" (404) from "someone else saved first" (412). */
@@ -155,9 +165,14 @@ async function assertExists<TRow extends RowShape, TSnapshot>(
     throw notFound(`No ${spec.entityType} with id ${id}`);
   }
 
-  throw preconditionFailed(
-    `This ${spec.entityType} has moved on: you sent version ${expectedVersion}, it is now ${current.version}`,
-    { currentVersion: current.version },
+  throw staleVersion(spec.entityType, expectedVersion, current.version);
+}
+
+/** 412, naming the version the caller should read again (§1.8). */
+export function staleVersion(entityType: string, expected: number, current: number) {
+  return preconditionFailed(
+    `This ${entityType} has moved on: you sent version ${expected}, it is now ${current}`,
+    { currentVersion: current },
   );
 }
 
@@ -178,9 +193,11 @@ async function recordRevision<TRow extends RowShape, TSnapshot>(
   row: TRow,
   changeType: ChangeType,
   context: SaveContext,
+  /** Taken earlier, when the aggregate will not be readable by now (a delete). */
+  taken?: TSnapshot,
 ): Promise<void> {
   const snapshot = spec.snapshotSchema.parse({
-    ...(await spec.toSnapshot(row, tx)),
+    ...(taken ?? (await spec.toSnapshot(row, tx))),
     ...toSnapshotTimestamps(row),
   });
   const validFrom = context.validFrom ?? new Date();

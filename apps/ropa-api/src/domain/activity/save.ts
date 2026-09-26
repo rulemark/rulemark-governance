@@ -9,7 +9,7 @@ import type { Transaction } from '../transaction.js';
 import { nestedIdErrors, writeChildren } from './children.js';
 import { activityAggregate, loadActivity, loadActivitySnapshot, type ActivityRow } from './load.js';
 import { resolveActivity, type ActivitySaveInput, type ResolvedActivity } from './resolve.js';
-import { crossEntityErrors } from './rules.js';
+import { crossEntityErrors, roleRuleErrors } from './rules.js';
 
 export { loadActivity };
 export type { ActivitySaveInput };
@@ -22,7 +22,8 @@ export type { ActivitySaveInput };
  * them.
  *
  * The input has already passed `ActivityInput` (structure and forbidden by
- * role). Required by role, for an active activity, arrives with the lifecycle.
+ * role). Required by role applies once an activity is live: here on every save
+ * of an active one, and in `lifecycle.ts` on activation.
  */
 
 const CODE_PREFIX = { controller: 'C', processor: 'P' } as const;
@@ -72,7 +73,11 @@ export async function replaceActivity(
   context: SaveContext,
 ): Promise<ActivityRow> {
   const [existing] = await tx
-    .select({ role: processingActivity.role, status: processingActivity.status })
+    .select({
+      role: processingActivity.role,
+      status: processingActivity.status,
+      startedAt: processingActivity.startedAt,
+    })
     .from(processingActivity)
     .where(eq(processingActivity.id, id));
 
@@ -94,24 +99,30 @@ export async function replaceActivity(
 
   const resolved = await prepare(tx, input, context);
 
-  return updateAggregate(
-    tx,
-    activityAggregate,
-    id,
-    expectedVersion,
-    resolved.root,
-    context,
-    'updated',
-    {
-      // The root row is now locked, so what is stored cannot move under the diff.
-      afterWrite: async (row) => {
-        const stored = await loadActivitySnapshot(tx, row);
-        refuseIfAny(
-          'This activity refers to rows it does not hold',
-          nestedIdErrors(resolved, stored),
-        );
-        await writeChildren(tx, row.id, resolved, stored);
-      },
+  // A live activity stays live only while it passes the role rules (API §1.5).
+  if (existing.status === 'active') {
+    refuseIfAny(
+      'This activity no longer satisfies its role rules',
+      await roleRuleErrors(tx, resolved),
+    );
+  }
+
+  // A live activity's start date was set when it went live; a save that leaves
+  // it out keeps it rather than clearing it.
+  const root = {
+    ...resolved.root,
+    startedAt: resolved.root.startedAt ?? (existing.status === 'draft' ? null : existing.startedAt),
+  };
+
+  return updateAggregate(tx, activityAggregate, id, expectedVersion, root, context, 'updated', {
+    // The root row is now locked, so what is stored cannot move under the diff.
+    afterWrite: async (row) => {
+      const stored = await loadActivitySnapshot(tx, row);
+      refuseIfAny(
+        'This activity refers to rows it does not hold',
+        nestedIdErrors(resolved, stored),
+      );
+      await writeChildren(tx, row.id, resolved, stored);
     },
-  );
+  });
 }

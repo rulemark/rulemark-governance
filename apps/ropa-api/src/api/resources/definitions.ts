@@ -18,6 +18,8 @@ import {
   type Ref,
 } from '@rulemark/ropa-schemas';
 
+import { eq } from 'drizzle-orm';
+
 import { agreement, agreementTerms, offering, party, system } from '../../db/schema/index.js';
 import {
   agreementAggregate,
@@ -389,7 +391,7 @@ export const agreementsResource: ResourceDefinition<
     {
       name: 'party',
       kind: 'reference',
-      column: agreement.partyId,
+      matches: (id) => eq(agreement.partyId, id),
       target: partyAggregate,
       label: 'party',
       description: 'A party, by id or slug',
@@ -397,7 +399,7 @@ export const agreementsResource: ResourceDefinition<
     {
       name: 'terms',
       kind: 'reference',
-      column: agreement.termsId,
+      matches: (id) => eq(agreement.termsId, id),
       target: agreementTermsAggregate,
       label: 'agreement terms',
       description: 'Agreement terms, by id or slug',
@@ -405,7 +407,7 @@ export const agreementsResource: ResourceDefinition<
     {
       name: 'offering',
       kind: 'reference',
-      column: agreement.offeringId,
+      matches: (id) => eq(agreement.offeringId, id),
       target: offeringAggregate,
       label: 'offering',
       description: 'An offering, by id or slug',
@@ -480,7 +482,7 @@ export const systemsResource: ResourceDefinition<
     {
       name: 'hostingParty',
       kind: 'reference',
-      column: system.hostingPartyId,
+      matches: (id) => eq(system.hostingPartyId, id),
       target: partyAggregate,
       label: 'party',
       description: 'The hosting party, by id or slug',

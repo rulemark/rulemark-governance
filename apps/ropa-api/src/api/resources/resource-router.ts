@@ -1,4 +1,4 @@
-import type { Permission } from '@rulemark/ropa-schemas';
+import { API_VERSION, type Permission } from '@rulemark/ropa-schemas';
 import { and, asc, eq, gt, type SQL } from 'drizzle-orm';
 import type { PgColumn } from 'drizzle-orm/pg-core';
 import { Router, type Request } from 'express';
@@ -12,6 +12,7 @@ import {
   updateAggregate,
   type AggregateSpec,
   type RowShape,
+  type SaveContext,
 } from '../../domain/aggregate.js';
 import { etagFor, requireIfMatch } from '../../domain/concurrency.js';
 import { findByIdentifier, type Identifiable } from '../../domain/identifiers.js';
@@ -56,11 +57,67 @@ export type FilterSpec =
   | {
       readonly name: string;
       readonly kind: 'reference';
-      readonly column: PgColumn;
       readonly target: Identifiable;
       readonly label: string;
       readonly description: string;
+      /**
+       * The condition for the record the identifier resolved to: a column
+       * equal to its id, or a link that reaches it (`?system=` on activities).
+       */
+      readonly matches: (id: string) => SQL;
+    }
+  | {
+      /** A value that is checked before use: `?country=US`. */
+      readonly name: string;
+      readonly kind: 'value';
+      readonly schema: z.ZodType<string>;
+      readonly description: string;
+      readonly matches: (value: string) => SQL;
+    }
+  | {
+      /** Present as `?name=true`, or not at all: `?special=true`. */
+      readonly name: string;
+      readonly kind: 'flag';
+      readonly description: string;
+      readonly matches: SQL;
     };
+
+/**
+ * A lifecycle transition on one record (`POST /{path}/{ref}/{name}`), such as
+ * activating an activity (§3.4). Like a write, it names the version it was
+ * based on in `If-Match`; unlike one, it has its own permission.
+ */
+export interface ActionSpec<TRow> {
+  readonly name: string;
+  readonly summary: string;
+  readonly description: string;
+  readonly permission: Permission;
+  readonly input: z.ZodType;
+  readonly schemaName: string;
+  readonly run: (
+    context: ResourceContext,
+    existing: TRow,
+    expectedVersion: number,
+    input: unknown,
+    save: SaveContext,
+  ) => Promise<TRow>;
+}
+
+/** Keeps an action's input typed where it is written, and erased in the list. */
+export function defineAction<TRow, TInput>(
+  action: Omit<ActionSpec<TRow>, 'input' | 'run'> & {
+    readonly input: z.ZodType<TInput>;
+    readonly run: (
+      context: ResourceContext,
+      existing: TRow,
+      expectedVersion: number,
+      input: TInput,
+      save: SaveContext,
+    ) => Promise<TRow>;
+  },
+): ActionSpec<TRow> {
+  return action as ActionSpec<TRow>;
+}
 
 export interface ResourceDefinition<TRow extends RowShape, TSnapshot, TInput> {
   /** The path segment: `parties`, `agreement-terms`, `taxonomy/data-categories`. */
@@ -77,13 +134,26 @@ export interface ResourceDefinition<TRow extends RowShape, TSnapshot, TInput> {
   /**
    * Validated input to column values, resolving any references by identifier
    * and applying the cross-table rules that need the database (`DB §2`).
-   * `existing` is present on a replace.
+   * `existing` is present on a replace. A single-row record declares this and
+   * the router saves it; an aggregate with nested rows declares `create` and
+   * `replace` instead.
    */
-  readonly toValues: (
+  readonly toValues?: (
     context: ResourceContext,
     input: TInput,
     existing?: TRow,
   ) => Promise<Record<string, unknown>>;
+  /** The whole save, for an aggregate the generic one cannot write alone. */
+  readonly create?: (context: ResourceContext, input: TInput, save: SaveContext) => Promise<TRow>;
+  readonly replace?: (
+    context: ResourceContext,
+    existing: TRow,
+    expectedVersion: number,
+    input: TInput,
+    save: SaveContext,
+  ) => Promise<TRow>;
+  /** Lifecycle transitions beyond the seven routes (§3.4). */
+  readonly actions?: readonly ActionSpec<TRow>[];
   /** Rows to API shape, with references already loaded as Refs. */
   readonly toOutput: (context: ResourceContext, rows: readonly TRow[]) => Promise<unknown[]>;
   /** The response shape, for the OpenAPI document and for parsing on the way out. */
@@ -135,6 +205,19 @@ export function resourceRouter<TRow extends RowShape, TSnapshot, TInput>(
 ): Router {
   const router = Router();
   const { aggregate, label, path } = definition;
+
+  /** Where the record now lives, by the identifier a person would use (§1.2). */
+  const locationOf = (row: TRow): string => {
+    const ref = aggregate.toRef(row);
+    return `/${API_VERSION}/${path}/${ref.code ?? ref.slug ?? ref.id}`;
+  };
+
+  function toValues(): NonNullable<typeof definition.toValues> {
+    if (definition.toValues === undefined) {
+      throw new Error(`The ${label} resource declares neither toValues nor its own save`);
+    }
+    return definition.toValues;
+  }
 
   const single = async (context: ResourceContext, row: TRow): Promise<unknown> =>
     (await definition.toOutput(context, [row]))[0];
@@ -192,15 +275,19 @@ export function resourceRouter<TRow extends RowShape, TSnapshot, TInput>(
 
         const created = await db.transaction(async (tx) => {
           const context: ResourceContext = { tx, request: req };
-          const values = await definition.toValues(context, input);
-          const row = await createAggregate(tx, aggregate, values, {
-            actor,
-            changeNote: changeNoteOf(input),
-          });
+          const save: SaveContext = { actor, changeNote: changeNoteOf(input) };
+          const row =
+            definition.create !== undefined
+              ? await definition.create(context, input, save)
+              : await createAggregate(tx, aggregate, await toValues()(context, input), save);
           return { row, output: await single(context, row) };
         });
 
-        res.status(201).set('ETag', etagFor(created.row.version)).json(created.output);
+        res
+          .status(201)
+          .set('ETag', etagFor(created.row.version))
+          .set('Location', locationOf(created.row))
+          .json(created.output);
       } catch (error) {
         next(toApiError(error, label));
       }
@@ -233,11 +320,18 @@ export function resourceRouter<TRow extends RowShape, TSnapshot, TInput>(
 
         const saved = await db.transaction(async (tx) => {
           const context: ResourceContext = { tx, request: req };
-          const values = await definition.toValues(context, input, existing);
-          const row = await updateAggregate(tx, aggregate, existing.id, expectedVersion, values, {
-            actor,
-            changeNote: changeNoteOf(input),
-          });
+          const save: SaveContext = { actor, changeNote: changeNoteOf(input) };
+          const row =
+            definition.replace !== undefined
+              ? await definition.replace(context, existing, expectedVersion, input, save)
+              : await updateAggregate(
+                  tx,
+                  aggregate,
+                  existing.id,
+                  expectedVersion,
+                  await toValues()(context, input, existing),
+                  save,
+                );
           return { row, output: await single(context, row) };
         });
 
@@ -268,6 +362,40 @@ export function resourceRouter<TRow extends RowShape, TSnapshot, TInput>(
       }
     })();
   });
+
+  // --- lifecycle actions (§3.4) -------------------------------------------
+  for (const action of definition.actions ?? []) {
+    router.post(`/${path}/:ref/${action.name}`, requires(action.permission), (req, res, next) => {
+      void (async () => {
+        try {
+          const expectedVersion = requireIfMatch(req.get('if-match'));
+          // A transition may carry nothing at all, not even an empty object.
+          const parsed = action.input.safeParse(req.body ?? {});
+          if (!parsed.success) {
+            throw validationFailed(
+              `This ${action.name} request is not valid`,
+              fieldErrorsFromZod(parsed.error),
+            );
+          }
+          const actor = actorFor(req);
+          const existing = await find({ tx: db, request: req }, param(req, 'ref'));
+
+          const done = await db.transaction(async (tx) => {
+            const context: ResourceContext = { tx, request: req };
+            const row = await action.run(context, existing, expectedVersion, parsed.data, {
+              actor,
+              changeNote: changeNoteOf(parsed.data),
+            });
+            return { row, output: await single(context, row) };
+          });
+
+          res.set('ETag', etagFor(done.row.version)).json(done.output);
+        } catch (error) {
+          next(toApiError(error, label));
+        }
+      })();
+    });
+  }
 
   // --- history (§2) -------------------------------------------------------
   router.get(`/${path}/:ref/revisions`, requires('history:read'), (req, res, next) => {
@@ -361,6 +489,35 @@ async function applyFilters(
       continue;
     }
 
+    if (filter.kind === 'flag') {
+      if (raw !== 'true') {
+        throw validationFailed('This filter is not valid', [
+          {
+            path: `/${filter.name}`,
+            code: 'invalid_value',
+            message: 'Must be "true", or left out',
+          },
+        ]);
+      }
+      conditions.push(filter.matches);
+      continue;
+    }
+
+    if (filter.kind === 'value') {
+      const parsed = filter.schema.safeParse(raw);
+      if (!parsed.success) {
+        throw validationFailed('This filter is not valid', [
+          {
+            path: `/${filter.name}`,
+            code: 'invalid_value',
+            message: parsed.error.issues[0]?.message ?? 'Not a valid value',
+          },
+        ]);
+      }
+      conditions.push(filter.matches(parsed.data));
+      continue;
+    }
+
     const row = await findByIdentifier<{ id: string }>(context.tx, filter.target, raw);
     if (row === undefined) {
       throw validationFailed('This filter refers to something that does not exist', [
@@ -371,7 +528,7 @@ async function applyFilters(
         },
       ]);
     }
-    conditions.push(eq(filter.column, row.id));
+    conditions.push(filter.matches(row.id));
   }
 
   return conditions;

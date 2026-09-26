@@ -342,6 +342,17 @@ export function validateActivityShape(input: unknown): FieldError[] {
   return result.success ? [] : fieldErrorsFromZod(result.error);
 }
 
+// --- the lifecycle (API §3.4) ---
+
+/** `POST /activities/{ref}/activate`. The version comes from `If-Match`. */
+export const ActivateInput = z.object({ changeNote });
+
+/** `POST /activities/{ref}/retire`. */
+export const RetireInput = z.object({
+  endedAt: IsoDate.optional().describe('When the processing stopped. Defaults to today.'),
+  changeNote,
+});
+
 // --- the activity, coming out ---
 
 const Transfer = z.object({
@@ -461,3 +472,5 @@ export type ActivityInput = z.infer<typeof ActivityInput>;
 export type ControllerActivity = z.infer<typeof ControllerActivity>;
 export type ProcessorActivity = z.infer<typeof ProcessorActivity>;
 export type Activity = z.infer<typeof Activity>;
+export type ActivateInput = z.infer<typeof ActivateInput>;
+export type RetireInput = z.infer<typeof RetireInput>;

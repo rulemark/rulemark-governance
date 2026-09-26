@@ -1,5 +1,8 @@
 import {
   API_VERSION,
+  ActivateInput,
+  Activity,
+  ActivityInput,
   Agreement,
   AgreementInput,
   AgreementTerms,
@@ -15,6 +18,7 @@ import {
   PartyInput,
   ProblemDetails,
   Ref,
+  RetireInput,
   SecurityMeasure,
   SecurityMeasureInput,
   SubjectCategory,
@@ -73,6 +77,9 @@ const INPUT_SCHEMAS: readonly [string, z.ZodType][] = [
   ['SubjectCategoryInput', SubjectCategoryInput],
   ['DataCategoryInput', DataCategoryInput],
   ['SecurityMeasureInput', SecurityMeasureInput],
+  ['ActivityInput', ActivityInput],
+  ['ActivateInput', ActivateInput],
+  ['RetireInput', RetireInput],
   ['TokenRequest', TokenRequest],
 ];
 
@@ -86,6 +93,7 @@ const OUTPUT_SCHEMAS: readonly [string, z.ZodType][] = [
   ['SubjectCategory', SubjectCategory],
   ['DataCategory', DataCategory],
   ['SecurityMeasure', SecurityMeasure],
+  ['Activity', Activity],
   ['TokenResponse', TokenResponse],
   ['MeResponse', MeResponse],
   ['ProblemDetails', ProblemDetails],
@@ -114,6 +122,13 @@ const ETAG_HEADER: JsonObject = {
   ETag: {
     description: 'The record version. Send it back as If-Match on a write (§1.8).',
     schema: { type: 'string', example: '"3"' },
+  },
+};
+
+const LOCATION_HEADER: JsonObject = {
+  Location: {
+    description: 'Where the new record lives, by its code or slug (§1.2).',
+    schema: { type: 'string', example: '/v1/activities/P1' },
   },
 };
 
@@ -213,7 +228,10 @@ function pathsForResource(resource: ResourceDefinition<never, never, never>): Js
             },
           },
           responses: {
-            '201': { ...json(schemaNames.output, 'Created'), headers: ETAG_HEADER },
+            '201': {
+              ...json(schemaNames.output, 'Created'),
+              headers: { ...ETAG_HEADER, ...LOCATION_HEADER },
+            },
             '409': problem('An identifier is already taken'),
             ...COMMON_ERRORS,
           },
@@ -334,6 +352,43 @@ function pathsForResource(resource: ResourceDefinition<never, never, never>): Js
         'history:read',
       ),
     },
+
+    // Lifecycle actions (§3.4), from the same declarations the router mounts.
+    ...Object.fromEntries(
+      (resource.actions ?? []).map((action) => [
+        `${base}/{ref}/${action.name}`,
+        {
+          post: guarded(
+            {
+              tags: [tag],
+              summary: action.summary,
+              description: action.description,
+              parameters: [REF_PARAM(label), IF_MATCH],
+              requestBody: {
+                required: false,
+                content: {
+                  'application/json': {
+                    schema: { $ref: `#/components/schemas/${action.schemaName}` },
+                  },
+                },
+              },
+              responses: {
+                '200': {
+                  ...json(schemaNames.output, 'The record after the transition'),
+                  headers: ETAG_HEADER,
+                },
+                '404': problem('No record matching that identifier'),
+                '409': problem('Not a transition the record’s current status allows'),
+                '412': problem('Someone else has saved since you read this record'),
+                '428': problem('If-Match is required'),
+                ...COMMON_ERRORS,
+              },
+            },
+            action.permission,
+          ),
+        },
+      ]),
+    ),
   };
 }
 

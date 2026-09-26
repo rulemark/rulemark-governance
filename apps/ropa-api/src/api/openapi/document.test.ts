@@ -64,6 +64,28 @@ describe('the OpenAPI document', () => {
     }
   });
 
+  it('documents every lifecycle action with its own permission and If-Match (§3.4)', () => {
+    const actions = RESOURCES.flatMap((resource) =>
+      (('actions' in resource ? resource.actions : undefined) ?? []).map(
+        (action) => [`/v1/${resource.path}/{ref}/${action.name}`, action.permission] as const,
+      ),
+    );
+    expect(actions.map(([path]) => path)).toEqual([
+      '/v1/activities/{ref}/activate',
+      '/v1/activities/{ref}/retire',
+    ]);
+    for (const [path, permission] of actions) {
+      const operation = document.paths[path]?.['post'] as
+        { 'x-required-permission'?: string; parameters?: { name: string }[] } | undefined;
+      expect(operation?.['x-required-permission'], path).toBe(permission);
+      expect(
+        operation?.parameters?.map((parameter) => parameter.name),
+        path,
+      ).toContain('If-Match');
+    }
+    expect(actions.every(([, permission]) => permission === 'activity:approve')).toBe(true);
+  });
+
   it('describes every filter the router applies', () => {
     for (const resource of RESOURCES) {
       const documented = new Set(

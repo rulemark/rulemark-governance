@@ -981,6 +981,1125 @@
         ],
         "additionalProperties": false
       },
+      "Activity": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "role": {
+                "type": "string",
+                "const": "controller"
+              },
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                "description": "A UUID. Records are keyed by UUIDv7.",
+                "examples": [
+                  "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                ]
+              },
+              "version": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+                "description": "An RFC 3339 timestamp.",
+                "examples": [
+                  "2026-03-16T10:00:00Z"
+                ]
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+                "description": "An RFC 3339 timestamp.",
+                "examples": [
+                  "2026-03-16T10:00:00Z"
+                ]
+              },
+              "code": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 20,
+                "pattern": "^[A-Z]+-?\\d+$",
+                "description": "A stable, system-assigned code shown next to the name: \"P3\".",
+                "examples": [
+                  "P3",
+                  "RI-42"
+                ]
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "examples": [
+                  "Mailcrest Inc."
+                ]
+              },
+              "description": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "roleRationale": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "draft",
+                  "active",
+                  "retired"
+                ]
+              },
+              "owner": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "examples": [
+                  "Mailcrest Inc."
+                ]
+              },
+              "supersedes": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/Ref"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "subjectCategories": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Ref"
+                }
+              },
+              "dataCategories": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Ref"
+                }
+              },
+              "systems": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Ref"
+                }
+              },
+              "securityMeasures": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Ref"
+                }
+              },
+              "startedAt": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "description": "A date, \"YYYY-MM-DD\".",
+                    "examples": [
+                      "2026-03-16"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "endedAt": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "description": "A date, \"YYYY-MM-DD\".",
+                    "examples": [
+                      "2026-03-16"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "reviewDueAt": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "description": "A date, \"YYYY-MM-DD\".",
+                    "examples": [
+                      "2026-03-16"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "purposes": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2000
+                }
+              },
+              "lawfulBases": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "6(1)(a)",
+                    "6(1)(b)",
+                    "6(1)(c)",
+                    "6(1)(d)",
+                    "6(1)(e)",
+                    "6(1)(f)"
+                  ]
+                }
+              },
+              "specialConditions": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "9(2)(a)",
+                    "9(2)(b)",
+                    "9(2)(c)",
+                    "9(2)(d)",
+                    "9(2)(e)",
+                    "9(2)(f)",
+                    "9(2)(g)",
+                    "9(2)(h)",
+                    "9(2)(i)",
+                    "9(2)(j)",
+                    "art10"
+                  ]
+                }
+              },
+              "retentionRules": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "description": "A UUID. Records are keyed by UUIDv7.",
+                      "examples": [
+                        "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                      ]
+                    },
+                    "dataCategory": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/Ref"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "Null for the activity’s default rule."
+                    },
+                    "retentionPeriod": {
+                      "type": "string",
+                      "minLength": 2,
+                      "maxLength": 20,
+                      "pattern": "^P(?!$)([0-9]+Y)?([0-9]+M)?([0-9]+W)?([0-9]+D)?$",
+                      "description": "An ISO 8601 duration in years, months, weeks or days: \"P90D\", \"P7Y\", \"P1Y6M\".",
+                      "examples": [
+                        "P90D",
+                        "P7Y"
+                      ]
+                    },
+                    "triggerEvent": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "examples": [
+                        "Mailcrest Inc."
+                      ]
+                    },
+                    "legalRef": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200,
+                          "examples": [
+                            "Mailcrest Inc."
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "dataCategory",
+                    "retentionPeriod",
+                    "triggerEvent",
+                    "legalRef"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "dpiaRequired": {
+                "type": "boolean"
+              },
+              "dpiaRef": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "examples": [
+                      "Mailcrest Inc."
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "engagements": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "description": "A UUID. Records are keyed by UUIDv7.",
+                      "examples": [
+                        "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                      ]
+                    },
+                    "party": {
+                      "$ref": "#/components/schemas/Ref"
+                    },
+                    "serviceDescription": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "examples": [
+                        "Mailcrest Inc."
+                      ]
+                    },
+                    "processingCountries": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Z]{2}$",
+                        "description": "An ISO 3166-1 alpha-2 country code.",
+                        "examples": [
+                          "NL",
+                          "US",
+                          "DE"
+                        ]
+                      }
+                    },
+                    "dataCategories": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Ref"
+                      }
+                    },
+                    "transfers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                            "description": "A UUID. Records are keyed by UUIDv7.",
+                            "examples": [
+                              "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                            ]
+                          },
+                          "destinationCountry": {
+                            "type": "string",
+                            "pattern": "^[A-Z]{2}$",
+                            "description": "An ISO 3166-1 alpha-2 country code.",
+                            "examples": [
+                              "NL",
+                              "US",
+                              "DE"
+                            ]
+                          },
+                          "mechanism": {
+                            "type": "string",
+                            "enum": [
+                              "adequacy",
+                              "dpf",
+                              "sccs",
+                              "bcr",
+                              "derogation_49"
+                            ]
+                          },
+                          "onwardVia": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 200,
+                                "examples": [
+                                  "Mailcrest Inc."
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "documentRef": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 200,
+                                "examples": [
+                                  "Mailcrest Inc."
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "destinationCountry",
+                          "mechanism",
+                          "onwardVia",
+                          "documentRef"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "startedAt": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                          "description": "A date, \"YYYY-MM-DD\".",
+                          "examples": [
+                            "2026-03-16"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "endedAt": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                          "description": "A date, \"YYYY-MM-DD\".",
+                          "examples": [
+                            "2026-03-16"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "role": {
+                      "type": "string",
+                      "enum": [
+                        "processor",
+                        "recipient"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "party",
+                    "serviceDescription",
+                    "processingCountries",
+                    "dataCategories",
+                    "transfers",
+                    "startedAt",
+                    "endedAt",
+                    "role"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "role",
+              "id",
+              "version",
+              "createdAt",
+              "updatedAt",
+              "code",
+              "name",
+              "description",
+              "roleRationale",
+              "status",
+              "owner",
+              "supersedes",
+              "subjectCategories",
+              "dataCategories",
+              "systems",
+              "securityMeasures",
+              "startedAt",
+              "endedAt",
+              "reviewDueAt",
+              "purposes",
+              "lawfulBases",
+              "specialConditions",
+              "retentionRules",
+              "dpiaRequired",
+              "dpiaRef",
+              "engagements"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "role": {
+                "type": "string",
+                "const": "processor"
+              },
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                "description": "A UUID. Records are keyed by UUIDv7.",
+                "examples": [
+                  "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                ]
+              },
+              "version": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+                "description": "An RFC 3339 timestamp.",
+                "examples": [
+                  "2026-03-16T10:00:00Z"
+                ]
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+                "description": "An RFC 3339 timestamp.",
+                "examples": [
+                  "2026-03-16T10:00:00Z"
+                ]
+              },
+              "code": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 20,
+                "pattern": "^[A-Z]+-?\\d+$",
+                "description": "A stable, system-assigned code shown next to the name: \"P3\".",
+                "examples": [
+                  "P3",
+                  "RI-42"
+                ]
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "examples": [
+                  "Mailcrest Inc."
+                ]
+              },
+              "description": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "roleRationale": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "draft",
+                  "active",
+                  "retired"
+                ]
+              },
+              "owner": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "examples": [
+                  "Mailcrest Inc."
+                ]
+              },
+              "supersedes": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/Ref"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "subjectCategories": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Ref"
+                }
+              },
+              "dataCategories": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Ref"
+                }
+              },
+              "systems": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Ref"
+                }
+              },
+              "securityMeasures": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Ref"
+                }
+              },
+              "startedAt": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "description": "A date, \"YYYY-MM-DD\".",
+                    "examples": [
+                      "2026-03-16"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "endedAt": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "description": "A date, \"YYYY-MM-DD\".",
+                    "examples": [
+                      "2026-03-16"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "reviewDueAt": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "description": "A date, \"YYYY-MM-DD\".",
+                    "examples": [
+                      "2026-03-16"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "offering": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/Ref"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "clientCoverage": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "all_enrolled",
+                      "opt_in"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "processingCategories": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "examples": [
+                    "Mailcrest Inc."
+                  ]
+                }
+              },
+              "clientScope": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "enum": [
+                          "include",
+                          "exclude"
+                        ]
+                      },
+                      "clients": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                              "description": "A UUID. Records are keyed by UUIDv7.",
+                              "examples": [
+                                "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                              ]
+                            },
+                            "client": {
+                              "$ref": "#/components/schemas/Ref"
+                            },
+                            "reason": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 2000
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "agreement": {
+                              "anyOf": [
+                                {
+                                  "$ref": "#/components/schemas/Ref"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "startedAt": {
+                              "type": "string",
+                              "format": "date",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                              "description": "A date, \"YYYY-MM-DD\".",
+                              "examples": [
+                                "2026-03-16"
+                              ]
+                            },
+                            "endedAt": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "format": "date",
+                                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                                  "description": "A date, \"YYYY-MM-DD\".",
+                                  "examples": [
+                                    "2026-03-16"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "client",
+                            "reason",
+                            "agreement",
+                            "startedAt",
+                            "endedAt"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "clients"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "dpiaSupportRef": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "examples": [
+                      "Mailcrest Inc."
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "engagements": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "description": "A UUID. Records are keyed by UUIDv7.",
+                      "examples": [
+                        "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                      ]
+                    },
+                    "party": {
+                      "$ref": "#/components/schemas/Ref"
+                    },
+                    "serviceDescription": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "examples": [
+                        "Mailcrest Inc."
+                      ]
+                    },
+                    "processingCountries": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Z]{2}$",
+                        "description": "An ISO 3166-1 alpha-2 country code.",
+                        "examples": [
+                          "NL",
+                          "US",
+                          "DE"
+                        ]
+                      }
+                    },
+                    "dataCategories": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Ref"
+                      }
+                    },
+                    "transfers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                            "description": "A UUID. Records are keyed by UUIDv7.",
+                            "examples": [
+                              "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                            ]
+                          },
+                          "destinationCountry": {
+                            "type": "string",
+                            "pattern": "^[A-Z]{2}$",
+                            "description": "An ISO 3166-1 alpha-2 country code.",
+                            "examples": [
+                              "NL",
+                              "US",
+                              "DE"
+                            ]
+                          },
+                          "mechanism": {
+                            "type": "string",
+                            "enum": [
+                              "adequacy",
+                              "dpf",
+                              "sccs",
+                              "bcr",
+                              "derogation_49"
+                            ]
+                          },
+                          "onwardVia": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 200,
+                                "examples": [
+                                  "Mailcrest Inc."
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "documentRef": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 200,
+                                "examples": [
+                                  "Mailcrest Inc."
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "destinationCountry",
+                          "mechanism",
+                          "onwardVia",
+                          "documentRef"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "startedAt": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                          "description": "A date, \"YYYY-MM-DD\".",
+                          "examples": [
+                            "2026-03-16"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "endedAt": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                          "description": "A date, \"YYYY-MM-DD\".",
+                          "examples": [
+                            "2026-03-16"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "role": {
+                      "type": "string",
+                      "enum": [
+                        "subprocessor"
+                      ]
+                    },
+                    "clientScope": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "mode": {
+                              "type": "string",
+                              "enum": [
+                                "include",
+                                "exclude"
+                              ]
+                            },
+                            "clients": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid",
+                                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                                    "description": "A UUID. Records are keyed by UUIDv7.",
+                                    "examples": [
+                                      "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                                    ]
+                                  },
+                                  "client": {
+                                    "$ref": "#/components/schemas/Ref"
+                                  },
+                                  "reason": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 2000
+                                  },
+                                  "agreement": {
+                                    "anyOf": [
+                                      {
+                                        "$ref": "#/components/schemas/Ref"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "client",
+                                  "reason",
+                                  "agreement"
+                                ],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": [
+                            "mode",
+                            "clients"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "party",
+                    "serviceDescription",
+                    "processingCountries",
+                    "dataCategories",
+                    "transfers",
+                    "startedAt",
+                    "endedAt",
+                    "role",
+                    "clientScope"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "role",
+              "id",
+              "version",
+              "createdAt",
+              "updatedAt",
+              "code",
+              "name",
+              "description",
+              "roleRationale",
+              "status",
+              "owner",
+              "supersedes",
+              "subjectCategories",
+              "dataCategories",
+              "systems",
+              "securityMeasures",
+              "startedAt",
+              "endedAt",
+              "reviewDueAt",
+              "offering",
+              "clientCoverage",
+              "processingCategories",
+              "clientScope",
+              "dpiaSupportRef",
+              "engagements"
+            ],
+            "additionalProperties": false
+          }
+        ],
+        "discriminator": {
+          "propertyName": "role"
+        }
+      },
       "TokenResponse": {
         "type": "object",
         "properties": {
@@ -1711,6 +2830,999 @@
           "name"
         ]
       },
+      "ActivityInput": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "role": {
+                "type": "string",
+                "const": "controller"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "examples": [
+                  "Mailcrest Inc."
+                ]
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              "roleRationale": {
+                "description": "Why this role. Strongly recommended where the role is arguable.",
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              "owner": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "examples": [
+                  "Mailcrest Inc."
+                ],
+                "description": "The business contact accountable for the activity."
+              },
+              "supersedes": {
+                "description": "The retired activity this one replaces, e.g. after a role change.",
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "examples": [
+                  "mailcrest"
+                ]
+              },
+              "subjectCategories": {
+                "default": [],
+                "description": "Whose data: \"candidates\".",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "description": "An id, code or slug: \"mailcrest\", \"P3\" or a UUID.",
+                  "examples": [
+                    "mailcrest"
+                  ]
+                }
+              },
+              "dataCategories": {
+                "default": [],
+                "description": "What data: \"identity\", \"cv\".",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "description": "An id, code or slug: \"mailcrest\", \"P3\" or a UUID.",
+                  "examples": [
+                    "mailcrest"
+                  ]
+                }
+              },
+              "systems": {
+                "default": [],
+                "description": "Where it is processed: \"hireloop-app\".",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "description": "An id, code or slug: \"mailcrest\", \"P3\" or a UUID.",
+                  "examples": [
+                    "mailcrest"
+                  ]
+                }
+              },
+              "securityMeasures": {
+                "default": [],
+                "description": "How it is protected: \"encryption-at-rest\".",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "description": "An id, code or slug: \"mailcrest\", \"P3\" or a UUID.",
+                  "examples": [
+                    "mailcrest"
+                  ]
+                }
+              },
+              "startedAt": {
+                "description": "When the processing began. Set on activation if left out.",
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                "examples": [
+                  "2026-03-16"
+                ]
+              },
+              "endedAt": {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                "description": "A date, \"YYYY-MM-DD\".",
+                "examples": [
+                  "2026-03-16"
+                ]
+              },
+              "reviewDueAt": {
+                "description": "The next periodic review.",
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                "examples": [
+                  "2026-03-16"
+                ]
+              },
+              "changeNote": {
+                "description": "Why this change was made. Stored on the revision, never returned.",
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              "purposes": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2000
+                }
+              },
+              "lawfulBases": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "6(1)(a)",
+                    "6(1)(b)",
+                    "6(1)(c)",
+                    "6(1)(d)",
+                    "6(1)(e)",
+                    "6(1)(f)"
+                  ]
+                }
+              },
+              "specialConditions": {
+                "default": [],
+                "description": "Required when any data category is special (Art. 9, Art. 10).",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "9(2)(a)",
+                    "9(2)(b)",
+                    "9(2)(c)",
+                    "9(2)(d)",
+                    "9(2)(e)",
+                    "9(2)(f)",
+                    "9(2)(g)",
+                    "9(2)(h)",
+                    "9(2)(i)",
+                    "9(2)(j)",
+                    "art10"
+                  ]
+                }
+              },
+              "retentionRules": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "description": "Send it back to update this row; leave it out to add one. Rows left out are deleted.",
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "examples": [
+                        "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                      ]
+                    },
+                    "dataCategory": {
+                      "description": "Leave out for the activity’s default rule.",
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100,
+                      "examples": [
+                        "mailcrest"
+                      ]
+                    },
+                    "retentionPeriod": {
+                      "type": "string",
+                      "minLength": 2,
+                      "maxLength": 20,
+                      "pattern": "^P(?!$)([0-9]+Y)?([0-9]+M)?([0-9]+W)?([0-9]+D)?$",
+                      "description": "An ISO 8601 duration in years, months, weeks or days: \"P90D\", \"P7Y\", \"P1Y6M\".",
+                      "examples": [
+                        "P90D",
+                        "P7Y"
+                      ]
+                    },
+                    "triggerEvent": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "examples": [
+                        "Mailcrest Inc."
+                      ],
+                      "description": "What starts the clock: \"after contract end\"."
+                    },
+                    "legalRef": {
+                      "description": "Why the data may be kept despite an erasure request: \"Dutch tax law\".",
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "examples": [
+                        "Mailcrest Inc."
+                      ]
+                    }
+                  },
+                  "required": [
+                    "retentionPeriod",
+                    "triggerEvent"
+                  ]
+                }
+              },
+              "dpiaRequired": {
+                "default": false,
+                "type": "boolean"
+              },
+              "dpiaRef": {
+                "description": "Our own DPIA.",
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "examples": [
+                  "Mailcrest Inc."
+                ]
+              },
+              "offering": {
+                "not": {}
+              },
+              "clientCoverage": {
+                "not": {}
+              },
+              "processingCategories": {
+                "not": {}
+              },
+              "clientScope": {
+                "not": {}
+              },
+              "dpiaSupportRef": {
+                "not": {}
+              },
+              "engagements": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "description": "Send it back to update this row; leave it out to add one. Rows left out are deleted.",
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "examples": [
+                        "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                      ]
+                    },
+                    "party": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100,
+                      "description": "A party of kind vendor or other.",
+                      "examples": [
+                        "mailcrest"
+                      ]
+                    },
+                    "serviceDescription": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "examples": [
+                        "Mailcrest Inc."
+                      ],
+                      "description": "Tells engagements with the same party apart: \"Candidate notifications (EU region)\"."
+                    },
+                    "processingCountries": {
+                      "minItems": 1,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Z]{2}$",
+                        "description": "An ISO 3166-1 alpha-2 country code.",
+                        "examples": [
+                          "NL",
+                          "US",
+                          "DE"
+                        ]
+                      },
+                      "description": "Where the data is processed or accessed, which is not the vendor’s HQ."
+                    },
+                    "dataCategories": {
+                      "default": [],
+                      "description": "A subset of the activity’s data categories.",
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100,
+                        "description": "An id, code or slug: \"mailcrest\", \"P3\" or a UUID.",
+                        "examples": [
+                          "mailcrest"
+                        ]
+                      }
+                    },
+                    "transfers": {
+                      "default": [],
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "description": "Send it back to update this row; leave it out to add one. Rows left out are deleted.",
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                            "examples": [
+                              "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                            ]
+                          },
+                          "destinationCountry": {
+                            "type": "string",
+                            "pattern": "^[A-Z]{2}$",
+                            "description": "An ISO 3166-1 alpha-2 country code.",
+                            "examples": [
+                              "NL",
+                              "US",
+                              "DE"
+                            ]
+                          },
+                          "mechanism": {
+                            "type": "string",
+                            "enum": [
+                              "adequacy",
+                              "dpf",
+                              "sccs",
+                              "bcr",
+                              "derogation_49"
+                            ]
+                          },
+                          "onwardVia": {
+                            "description": "An onward transfer through the vendor’s own subprocessor: \"Helpdesk Partners Pvt Ltd\".",
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "examples": [
+                              "Mailcrest Inc."
+                            ]
+                          },
+                          "documentRef": {
+                            "description": "The SCCs or DPA reference.",
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "examples": [
+                              "Mailcrest Inc."
+                            ]
+                          }
+                        },
+                        "required": [
+                          "destinationCountry",
+                          "mechanism"
+                        ]
+                      }
+                    },
+                    "startedAt": {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                      "description": "A date, \"YYYY-MM-DD\".",
+                      "examples": [
+                        "2026-03-16"
+                      ]
+                    },
+                    "endedAt": {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                      "description": "A date, \"YYYY-MM-DD\".",
+                      "examples": [
+                        "2026-03-16"
+                      ]
+                    },
+                    "role": {
+                      "enum": [
+                        "processor",
+                        "recipient"
+                      ],
+                      "type": "string"
+                    },
+                    "clientScope": {
+                      "not": {}
+                    }
+                  },
+                  "required": [
+                    "party",
+                    "serviceDescription",
+                    "processingCountries",
+                    "role"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "role",
+              "name",
+              "owner"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "role": {
+                "type": "string",
+                "const": "processor"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "examples": [
+                  "Mailcrest Inc."
+                ]
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              "roleRationale": {
+                "description": "Why this role. Strongly recommended where the role is arguable.",
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              "owner": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "examples": [
+                  "Mailcrest Inc."
+                ],
+                "description": "The business contact accountable for the activity."
+              },
+              "supersedes": {
+                "description": "The retired activity this one replaces, e.g. after a role change.",
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "examples": [
+                  "mailcrest"
+                ]
+              },
+              "subjectCategories": {
+                "default": [],
+                "description": "Whose data: \"candidates\".",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "description": "An id, code or slug: \"mailcrest\", \"P3\" or a UUID.",
+                  "examples": [
+                    "mailcrest"
+                  ]
+                }
+              },
+              "dataCategories": {
+                "default": [],
+                "description": "What data: \"identity\", \"cv\".",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "description": "An id, code or slug: \"mailcrest\", \"P3\" or a UUID.",
+                  "examples": [
+                    "mailcrest"
+                  ]
+                }
+              },
+              "systems": {
+                "default": [],
+                "description": "Where it is processed: \"hireloop-app\".",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "description": "An id, code or slug: \"mailcrest\", \"P3\" or a UUID.",
+                  "examples": [
+                    "mailcrest"
+                  ]
+                }
+              },
+              "securityMeasures": {
+                "default": [],
+                "description": "How it is protected: \"encryption-at-rest\".",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "description": "An id, code or slug: \"mailcrest\", \"P3\" or a UUID.",
+                  "examples": [
+                    "mailcrest"
+                  ]
+                }
+              },
+              "startedAt": {
+                "description": "When the processing began. Set on activation if left out.",
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                "examples": [
+                  "2026-03-16"
+                ]
+              },
+              "endedAt": {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                "description": "A date, \"YYYY-MM-DD\".",
+                "examples": [
+                  "2026-03-16"
+                ]
+              },
+              "reviewDueAt": {
+                "description": "The next periodic review.",
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                "examples": [
+                  "2026-03-16"
+                ]
+              },
+              "changeNote": {
+                "description": "Why this change was made. Stored on the revision, never returned.",
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              "purposes": {
+                "not": {}
+              },
+              "lawfulBases": {
+                "not": {}
+              },
+              "specialConditions": {
+                "not": {}
+              },
+              "retentionRules": {
+                "not": {}
+              },
+              "dpiaRequired": {
+                "not": {}
+              },
+              "dpiaRef": {
+                "not": {}
+              },
+              "offering": {
+                "description": "The offering this processing is part of.",
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "examples": [
+                  "mailcrest"
+                ]
+              },
+              "clientCoverage": {
+                "description": "Which clients it applies to by default.",
+                "type": "string",
+                "enum": [
+                  "all_enrolled",
+                  "opt_in"
+                ]
+              },
+              "processingCategories": {
+                "default": [],
+                "description": "Art. 30(2)(b): \"hosting\", \"storage\".",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "examples": [
+                    "Mailcrest Inc."
+                  ]
+                }
+              },
+              "clientScope": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "enum": [
+                          "include",
+                          "exclude"
+                        ]
+                      },
+                      "clients": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "description": "Send it back to update this row; leave it out to add one. Rows left out are deleted.",
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                              "examples": [
+                                "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                              ]
+                            },
+                            "client": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 100,
+                              "description": "A party of kind client.",
+                              "examples": [
+                                "mailcrest"
+                              ]
+                            },
+                            "reason": {
+                              "description": "Strongly recommended for an opt-out.",
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 2000
+                            },
+                            "agreement": {
+                              "description": "The agreement that requires it, if any.",
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 100,
+                              "examples": [
+                                "mailcrest"
+                              ]
+                            },
+                            "startedAt": {
+                              "type": "string",
+                              "format": "date",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                              "description": "When the opt-in or opt-out took effect.",
+                              "examples": [
+                                "2026-03-16"
+                              ]
+                            },
+                            "endedAt": {
+                              "type": "string",
+                              "format": "date",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                              "description": "A date, \"YYYY-MM-DD\".",
+                              "examples": [
+                                "2026-03-16"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "client",
+                            "startedAt"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "clients"
+                    ],
+                    "description": "Per-client exceptions to clientCoverage: include clients when opt_in, exclude clients when all_enrolled. Null for none."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "dpiaSupportRef": {
+                "description": "The DPIA support pack for clients (Art. 28(3)(f)).",
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "examples": [
+                  "Mailcrest Inc."
+                ]
+              },
+              "engagements": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "description": "Send it back to update this row; leave it out to add one. Rows left out are deleted.",
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "examples": [
+                        "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                      ]
+                    },
+                    "party": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100,
+                      "description": "A party of kind vendor or other.",
+                      "examples": [
+                        "mailcrest"
+                      ]
+                    },
+                    "serviceDescription": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "examples": [
+                        "Mailcrest Inc."
+                      ],
+                      "description": "Tells engagements with the same party apart: \"Candidate notifications (EU region)\"."
+                    },
+                    "processingCountries": {
+                      "minItems": 1,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Z]{2}$",
+                        "description": "An ISO 3166-1 alpha-2 country code.",
+                        "examples": [
+                          "NL",
+                          "US",
+                          "DE"
+                        ]
+                      },
+                      "description": "Where the data is processed or accessed, which is not the vendor’s HQ."
+                    },
+                    "dataCategories": {
+                      "default": [],
+                      "description": "A subset of the activity’s data categories.",
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100,
+                        "description": "An id, code or slug: \"mailcrest\", \"P3\" or a UUID.",
+                        "examples": [
+                          "mailcrest"
+                        ]
+                      }
+                    },
+                    "transfers": {
+                      "default": [],
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "description": "Send it back to update this row; leave it out to add one. Rows left out are deleted.",
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                            "examples": [
+                              "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                            ]
+                          },
+                          "destinationCountry": {
+                            "type": "string",
+                            "pattern": "^[A-Z]{2}$",
+                            "description": "An ISO 3166-1 alpha-2 country code.",
+                            "examples": [
+                              "NL",
+                              "US",
+                              "DE"
+                            ]
+                          },
+                          "mechanism": {
+                            "type": "string",
+                            "enum": [
+                              "adequacy",
+                              "dpf",
+                              "sccs",
+                              "bcr",
+                              "derogation_49"
+                            ]
+                          },
+                          "onwardVia": {
+                            "description": "An onward transfer through the vendor’s own subprocessor: \"Helpdesk Partners Pvt Ltd\".",
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "examples": [
+                              "Mailcrest Inc."
+                            ]
+                          },
+                          "documentRef": {
+                            "description": "The SCCs or DPA reference.",
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "examples": [
+                              "Mailcrest Inc."
+                            ]
+                          }
+                        },
+                        "required": [
+                          "destinationCountry",
+                          "mechanism"
+                        ]
+                      }
+                    },
+                    "startedAt": {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                      "description": "A date, \"YYYY-MM-DD\".",
+                      "examples": [
+                        "2026-03-16"
+                      ]
+                    },
+                    "endedAt": {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                      "description": "A date, \"YYYY-MM-DD\".",
+                      "examples": [
+                        "2026-03-16"
+                      ]
+                    },
+                    "role": {
+                      "enum": [
+                        "subprocessor"
+                      ],
+                      "type": "string"
+                    },
+                    "clientScope": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "mode": {
+                              "type": "string",
+                              "enum": [
+                                "include",
+                                "exclude"
+                              ]
+                            },
+                            "clients": {
+                              "minItems": 1,
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "description": "Send it back to update this row; leave it out to add one. Rows left out are deleted.",
+                                    "type": "string",
+                                    "format": "uuid",
+                                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                                    "examples": [
+                                      "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                                    ]
+                                  },
+                                  "client": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 100,
+                                    "description": "A party of kind client.",
+                                    "examples": [
+                                      "mailcrest"
+                                    ]
+                                  },
+                                  "reason": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 2000,
+                                    "description": "\"EU-only processing (Aurelia DPA §7)\"."
+                                  },
+                                  "agreement": {
+                                    "description": "The agreement that requires it, if any.",
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 100,
+                                    "examples": [
+                                      "mailcrest"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "client",
+                                  "reason"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "mode",
+                            "clients"
+                          ],
+                          "description": "Which clients’ data the engagement is used for. Null: every client the activity covers."
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "party",
+                    "serviceDescription",
+                    "processingCountries",
+                    "role"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "role",
+              "name",
+              "owner"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "role": {
+                "type": "string",
+                "const": "joint_controller"
+              }
+            },
+            "required": [
+              "role"
+            ],
+            "description": "Modeled but not yet supported: always rejected."
+          }
+        ],
+        "discriminator": {
+          "propertyName": "role"
+        }
+      },
+      "ActivateInput": {
+        "type": "object",
+        "properties": {
+          "changeNote": {
+            "description": "Why this change was made. Stored on the revision, never returned.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        }
+      },
+      "RetireInput": {
+        "type": "object",
+        "properties": {
+          "endedAt": {
+            "description": "When the processing stopped. Defaults to today.",
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+            "examples": [
+              "2026-03-16"
+            ]
+          },
+          "changeNote": {
+            "description": "Why this change was made. Stored on the revision, never returned.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        }
+      },
       "TokenRequest": {
         "type": "object",
         "properties": {
@@ -2086,6 +4198,13 @@
                 "schema": {
                   "type": "string",
                   "example": "\"3\""
+                }
+              },
+              "Location": {
+                "description": "Where the new record lives, by its code or slug (§1.2).",
+                "schema": {
+                  "type": "string",
+                  "example": "/v1/activities/P1"
                 }
               }
             }
@@ -2764,6 +4883,13 @@
                   "type": "string",
                   "example": "\"3\""
                 }
+              },
+              "Location": {
+                "description": "Where the new record lives, by its code or slug (§1.2).",
+                "schema": {
+                  "type": "string",
+                  "example": "/v1/activities/P1"
+                }
               }
             }
           },
@@ -3422,6 +5548,13 @@
                 "schema": {
                   "type": "string",
                   "example": "\"3\""
+                }
+              },
+              "Location": {
+                "description": "Where the new record lives, by its code or slug (§1.2).",
+                "schema": {
+                  "type": "string",
+                  "example": "/v1/activities/P1"
                 }
               }
             }
@@ -4109,6 +6242,13 @@
                   "type": "string",
                   "example": "\"3\""
                 }
+              },
+              "Location": {
+                "description": "Where the new record lives, by its code or slug (§1.2).",
+                "schema": {
+                  "type": "string",
+                  "example": "/v1/activities/P1"
+                }
               }
             }
           },
@@ -4795,6 +6935,13 @@
                   "type": "string",
                   "example": "\"3\""
                 }
+              },
+              "Location": {
+                "description": "Where the new record lives, by its code or slug (§1.2).",
+                "schema": {
+                  "type": "string",
+                  "example": "/v1/activities/P1"
+                }
               }
             }
           },
@@ -5453,6 +7600,13 @@
                 "schema": {
                   "type": "string",
                   "example": "\"3\""
+                }
+              },
+              "Location": {
+                "description": "Where the new record lives, by its code or slug (§1.2).",
+                "schema": {
+                  "type": "string",
+                  "example": "/v1/activities/P1"
                 }
               }
             }
@@ -6113,6 +8267,13 @@
                   "type": "string",
                   "example": "\"3\""
                 }
+              },
+              "Location": {
+                "description": "Where the new record lives, by its code or slug (§1.2).",
+                "schema": {
+                  "type": "string",
+                  "example": "/v1/activities/P1"
+                }
               }
             }
           },
@@ -6772,6 +8933,13 @@
                   "type": "string",
                   "example": "\"3\""
                 }
+              },
+              "Location": {
+                "description": "Where the new record lives, by its code or slug (§1.2).",
+                "schema": {
+                  "type": "string",
+                  "example": "/v1/activities/P1"
+                }
               }
             }
           },
@@ -7297,6 +9465,1017 @@
           }
         },
         "x-required-permission": "history:read"
+      }
+    },
+    "/v1/activities": {
+      "get": {
+        "tags": [
+          "activities"
+        ],
+        "summary": "List activity records",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size (default 50, max 200).",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "From a previous page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "description": "controller or processor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "draft, active or retired",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offering",
+            "in": "query",
+            "required": false,
+            "description": "Processor activities of this offering",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subjectCategory",
+            "in": "query",
+            "required": false,
+            "description": "Activities that process data about these subjects",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dataCategory",
+            "in": "query",
+            "required": false,
+            "description": "Activities that process this data category",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "party",
+            "in": "query",
+            "required": false,
+            "description": "Activities with an engagement of this party",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "system",
+            "in": "query",
+            "required": false,
+            "description": "Activities that run on this system",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "country",
+            "in": "query",
+            "required": false,
+            "description": "Activities with an engagement processing data in this country (ISO 3166-1 alpha-2)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "special",
+            "in": "query",
+            "required": false,
+            "description": "true: activities that process a special category (Art. 9) or criminal data (Art. 10)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of records",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "nextCursor"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Activity"
+                      }
+                    },
+                    "nextCursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "Pass as ?cursor= for the next page. Null on the last page."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The limit or cursor is not valid",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No token, or the token is not valid",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Valid token without the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request failed validation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "description": "Requires the `record:read` permission.",
+        "x-required-permission": "record:read"
+      },
+      "post": {
+        "tags": [
+          "activities"
+        ],
+        "summary": "Create a activity",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivityInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Activity"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "The record version. Send it back as If-Match on a write (§1.8).",
+                "schema": {
+                  "type": "string",
+                  "example": "\"3\""
+                }
+              },
+              "Location": {
+                "description": "Where the new record lives, by its code or slug (§1.2).",
+                "schema": {
+                  "type": "string",
+                  "example": "/v1/activities/P1"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No token, or the token is not valid",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Valid token without the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "An identifier is already taken",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request failed validation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "description": "Requires the `record:write` permission.",
+        "x-required-permission": "record:write"
+      }
+    },
+    "/v1/activities/{ref}": {
+      "get": {
+        "tags": [
+          "activities"
+        ],
+        "summary": "Read a activity",
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "path",
+            "required": true,
+            "description": "The activity: an id, code or slug (§1.2).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Activity"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "The record version. Send it back as If-Match on a write (§1.8).",
+                "schema": {
+                  "type": "string",
+                  "example": "\"3\""
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No token, or the token is not valid",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Valid token without the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No record matching that identifier",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request failed validation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "description": "Requires the `record:read` permission.",
+        "x-required-permission": "record:read"
+      },
+      "put": {
+        "tags": [
+          "activities"
+        ],
+        "summary": "Replace a activity",
+        "description": "A full replacement, not a patch: each revision stays a clean snapshot (§1.4).\n\nRequires the `record:write` permission.",
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "path",
+            "required": true,
+            "description": "The activity: an id, code or slug (§1.2).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "description": "The version this write is based on, from the record’s ETag (§1.8).",
+            "schema": {
+              "type": "string",
+              "example": "\"3\""
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivityInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The saved record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Activity"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "The record version. Send it back as If-Match on a write (§1.8).",
+                "schema": {
+                  "type": "string",
+                  "example": "\"3\""
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No token, or the token is not valid",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Valid token without the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No record matching that identifier",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Someone else has saved since you read this record",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request failed validation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "If-Match is required on a write",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "record:write"
+      },
+      "delete": {
+        "tags": [
+          "activities"
+        ],
+        "summary": "Delete a activity",
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "path",
+            "required": true,
+            "description": "The activity: an id, code or slug (§1.2).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "description": "The version this write is based on, from the record’s ETag (§1.8).",
+            "schema": {
+              "type": "string",
+              "example": "\"3\""
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted. Its history remains."
+          },
+          "401": {
+            "description": "No token, or the token is not valid",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Valid token without the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No record matching that identifier",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Something still references this record",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Someone else has saved since you read this record",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request failed validation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "If-Match is required on a write",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "description": "Requires the `record:delete` permission.",
+        "x-required-permission": "record:delete"
+      }
+    },
+    "/v1/activities/{ref}/revisions": {
+      "get": {
+        "tags": [
+          "activities"
+        ],
+        "summary": "List the revisions of a activity",
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "path",
+            "required": true,
+            "description": "The activity: an id, code or slug (§1.2).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Every version, oldest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "nextCursor"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/RevisionSummary"
+                      }
+                    },
+                    "nextCursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No token, or the token is not valid",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Valid token without the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No record matching that identifier",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request failed validation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "description": "Requires the `history:read` permission.",
+        "x-required-permission": "history:read"
+      }
+    },
+    "/v1/activities/{ref}/revisions/{version}": {
+      "get": {
+        "tags": [
+          "activities"
+        ],
+        "summary": "Read one version of a activity",
+        "description": "The full snapshot of the record as it stood at that version (DB §6.2).\n\nRequires the `history:read` permission.",
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "path",
+            "required": true,
+            "description": "The activity: an id, code or slug (§1.2).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The revision and its snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Revision"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No token, or the token is not valid",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Valid token without the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such record, or no such version",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request failed validation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "history:read"
+      }
+    },
+    "/v1/activities/{ref}/activate": {
+      "post": {
+        "tags": [
+          "activities"
+        ],
+        "summary": "Activate an activity",
+        "description": "Puts a draft live once it passes the role rules (§1.5). If-Match names the version you reviewed: activating a later one answers 412 (§1.8). Sets startedAt to today unless the draft names one.\n\nRequires the `activity:approve` permission.",
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "path",
+            "required": true,
+            "description": "The activity: an id, code or slug (§1.2).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "description": "The version this write is based on, from the record’s ETag (§1.8).",
+            "schema": {
+              "type": "string",
+              "example": "\"3\""
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivateInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The record after the transition",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Activity"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "The record version. Send it back as If-Match on a write (§1.8).",
+                "schema": {
+                  "type": "string",
+                  "example": "\"3\""
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No token, or the token is not valid",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Valid token without the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No record matching that identifier",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not a transition the record’s current status allows",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Someone else has saved since you read this record",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request failed validation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "If-Match is required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "activity:approve"
+      }
+    },
+    "/v1/activities/{ref}/retire": {
+      "post": {
+        "tags": [
+          "activities"
+        ],
+        "summary": "Retire an activity",
+        "description": "Takes an active activity out of the record. It can be neither edited nor reactivated, and its code is never reused. A role change retires the activity and creates a new one that supersedes it (DM §3.0).\n\nRequires the `activity:approve` permission.",
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "path",
+            "required": true,
+            "description": "The activity: an id, code or slug (§1.2).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "description": "The version this write is based on, from the record’s ETag (§1.8).",
+            "schema": {
+              "type": "string",
+              "example": "\"3\""
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetireInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The record after the transition",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Activity"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "The record version. Send it back as If-Match on a write (§1.8).",
+                "schema": {
+                  "type": "string",
+                  "example": "\"3\""
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No token, or the token is not valid",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Valid token without the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No record matching that identifier",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not a transition the record’s current status allows",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Someone else has saved since you read this record",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request failed validation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "If-Match is required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "activity:approve"
       }
     }
   }

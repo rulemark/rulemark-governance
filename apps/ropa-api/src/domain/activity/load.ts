@@ -28,8 +28,8 @@ import type { Transaction } from '../transaction.js';
 
 export type ActivityRow = typeof processingActivity.$inferSelect;
 
-/** Ids are UUIDv7, so id order is also the order rows were added in. */
-const byId = <T extends { id: string }>(rows: T[]) => rows.sort((a, b) => a.id.localeCompare(b.id));
+// Nested rows are read in id order: ids are UUIDv7, so that is also the order
+// they were added in, and two snapshots of the same state compare equal.
 
 function groupBy<T, K>(rows: readonly T[], key: (row: T) => K): Map<K, T[]> {
   const groups = new Map<K, T[]>();
@@ -41,76 +41,93 @@ function groupBy<T, K>(rows: readonly T[], key: (row: T) => K): Map<K, T[]> {
   return groups;
 }
 
-export async function loadActivitySnapshot(
+/**
+ * Several activities at once, one query per table rather than per activity, so
+ * a page of fifty costs the same ten queries as a single record. Queries run
+ * one at a time: a transaction is one connection, and pg does not run queries
+ * on a connection concurrently.
+ */
+export async function loadActivitySnapshots(
   tx: Transaction,
-  row: ActivityRow,
-): Promise<ActivitySnapshot> {
-  // One query at a time: a transaction is one connection, and pg does not run
-  // queries on a connection concurrently.
-  const activityId = row.id;
-  const subjectCategoryIds = (
-    await tx
-      .select({ id: activitySubjectCategory.subjectCategoryId })
-      .from(activitySubjectCategory)
-      .where(eq(activitySubjectCategory.activityId, activityId))
-  ).map((link) => link.id);
-  const dataCategoryIds = (
-    await tx
-      .select({ id: activityDataCategory.dataCategoryId })
-      .from(activityDataCategory)
-      .where(eq(activityDataCategory.activityId, activityId))
-  ).map((link) => link.id);
-  const systemIds = (
-    await tx
-      .select({ id: activitySystem.systemId })
-      .from(activitySystem)
-      .where(eq(activitySystem.activityId, activityId))
-  ).map((link) => link.id);
-  const securityMeasureIds = (
-    await tx
-      .select({ id: activitySecurityMeasure.securityMeasureId })
-      .from(activitySecurityMeasure)
-      .where(eq(activitySecurityMeasure.activityId, activityId))
-  ).map((link) => link.id);
+  rows: readonly ActivityRow[],
+): Promise<ActivitySnapshot[]> {
+  if (rows.length === 0) return [];
+  const activityIds = rows.map((row) => row.id);
 
+  const subjectCategories = await tx
+    .select()
+    .from(activitySubjectCategory)
+    .where(inArray(activitySubjectCategory.activityId, activityIds));
+  const dataCategories = await tx
+    .select()
+    .from(activityDataCategory)
+    .where(inArray(activityDataCategory.activityId, activityIds));
+  const systems = await tx
+    .select()
+    .from(activitySystem)
+    .where(inArray(activitySystem.activityId, activityIds));
+  const securityMeasures = await tx
+    .select()
+    .from(activitySecurityMeasure)
+    .where(inArray(activitySecurityMeasure.activityId, activityIds));
   const rules = await tx
     .select()
     .from(retentionRule)
-    .where(eq(retentionRule.activityId, activityId))
+    .where(inArray(retentionRule.activityId, activityIds))
     .orderBy(asc(retentionRule.id));
-  const scope = await tx
+  const scopes = await tx
     .select()
     .from(activityClientScope)
-    .where(eq(activityClientScope.activityId, activityId))
+    .where(inArray(activityClientScope.activityId, activityIds))
     .orderBy(asc(activityClientScope.id));
   const engagements = await tx
     .select()
     .from(engagement)
-    .where(eq(engagement.activityId, activityId))
+    .where(inArray(engagement.activityId, activityIds))
     .orderBy(asc(engagement.id));
 
   const engagementIds = engagements.map((row) => row.id);
   const inEngagements = engagementIds.length > 0;
-  const categories = inEngagements
+  const engagementCategories = inEngagements
     ? await tx
         .select()
         .from(engagementDataCategory)
         .where(inArray(engagementDataCategory.engagementId, engagementIds))
     : [];
   const transfers = inEngagements
-    ? await tx.select().from(transfer).where(inArray(transfer.engagementId, engagementIds))
+    ? await tx
+        .select()
+        .from(transfer)
+        .where(inArray(transfer.engagementId, engagementIds))
+        .orderBy(asc(transfer.id))
     : [];
-  const scopes = inEngagements
+  const engagementScopes = inEngagements
     ? await tx
         .select()
         .from(engagementClientScope)
         .where(inArray(engagementClientScope.engagementId, engagementIds))
+        .orderBy(asc(engagementClientScope.id))
     : [];
-  const categoriesOf = groupBy(categories, (link) => link.engagementId);
-  const transfersOf = groupBy(transfers, (row) => row.engagementId);
-  const scopesOf = groupBy(scopes, (row) => row.engagementId);
 
-  return {
+  const idsOf = <T extends { activityId: string }>(
+    links: readonly T[],
+    pick: (link: T) => string,
+  ) => {
+    const grouped = groupBy(links, (link) => link.activityId);
+    return (activityId: string) => (grouped.get(activityId) ?? []).map(pick).sort();
+  };
+  const subjectCategoryIdsOf = idsOf(subjectCategories, (link) => link.subjectCategoryId);
+  const dataCategoryIdsOf = idsOf(dataCategories, (link) => link.dataCategoryId);
+  const systemIdsOf = idsOf(systems, (link) => link.systemId);
+  const securityMeasureIdsOf = idsOf(securityMeasures, (link) => link.securityMeasureId);
+  const rulesOf = groupBy(rules, (row) => row.activityId);
+  const scopesOf = groupBy(scopes, (row) => row.activityId);
+  const engagementsOf = groupBy(engagements, (row) => row.activityId);
+  const categoriesOf = groupBy(engagementCategories, (link) => link.engagementId);
+  const transfersOf = groupBy(transfers, (row) => row.engagementId);
+  const engagementScopesOf = groupBy(engagementScopes, (row) => row.engagementId);
+
+  return rows.map((row) => ({
     schemaVersion: SNAPSHOT_SCHEMA_VERSION,
     id: row.id,
     version: row.version,
@@ -135,18 +152,18 @@ export async function loadActivitySnapshot(
     reviewDueAt: row.reviewDueAt,
     startedAt: row.startedAt,
     endedAt: row.endedAt,
-    subjectCategoryIds: subjectCategoryIds.sort(),
-    dataCategoryIds: dataCategoryIds.sort(),
-    systemIds: systemIds.sort(),
-    securityMeasureIds: securityMeasureIds.sort(),
-    retentionRules: rules.map((rule) => ({
+    subjectCategoryIds: subjectCategoryIdsOf(row.id),
+    dataCategoryIds: dataCategoryIdsOf(row.id),
+    systemIds: systemIdsOf(row.id),
+    securityMeasureIds: securityMeasureIdsOf(row.id),
+    retentionRules: (rulesOf.get(row.id) ?? []).map((rule) => ({
       id: rule.id,
       dataCategoryId: rule.dataCategoryId,
       retentionPeriod: rule.retentionPeriod,
       triggerEvent: rule.triggerEvent,
       legalRef: rule.legalRef,
     })),
-    clientScope: scope.map((entry) => ({
+    clientScope: (scopesOf.get(row.id) ?? []).map((entry) => ({
       id: entry.id,
       clientPartyId: entry.clientPartyId,
       mode: entry.mode,
@@ -155,23 +172,23 @@ export async function loadActivitySnapshot(
       startedAt: entry.startedAt,
       endedAt: entry.endedAt,
     })),
-    engagements: engagements.map((row) => ({
-      id: row.id,
-      partyId: row.partyId,
-      role: row.role,
-      serviceDescription: row.serviceDescription,
-      processingCountries: row.processingCountries,
-      startedAt: row.startedAt,
-      endedAt: row.endedAt,
-      dataCategoryIds: (categoriesOf.get(row.id) ?? []).map((link) => link.dataCategoryId).sort(),
-      transfers: byId(transfersOf.get(row.id) ?? []).map((row) => ({
-        id: row.id,
-        destinationCountry: row.destinationCountry,
-        mechanism: row.mechanism,
-        onwardVia: row.onwardVia,
-        documentRef: row.documentRef,
+    engagements: (engagementsOf.get(row.id) ?? []).map((item) => ({
+      id: item.id,
+      partyId: item.partyId,
+      role: item.role,
+      serviceDescription: item.serviceDescription,
+      processingCountries: item.processingCountries,
+      startedAt: item.startedAt,
+      endedAt: item.endedAt,
+      dataCategoryIds: (categoriesOf.get(item.id) ?? []).map((link) => link.dataCategoryId).sort(),
+      transfers: (transfersOf.get(item.id) ?? []).map((child) => ({
+        id: child.id,
+        destinationCountry: child.destinationCountry,
+        mechanism: child.mechanism,
+        onwardVia: child.onwardVia,
+        documentRef: child.documentRef,
       })),
-      clientScope: byId(scopesOf.get(row.id) ?? []).map((entry) => ({
+      clientScope: (engagementScopesOf.get(item.id) ?? []).map((entry) => ({
         id: entry.id,
         clientPartyId: entry.clientPartyId,
         mode: entry.mode,
@@ -179,7 +196,15 @@ export async function loadActivitySnapshot(
         agreementId: entry.agreementId,
       })),
     })),
-  };
+  }));
+}
+
+export async function loadActivitySnapshot(
+  tx: Transaction,
+  row: ActivityRow,
+): Promise<ActivitySnapshot> {
+  const [snapshot] = await loadActivitySnapshots(tx, [row]);
+  return snapshot!;
 }
 
 /** The whole aggregate, or undefined when there is no such activity. */
