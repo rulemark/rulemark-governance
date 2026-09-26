@@ -58,6 +58,11 @@
   `replay-story.ts`, `story.ts`); the dataset aligned with the story's cast;
   `inputFromSnapshot`; `databaseUrlOrExit`. 11 seed tests and 2 round-trip
   tests; run end to end on a throwaway database
+- **Phase 8 complete, and with it build step 2.** Deployed through
+  `2017347` (the narrow migrator config), pushed alone after the first push
+  was skipped by the build filter. Production reset and seeded from the
+  Render Shell; the views, history and Markdown report verified on the live
+  service; README tour extended to the record, the lifecycle and the push rule
 
 ## Test Results
 | Test | Command | Expected | Actual | Status |
@@ -72,6 +77,8 @@
 | Phase 5: `/subprocessors` | `npm run check`; every engagement made effective on purpose; `openapi.json` compared as JSON | Clean, all pass; the Ch4 tests fail; only additions | Clean; 447 + 196 + 4 pass; 6 tests failed as expected, then restored; one path, one schema, two tags added | ✅ |
 | Phase 6: `/report` | `npm run check`; anchors built from names on purpose; `openapi.json` compared as JSON | Clean, all pass; the anchor tests fail; only additions | Clean; 477 + 200 + 4 pass; 4 tests failed as expected, then restored; one path and one schema added | ✅ |
 | Phase 7: the seed | `npm run check`; backdating removed on purpose; `db:migrate` + `db:seed -- --reset` twice on a throwaway database; production guard | Clean, all pass; date tests fail; 71 applied then 71 already there; guard refuses | Clean; 490 + 200 + 4 pass; 2 tests failed as expected, then restored; as expected; exit 1, data untouched | ✅ |
+| Narrow migrator config | `npm run check` (incl. `test:dist`: migrator with secrets blanked) | Clean, all pass | Clean; 493 + 200 + 5 pass | ✅ |
+| Phase 8: deployed | push `2017347` alone → CI → Render; seed in Render Shell; live checks | Deploy live; 71 applied; views and report as the story | Live ~1 min after CI; 71 applied, 0 already there; as expected; 14 of 14 tour links 200 | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -81,7 +88,7 @@
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Build step 2, Phase 8 (deploy and verify); Phases 1–7 complete |
+| Where am I? | **Build step 2 is complete.** Eight phases, all green, deployed, and the live record replays the story |
 | Where am I going? | Activities and their rules, then `/subprocessors` and `/report`, then the Hireloop seed |
 | What's the goal? | Make the record a record: an Art. 30 entry that can be drafted, activated and read |
 | What have I learned? | See findings.md, and `plan-archive/2/findings.md` for step 1 |

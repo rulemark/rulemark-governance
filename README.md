@@ -28,22 +28,54 @@ Hireloop demo record.
      — `diversity` and `health` are flagged `art9`
    - [`/v1/me`](https://ropa-api.onrender.com/v1/me) — what you are allowed to do
 
-3. **Try to write something.** `POST /v1/parties` without a token answers `401`
+3. **Read the record itself.** The Hireloop story (`docs/ropa/ropa-story.md`) is
+   loaded as it happened, February to September 2026:
+
+   - [`/v1/activities`](https://ropa-api.onrender.com/v1/activities) — four
+     controller activities (C1–C4) and three processor ones (P1–P3). Filter them:
+     [`?party=mailcrest`](https://ropa-api.onrender.com/v1/activities?party=mailcrest),
+     [`?special=true`](https://ropa-api.onrender.com/v1/activities?special=true),
+     [`?country=US`](https://ropa-api.onrender.com/v1/activities?country=US)
+   - [`/v1/activities/P1`](https://ropa-api.onrender.com/v1/activities/P1) —
+     Mailcrest appears twice, one region each: the EU region only for Aurelia,
+     the US region for everyone else
+   - [`/v1/activities/P1/revisions`](https://ropa-api.onrender.com/v1/activities/P1/revisions)
+     — its history, dated as the story tells it: created in February, changed
+     when Aurelia signed in March, and again when Mailcrest added a
+     subcontractor in India in July
+   - The subprocessor list, derived from the record rather than kept as a page:
+     [by offering](https://ropa-api.onrender.com/v1/subprocessors?offering=ats)
+     (the standard terms, and the public page), for
+     [Aurelia](https://ropa-api.onrender.com/v1/subprocessors?client=aurelia)
+     (Mailcrest in Ireland, no Glitchlog, no AI parsing) and for
+     [Northwind](https://ropa-api.onrender.com/v1/subprocessors?client=northwind)
+   - [The Art. 30 record for the ATS, as Markdown](https://ropa-api.onrender.com/v1/report?offering=ats&format=markdown)
+     — each activity carries an anchor built from its code, so a link to `#p3`
+     survives any rename
+
+4. **Try to write something.** `POST /v1/parties` without a token answers `401`
    — not `403`, because we do not know who you are. Authorization runs before
    validation, so you cannot learn whether your body was well-formed either.
 
-4. **Get a token.** `POST /v1/tokens` with a known subject and the mint secret,
+5. **Get a token.** `POST /v1/tokens` with a known subject and the mint secret,
    then **Authorize**. `GET /v1/me` now lists the permissions your roles add up
    to. A viewer attempting a write gets `403` naming the exact permission it
    needed.
 
-5. **Create a party**, leaving out `slug` — it is derived from the name. Then
+6. **Create a party**, leaving out `slug` — it is derived from the name. Then
    read `/v1/parties/{slug}/revisions`: the change is recorded against the
    subject in your token, not against anything the request could assert. Send
    `X-Actor` and watch it be ignored.
 
-6. **Edit it.** A `PUT` without `If-Match` answers `428`; with a stale version,
+7. **Edit it.** A `PUT` without `If-Match` answers `428`; with a stale version,
    `412`. The `ETag` on every response is the version to send back.
+
+8. **Draft and approve an activity.** An editor can save an incomplete draft,
+   but cannot activate it: `POST /v1/activities/{ref}/activate` needs the
+   `activity:approve` permission, and `If-Match` naming the version the approver
+   reviewed. Activating a draft that is missing what its role requires answers
+   `422`, naming each missing field. An approver holding an older version gets
+   `412`.
 
 > Demo project. All data is synthetic; no real personal data is used, and the
 > mint secret is not published — the write steps need one.
@@ -71,6 +103,19 @@ Deploys run only after CI passes, then build → migrate → start, with the
 migration on its own instance so a failure fails the deploy and the previous
 version keeps serving. Traffic moves only once the new instance answers
 `/healthz`.
+
+A build filter keeps documentation changes from deploying, and Render applies
+it to the **newest commit of a push** only. A push that ends with a docs-only
+commit therefore deploys nothing, even if earlier commits in it change the app,
+and the skip leaves no trace in the service's Events. Push code commits on their
+own, then documentation separately.
+
+To load the story into a fresh database, run the seed from the service's
+**Shell** in the Render dashboard, so the connection string never leaves Render:
+
+```bash
+ALLOW_SEED_RESET=true node apps/ropa-api/dist/demo/replay.js --reset
+```
 
 ## Layout
 

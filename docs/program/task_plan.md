@@ -9,7 +9,7 @@ turn the stored record into something a person reads.
 Build step 2 from `docs/ropa/ropa-api.md` §8. **Enough for story chapters 2–4.**
 
 ## Current Phase
-Phase 8
+Build step 2 complete (2026-09-26). Open: the carried-over items below.
 
 ## Definition of done for step 2
 - A controller activity and a processor activity can be created, edited,
@@ -105,15 +105,16 @@ Reference: `ropa-database.md` §9; `ropa-story.md`
 - **Status:** complete
 
 ### Phase 8: Deploy and verify
-- [ ] The views answer on the deployed service
-- [ ] The Markdown report is worth reading
-- [ ] README: the tour extended to the record itself
+- [x] The views answer on the deployed service
+- [x] The Markdown report is worth reading
+- [x] README: the tour extended to the record itself
+- **Status:** complete
 
 ## Carried over from step 1
 - [ ] Restrict external database access on `ropa-db`
-- [ ] Confirm a docs-only commit deploys nothing, and an `apps/ropa-api/**` commit does
+- [x] Confirm a docs-only commit deploys nothing, and an `apps/ropa-api/**` commit does. *Confirmed, with a catch: Render judges a push by its **newest commit** only, so a push ending in a docs commit deploys nothing even when earlier commits change the app. Rule adopted: push code commits on their own, docs separately (README, Deployment).*
 - [ ] Narrow `demo:data`'s configuration: it validates the whole config, so it
-      demands a `DATABASE_URL` and `JWT_SECRET` it never uses
+      demands a `DATABASE_URL` and `JWT_SECRET` it never uses. *Half done: `db:migrate` and `db:seed` now read only `NODE_ENV`, `LOG_LEVEL` and `DATABASE_URL` (`loadDatabaseConfig`, `2017347`). `demo:data` still loads everything; it needs only the mint secret and a base URL.*
 - [ ] `demo:data` gains the activities once they exist. *The story's activities now exist as data (`src/demo/story.ts`) and `db:seed` loads them; `demo:data` still posts foundation records only. Adding them over HTTP means activating as an approver and a GET-then-PUT for the Ch4 edit, which `inputFromSnapshot` makes straightforward.*
 
 ## Open questions

@@ -302,6 +302,27 @@
     `--reset`, seed again, production guard), then dropped. Tests checked
     by removing the backdating: both date tests failed.
 
+- **How Phase 8 went.**
+  - **Render judges a push by its newest commit.** An 18-commit push ending
+    in `docs: close Phase 7` deployed nothing: the service's Events still
+    showed `27a3c48` from 21 September as the last deploy, and the skip left
+    no event. The Render docs don't say how build filters treat a multi-commit
+    push; this is the observed behaviour. Rule adopted: push code commits on
+    their own, documentation separately.
+  - **The deploy was carried by a real fix,** not a dummy commit: `db:migrate`
+    now needs only `DATABASE_URL` (`loadDatabaseConfig`). Pushed alone, it
+    went live about a minute after CI passed. Its pre-deploy applied `0003`
+    and `0004` with the narrow config, which a built-artifact test also covers.
+  - **Seeding production:** the dashboard's Shell on `ropa-api`, `ALLOW_SEED_RESET=true
+    node apps/ropa-api/dist/demo/replay.js --reset`, so the connection string
+    never left Render. It applied 71 of 71 steps.
+  - **Verified live:** C1–C4 and P1–P3 active; Aurelia's list is Render (DE)
+    and Mailcrest (IE, with the Ch6 onward transfer to India), under her DPA
+    (specific, 60 days); Northwind's is Render, Mailcrest (US), Glitchlog and
+    Scribe AI under the Standard DPA; P1's revisions are dated 12 Feb, 12 Feb,
+    16 Mar and 3 Jul; the ATS Markdown report reads as an Art. 30 record with
+    `#p1`–`#p3`. All 14 links in the README tour answer 200.
+
 ## Issues encountered
 | Issue | Resolution |
 |---|---|
