@@ -6,7 +6,6 @@ import {
   Code,
   CountryCode,
   Identifier,
-  IsoDate,
   IsoDateTime,
   Name,
   Ref,
@@ -64,7 +63,9 @@ export const Subprocessor = z.object({
 
 export const SubprocessorsResponse = z.object({
   generatedAt: IsoDateTime,
-  asOf: IsoDate.nullable(),
+  asOf: AsOf.nullable().describe(
+    'The asOf asked for, as written: a date (the end of that day, UTC) or a timestamp. Null: the record today.',
+  ),
   scope: z.object({
     offering: Ref,
     /** Null for the offering's standard terms. */

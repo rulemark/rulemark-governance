@@ -345,7 +345,7 @@ describe('GET /v1/subprocessors?offering= (the standard terms, pre-contract)', (
     ]);
   });
 
-  it('stamps when it was generated, and has no asOf yet', async () => {
+  it('stamps when it was generated, and has no asOf when none was asked for', async () => {
     const view = await subprocessors(`offering=${ref('ats')}`);
     expect(Date.parse(view.generatedAt)).not.toBeNaN();
     expect(view.asOf).toBeNull();
@@ -382,9 +382,9 @@ describe('asking the question properly', () => {
     expect(await refused(`client=${ref('both')}`)).toEqual([['/client', 'several_offerings']]);
   });
 
-  it('says asOf is not supported yet, rather than quietly answering for today', async () => {
-    expect(await refused(`client=${ref('aurelia')}&asOf=2026-05-01`)).toEqual([
-      ['/asOf', 'not_yet_supported'],
+  it('refuses an asOf in the future', async () => {
+    expect(await refused(`client=${ref('aurelia')}&asOf=2999-01-01`)).toEqual([
+      ['/asOf', 'in_the_future'],
     ]);
   });
 });

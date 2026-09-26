@@ -488,9 +488,12 @@ describe('asking properly', () => {
     ]);
   });
 
-  it('says CSV and asOf are not supported yet', async () => {
+  it('says CSV is not supported yet', async () => {
     expect(await refused('format=csv')).toEqual([['/format', 'not_yet_supported']]);
-    expect(await refused('asOf=2026-05-01')).toEqual([['/asOf', 'not_yet_supported']]);
+  });
+
+  it('refuses an asOf in the future', async () => {
+    expect(await refused('asOf=2999-01-01')).toEqual([['/asOf', 'in_the_future']]);
   });
 
   it('names an unknown client', async () => {

@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
 import { fieldErrorsFromZod } from '../errors.js';
-import { ReportQuery } from './report.js';
+import { ReportQuery, ReportResponse } from './report.js';
+
+describe('ReportResponse.asOf', () => {
+  it('echoes the asOf asked for: a date, a timestamp, or null for today', () => {
+    for (const asOf of ['2026-03-01', '2026-03-16T15:00:00+01:00', null]) {
+      expect(ReportResponse.shape.asOf.safeParse(asOf).success).toBe(true);
+    }
+    expect(ReportResponse.shape.asOf.safeParse('1 March').success).toBe(false);
+  });
+});
 
 describe('ReportQuery (§5.1)', () => {
   it('defaults to JSON and leaves the view to the scope', () => {

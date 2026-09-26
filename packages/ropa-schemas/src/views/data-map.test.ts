@@ -55,6 +55,15 @@ describe('DataMapResponse (§5.4)', () => {
   });
 });
 
+describe('DataMapResponse.asOf', () => {
+  it('echoes the asOf asked for: a date, a timestamp, or null for today', () => {
+    for (const asOf of ['2026-03-01', '2026-03-16T15:00:00+01:00', null]) {
+      expect(DataMapResponse.shape.asOf.safeParse(asOf).success).toBe(true);
+    }
+    expect(DataMapResponse.shape.asOf.safeParse('1 March').success).toBe(false);
+  });
+});
+
 describe('DataMapQuery', () => {
   it('requires a subject category, and takes a client and asOf', () => {
     expect(DataMapQuery.safeParse({}).success).toBe(false);

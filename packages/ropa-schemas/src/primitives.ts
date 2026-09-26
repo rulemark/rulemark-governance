@@ -172,10 +172,16 @@ export const IsoDateTime = z.iso
   .describe('An RFC 3339 timestamp.')
   .meta({ examples: ['2026-03-16T10:00:00Z'] });
 
-/** `?asOf=` takes either, because "the record on 16 March" is a normal question. */
+/**
+ * `?asOf=` takes either, because "the record on 16 March" is a normal
+ * question. A date means the end of that day in UTC; a timestamp, that
+ * instant (step 4, open question 4).
+ */
 export const AsOf = z
   .union([IsoDate, IsoDateTime])
-  .describe('A point in time for a historical read: a date or an RFC 3339 timestamp.');
+  .describe(
+    'A point in time for a historical read: a date, meaning the end of that day in UTC, or an RFC 3339 timestamp.',
+  );
 
 /**
  * Any of the three identifiers, as sent in a path or a request body: an `id`,

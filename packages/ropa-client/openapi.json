@@ -2328,18 +2328,33 @@
           "asOf": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "date",
-                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-                "description": "A date, \"YYYY-MM-DD\".",
-                "examples": [
-                  "2026-03-16"
-                ]
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "description": "A date, \"YYYY-MM-DD\".",
+                    "examples": [
+                      "2026-03-16"
+                    ]
+                  },
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+                    "description": "An RFC 3339 timestamp.",
+                    "examples": [
+                      "2026-03-16T10:00:00Z"
+                    ]
+                  }
+                ],
+                "description": "A point in time for a historical read: a date, meaning the end of that day in UTC, or an RFC 3339 timestamp."
               },
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "The asOf asked for, as written: a date (the end of that day, UTC) or a timestamp. Null: the record today."
           },
           "scope": {
             "type": "object",
@@ -2773,18 +2788,33 @@
           "asOf": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "date",
-                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-                "description": "A date, \"YYYY-MM-DD\".",
-                "examples": [
-                  "2026-03-16"
-                ]
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "description": "A date, \"YYYY-MM-DD\".",
+                    "examples": [
+                      "2026-03-16"
+                    ]
+                  },
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+                    "description": "An RFC 3339 timestamp.",
+                    "examples": [
+                      "2026-03-16T10:00:00Z"
+                    ]
+                  }
+                ],
+                "description": "A point in time for a historical read: a date, meaning the end of that day in UTC, or an RFC 3339 timestamp."
               },
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "The asOf asked for, as written: a date (the end of that day, UTC) or a timestamp. Null: the record today."
           },
           "party": {
             "$ref": "#/components/schemas/Ref"
@@ -3134,18 +3164,33 @@
           "asOf": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "date",
-                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-                "description": "A date, \"YYYY-MM-DD\".",
-                "examples": [
-                  "2026-03-16"
-                ]
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "description": "A date, \"YYYY-MM-DD\".",
+                    "examples": [
+                      "2026-03-16"
+                    ]
+                  },
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+                    "description": "An RFC 3339 timestamp.",
+                    "examples": [
+                      "2026-03-16T10:00:00Z"
+                    ]
+                  }
+                ],
+                "description": "A point in time for a historical read: a date, meaning the end of that day in UTC, or an RFC 3339 timestamp."
               },
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "The asOf asked for, as written: a date (the end of that day, UTC) or a timestamp. Null: the record today."
           },
           "subjectCategory": {
             "$ref": "#/components/schemas/Ref"
@@ -3845,18 +3890,33 @@
           "asOf": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "date",
-                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-                "description": "A date, \"YYYY-MM-DD\".",
-                "examples": [
-                  "2026-03-16"
-                ]
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "description": "A date, \"YYYY-MM-DD\".",
+                    "examples": [
+                      "2026-03-16"
+                    ]
+                  },
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+                    "description": "An RFC 3339 timestamp.",
+                    "examples": [
+                      "2026-03-16T10:00:00Z"
+                    ]
+                  }
+                ],
+                "description": "A point in time for a historical read: a date, meaning the end of that day in UTC, or an RFC 3339 timestamp."
               },
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "The asOf asked for, as written: a date (the end of that day, UTC) or a timestamp. Null: the record today."
           },
           "scope": {
             "type": "object",
@@ -13955,7 +14015,7 @@
             "name": "asOf",
             "in": "query",
             "required": false,
-            "description": "Not supported yet: answered with 422 not_yet_supported.",
+            "description": "The record as it stood then (Ch8): a date means the end of that day in UTC, a timestamp that instant. A moment after now answers 422 in_the_future. Names are the names of the time.",
             "schema": {
               "type": "string"
             }
@@ -14055,7 +14115,7 @@
             "name": "asOf",
             "in": "query",
             "required": false,
-            "description": "Not supported yet: answered with 422 not_yet_supported.",
+            "description": "The record as it stood then (Ch8): a date means the end of that day in UTC, a timestamp that instant. A moment after now answers 422 in_the_future. Names are the names of the time.",
             "schema": {
               "type": "string"
             }
@@ -14140,7 +14200,7 @@
             "name": "asOf",
             "in": "query",
             "required": false,
-            "description": "Not supported yet: answered with 422 not_yet_supported.",
+            "description": "The record as it stood then (Ch8): a date means the end of that day in UTC, a timestamp that instant. A moment after now answers 422 in_the_future. Names are the names of the time.",
             "schema": {
               "type": "string"
             }
@@ -14231,7 +14291,7 @@
             "name": "asOf",
             "in": "query",
             "required": false,
-            "description": "Not supported yet: answered with 422 not_yet_supported.",
+            "description": "The record as it stood then (Ch8): a date means the end of that day in UTC, a timestamp that instant. A moment after now answers 422 in_the_future. Names are the names of the time.",
             "schema": {
               "type": "string"
             }

@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
 import { fieldErrorsFromZod } from '../errors.js';
-import { SubprocessorsQuery } from './subprocessors.js';
+import { SubprocessorsQuery, SubprocessorsResponse } from './subprocessors.js';
+
+describe('SubprocessorsResponse.asOf', () => {
+  it('echoes the asOf asked for: a date, a timestamp, or null for today', () => {
+    for (const asOf of ['2026-03-01', '2026-03-16T15:00:00+01:00', null]) {
+      expect(SubprocessorsResponse.shape.asOf.safeParse(asOf).success).toBe(true);
+    }
+    expect(SubprocessorsResponse.shape.asOf.safeParse('1 March').success).toBe(false);
+  });
+});
 
 describe('SubprocessorsQuery (§5.2)', () => {
   it('takes an offering or a client', () => {

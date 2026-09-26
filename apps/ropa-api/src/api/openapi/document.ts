@@ -413,6 +413,10 @@ function pathsForResource(resource: ResourceDefinition<never, never, never>): Js
 }
 
 /** Hand-written: these two are not resources, and have no Zod route schema. */
+/** `?asOf=` on every view that takes it (§5, DB §6.3). */
+const AS_OF =
+  'The record as it stood then (Ch8): a date means the end of that day in UTC, a timestamp that instant. A moment after now answers 422 in_the_future. Names are the names of the time.';
+
 const HISTORY_SCHEMAS: JsonObject = {
   RevisionSummary: {
     type: 'object',
@@ -653,7 +657,7 @@ export function buildOpenApiDocument(): JsonObject {
           }),
           queryParam('offering', 'An offering, by id or slug: its standard terms.'),
           queryParam('client', 'A client, by id or slug: the record as it applies to them.'),
-          queryParam('asOf', 'Not supported yet: answered with 422 not_yet_supported.'),
+          queryParam('asOf', AS_OF),
           queryParam('format', 'json (default) or markdown. csv is not supported yet.', {
             type: 'string',
             enum: ['json', 'markdown', 'csv'],
@@ -700,7 +704,7 @@ export function buildOpenApiDocument(): JsonObject {
             name: 'asOf',
             in: 'query',
             required: false,
-            description: 'Not supported yet: answered with 422 not_yet_supported.',
+            description: AS_OF,
             schema: { type: 'string' },
           },
         ],
@@ -730,7 +734,7 @@ export function buildOpenApiDocument(): JsonObject {
               enum: ['true', 'false'],
             },
           ),
-          queryParam('asOf', 'Not supported yet: answered with 422 not_yet_supported.'),
+          queryParam('asOf', AS_OF),
         ],
         responses: {
           '200': json('ImpactResponse', 'The impact'),
@@ -758,7 +762,7 @@ export function buildOpenApiDocument(): JsonObject {
             schema: { type: 'string' },
           },
           queryParam('client', 'A client, by id or slug: what is done for them.'),
-          queryParam('asOf', 'Not supported yet: answered with 422 not_yet_supported.'),
+          queryParam('asOf', AS_OF),
         ],
         responses: {
           '200': json('DataMapResponse', 'The data map'),

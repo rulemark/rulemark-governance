@@ -100,6 +100,15 @@ describe('ImpactResponse (§5.3)', () => {
   });
 });
 
+describe('ImpactResponse.asOf', () => {
+  it('echoes the asOf asked for: a date, a timestamp, or null for today', () => {
+    for (const asOf of ['2026-03-01', '2026-03-16T15:00:00+01:00', null]) {
+      expect(ImpactResponse.shape.asOf.safeParse(asOf).success).toBe(true);
+    }
+    expect(ImpactResponse.shape.asOf.safeParse('1 March').success).toBe(false);
+  });
+});
+
 describe('ImpactQuery', () => {
   it('takes expandClients as true or false, and nothing else', () => {
     expect(ImpactQuery.safeParse({}).success).toBe(true);
@@ -108,7 +117,7 @@ describe('ImpactQuery', () => {
     expect(ImpactQuery.safeParse({ expandClients: 'yes' }).success).toBe(false);
   });
 
-  it('accepts asOf, which the route refuses until step 4', () => {
+  it('accepts asOf', () => {
     expect(ImpactQuery.safeParse({ asOf: '2026-06-03' }).success).toBe(true);
   });
 });

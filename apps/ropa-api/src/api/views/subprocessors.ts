@@ -1,15 +1,13 @@
 import { SubprocessorsResponse, type ActivityRef } from '@rulemark/ropa-schemas';
 
-import { offeringAggregate, partyAggregate } from '../../domain/aggregates.js';
-import { isoDate } from '../../domain/agreements.js';
-import { loadRefs, requireRef } from '../../domain/refs.js';
-import type { Transaction } from '../../domain/transaction.js';
+import { refsOf } from '../../domain/record/reader.js';
+import { requireRef } from '../../domain/refs.js';
 import {
   clientSubprocessors,
   standardSubprocessors,
   type SubprocessorGroup,
 } from '../../domain/views/subprocessors.js';
-import { liveActivities, termsRef, type ViewScope } from './scope.js';
+import { processorActivities, termsRef, type ViewRead, type ViewScope } from './scope.js';
 
 /**
  * `GET /subprocessors` for a resolved scope (`ropa-api.md` §5.2). The report's
@@ -17,26 +15,27 @@ import { liveActivities, termsRef, type ViewScope } from './scope.js';
  * identical rather than merely alike.
  */
 export async function buildSubprocessors(
-  tx: Transaction,
+  read: ViewRead,
   scope: ViewScope,
-  now: Date,
 ): Promise<SubprocessorsResponse> {
-  const day = isoDate(now);
-  const activities = await liveActivities(tx, 'processor', scope.offeringId);
+  const { record } = read;
+  const activities = await processorActivities(record, scope.offeringId);
   const standard =
-    scope.clientId === null ? standardSubprocessors(activities, scope.offeringId, day) : undefined;
+    scope.clientId === null
+      ? standardSubprocessors(activities, scope.offeringId, record.day)
+      : undefined;
   const groups =
     standard?.subprocessors ??
-    clientSubprocessors(activities, scope.offeringId, scope.clientId!, day);
+    clientSubprocessors(activities, scope.offeringId, scope.clientId!, record.day);
   const modules = standard?.optionalModules ?? [];
 
-  const parties = await loadRefs(tx, partyAggregate, [
+  const parties = await refsOf(record, 'party', [
     ...[...groups, ...modules.flatMap((module) => module.subprocessors)].map(
       (group) => group.partyId,
     ),
     ...(scope.clientId === null ? [] : [scope.clientId]),
   ]);
-  const offerings = await loadRefs(tx, offeringAggregate, [scope.offeringId]);
+  const offerings = await refsOf(record, 'offering', [scope.offeringId]);
   const activityRefs = new Map<string, ActivityRef>(
     activities.map((activity) => [
       activity.id,
@@ -53,12 +52,12 @@ export async function buildSubprocessors(
   });
 
   return SubprocessorsResponse.parse({
-    generatedAt: now.toISOString(),
-    asOf: null,
+    generatedAt: read.generatedAt.toISOString(),
+    asOf: read.asOf,
     scope: {
       offering: requireRef(offerings, scope.offeringId, 'offering'),
       client: scope.clientId === null ? null : requireRef(parties, scope.clientId, 'client'),
-      terms: await termsRef(tx, scope.termsId),
+      terms: await termsRef(record, scope.termsId),
     },
     subprocessors: groups.map(toEntry),
     optionalModules: modules.map((module) => ({

@@ -154,7 +154,9 @@ export const Organisation = z.object({
 
 export const ReportResponse = z.object({
   generatedAt: IsoDateTime,
-  asOf: IsoDate.nullable(),
+  asOf: AsOf.nullable().describe(
+    'The asOf asked for, as written: a date (the end of that day, UTC) or a timestamp. Null: the record today.',
+  ),
   scope: z.object({
     view: z.enum(REPORT_VIEWS),
     offering: Ref.nullable(),

@@ -1,22 +1,9 @@
 import { ImpactResponse, type Ref } from '@rulemark/ropa-schemas';
-import { and, eq, inArray, ne, sql } from 'drizzle-orm';
 
-import {
-  agreementTerms,
-  dataCategory,
-  engagement,
-  processingActivity,
-} from '../../db/schema/index.js';
-import { loadActivitySnapshots } from '../../domain/activity/load.js';
-import {
-  dataCategoryAggregate,
-  partyAggregate,
-  subjectCategoryAggregate,
-} from '../../domain/aggregates.js';
-import { clientAgreementsFor, isoDate, vendorTermsIdsOf } from '../../domain/agreements.js';
-import { loadRefs, requireRef } from '../../domain/refs.js';
-import type { Transaction } from '../../domain/transaction.js';
+import { refsOf } from '../../domain/record/reader.js';
+import { requireRef } from '../../domain/refs.js';
 import { partyImpact, type TermsFacts } from '../../domain/views/impact.js';
+import { clientAgreementsFor, type ViewRead } from './scope.js';
 
 /** Groups this small list their clients without being asked (§5.3). */
 export const SMALL_GROUP = 10;
@@ -27,56 +14,50 @@ export function listsClients(clientCount: number, expandClients: boolean): boole
 }
 
 /**
- * `GET /parties/{ref}/impact` (`ropa-api.md` §5.3). SQL chooses what to load —
- * the live activities engaging the party, the agreements and terms in play —
- * and `partyImpact` decides who is reached (DB §6.3).
+ * `GET /parties/{ref}/impact` (`ropa-api.md` §5.3). The record chooses what to
+ * load — the active activities engaging the party, the agreements and terms in
+ * play — and `partyImpact` decides who is reached (DB §6.3).
  */
 export async function buildImpact(
-  tx: Transaction,
+  read: ViewRead,
   party: Ref,
   options: { readonly expandClients: boolean },
-  now: Date,
 ): Promise<ImpactResponse> {
-  const rows = await tx
-    .select()
-    .from(processingActivity)
-    .where(
-      and(
-        eq(processingActivity.status, 'active'),
-        sql`EXISTS (SELECT 1 FROM ${engagement} WHERE ${engagement.activityId} = ${processingActivity.id} AND ${engagement.partyId} = ${party.id})`,
-      ),
-    );
-  const activities = await loadActivitySnapshots(tx, rows);
+  const { record } = read;
+  const activities = await record.activities({ engaging: party.id });
 
   const offeringIds = activities.flatMap((activity) =>
     activity.role === 'processor' && activity.offeringId !== null ? [activity.offeringId] : [],
   );
-  const agreements = await clientAgreementsFor(tx, offeringIds, now);
-  const vendorTermsIds = await vendorTermsIdsOf(tx, party.id, now);
+  const agreements = await clientAgreementsFor(record, offeringIds);
+  // Every inbound agreement in force: nothing ties an engagement to one of
+  // them (step 3, open question 5).
+  const vendorTermsIds = [
+    ...new Set(
+      (await record.agreementsInForce({ direction: 'inbound', partyId: party.id })).map(
+        (row) => row.termsId,
+      ),
+    ),
+  ];
 
-  const termsIds = [...new Set([...agreements.map((row) => row.termsId), ...vendorTermsIds])];
-  const termsRows =
-    termsIds.length === 0
-      ? []
-      : await tx.select().from(agreementTerms).where(inArray(agreementTerms.id, termsIds));
-  const terms = new Map(termsRows.map((row) => [row.id, row]));
+  const terms = await record.get('agreement_terms', [
+    ...agreements.map((row) => row.termsId),
+    ...vendorTermsIds,
+  ]);
   const termsOf = (id: string) => {
     const row = terms.get(id);
     if (row === undefined) throw new Error(`Dangling reference: terms ${id}`);
     return row;
   };
 
-  const special = await tx
-    .select({ id: dataCategory.id })
-    .from(dataCategory)
-    .where(ne(dataCategory.special, 'none'));
+  const special = (await record.all('data_category')).filter((row) => row.special !== 'none');
 
   const impact = partyImpact({
     partyId: party.id,
     activities,
     agreements,
     terms: new Map<string, TermsFacts>(
-      termsRows.map((row) => [
+      [...terms.values()].map((row) => [
         row.id,
         {
           id: row.id,
@@ -88,23 +69,23 @@ export async function buildImpact(
     ),
     vendorNoticeDays: vendorTermsIds.map((id) => termsOf(id).noticeDays),
     specialDataCategoryIds: new Set(special.map((row) => row.id)),
-    day: isoDate(now),
+    day: record.day,
   });
 
   const [subjects, categories, clients] = await Promise.all([
-    loadRefs(
-      tx,
-      subjectCategoryAggregate,
+    refsOf(
+      record,
+      'subject_category',
       impact.entries.flatMap((entry) => entry.activity.subjectCategoryIds),
     ),
-    loadRefs(
-      tx,
-      dataCategoryAggregate,
+    refsOf(
+      record,
+      'data_category',
       impact.entries.flatMap((entry) => entry.engagement.dataCategoryIds),
     ),
-    loadRefs(
-      tx,
-      partyAggregate,
+    refsOf(
+      record,
+      'party',
       impact.entries.flatMap((entry) => entry.clientGroups.flatMap((group) => group.clientIds)),
     ),
   ]);
@@ -115,8 +96,8 @@ export async function buildImpact(
   };
 
   return ImpactResponse.parse({
-    generatedAt: now.toISOString(),
-    asOf: null,
+    generatedAt: read.generatedAt.toISOString(),
+    asOf: read.asOf,
     party,
     vendorTerms: vendorTermsIds.map((id) => ({
       ...termsRef(id),

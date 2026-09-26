@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { ENGAGEMENT_ROLES } from '../enums.js';
-import { AsOf, Identifier, IsoDate, IsoDateTime, Ref } from '../primitives.js';
+import { AsOf, Identifier, IsoDateTime, Ref } from '../primitives.js';
 import { RetentionRule } from '../resources/activity.js';
 import { ActivityRef } from './subprocessors.js';
 
@@ -46,7 +46,9 @@ export const DataMapEntry = z.object({
 
 export const DataMapResponse = z.object({
   generatedAt: IsoDateTime,
-  asOf: IsoDate.nullable(),
+  asOf: AsOf.nullable().describe(
+    'The asOf asked for, as written: a date (the end of that day, UTC) or a timestamp. Null: the record today.',
+  ),
   subjectCategory: Ref,
   client: Ref.nullable(),
   entries: z.array(DataMapEntry),

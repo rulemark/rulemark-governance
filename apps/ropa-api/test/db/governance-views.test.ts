@@ -195,10 +195,10 @@ describe('asking for an impact', () => {
     );
   });
 
-  it('says asOf is not supported yet, rather than quietly answering for today', async () => {
-    const response = await as('monitor', '/v1/parties/mailcrest/impact?asOf=2026-06-03');
+  it('refuses an asOf in the future: the record cannot know tomorrow', async () => {
+    const response = await as('monitor', '/v1/parties/mailcrest/impact?asOf=2999-01-01');
     expect(response.status).toBe(422);
-    expect(response.body.errors[0].code).toBe('not_yet_supported');
+    expect(response.body.errors[0]).toMatchObject({ path: '/asOf', code: 'in_the_future' });
   });
 });
 
@@ -319,10 +319,10 @@ describe('asking for a data map', () => {
     expect(response.body.requiredPermission).toBe('view:datamap');
   });
 
-  it('says asOf is not supported yet', async () => {
-    const response = await as('dsar', '/v1/data-map?subjectCategory=candidates&asOf=2026-07-01');
+  it('refuses an asOf in the future', async () => {
+    const response = await as('dsar', '/v1/data-map?subjectCategory=candidates&asOf=2999-01-01');
     expect(response.status).toBe(422);
-    expect(response.body.errors[0].code).toBe('not_yet_supported');
+    expect(response.body.errors[0]).toMatchObject({ path: '/asOf', code: 'in_the_future' });
   });
 });
 

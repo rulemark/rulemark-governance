@@ -1,16 +1,7 @@
 import { z } from 'zod';
 
 import { ACTIVITY_ROLES, AUTHORIZATION_TYPES, ENGAGEMENT_ROLES } from '../enums.js';
-import {
-  AsOf,
-  CountryCode,
-  IsoDate,
-  IsoDateTime,
-  Name,
-  Ref,
-  RegionCode,
-  Uuid,
-} from '../primitives.js';
+import { AsOf, CountryCode, IsoDateTime, Name, Ref, RegionCode, Uuid } from '../primitives.js';
 import { ActivityRef, TermsRef } from './subprocessors.js';
 
 /**
@@ -67,7 +58,9 @@ export const ImpactEngagement = z.object({
 
 export const ImpactResponse = z.object({
   generatedAt: IsoDateTime,
-  asOf: IsoDate.nullable(),
+  asOf: AsOf.nullable().describe(
+    'The asOf asked for, as written: a date (the end of that day, UTC) or a timestamp. Null: the record today.',
+  ),
   party: Ref,
   /** Every inbound agreement in force with the vendor (step 3, open question 5). */
   vendorTerms: z.array(TermsRef),

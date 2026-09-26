@@ -5,19 +5,10 @@ import {
   type ReportQuery,
   type Ref,
 } from '@rulemark/ropa-schemas';
-import { eq, inArray } from 'drizzle-orm';
 
-import { dataCategory, party } from '../../db/schema/index.js';
-import {
-  offeringAggregate,
-  partyAggregate,
-  securityMeasureAggregate,
-  subjectCategoryAggregate,
-} from '../../domain/aggregates.js';
-import { clientsByOffering, isoDate } from '../../domain/agreements.js';
-import { loadRefs, requireRef } from '../../domain/refs.js';
+import { refsOf } from '../../domain/record/reader.js';
+import { requireRef } from '../../domain/refs.js';
 import type { ActivitySnapshot } from '../../domain/snapshots.js';
-import type { Transaction } from '../../domain/transaction.js';
 import {
   coversClient,
   inForce,
@@ -25,7 +16,7 @@ import {
   type ProcessorScope,
 } from '../../domain/views/subprocessors.js';
 import { buildSubprocessors } from './subprocessors.js';
-import { liveActivities, resolveViewScope, termsRef } from './scope.js';
+import { processorActivities, resolveViewScope, termsRef, type ViewRead } from './scope.js';
 
 /**
  * `GET /report` (`ropa-api.md` §5.1): the Art. 30 record, in the JSON the
@@ -37,16 +28,16 @@ import { liveActivities, resolveViewScope, termsRef } from './scope.js';
 type Engagement = ActivitySnapshot['engagements'][number];
 
 export async function buildReport(
-  tx: Transaction,
+  read: ViewRead,
   query: Pick<ReportQuery, 'view' | 'offering' | 'client'>,
-  now: Date,
 ): Promise<ReportResponse> {
-  const day = isoDate(now);
+  const { record } = read;
+  const { day } = record;
   const scoped = query.offering !== undefined || query.client !== undefined;
   const view = query.view ?? (scoped ? 'processor' : 'all');
-  const scope = scoped ? await resolveViewScope(tx, query, now) : null;
+  const scope = scoped ? await resolveViewScope(read, query) : null;
 
-  const controllers = view === 'processor' ? [] : await liveActivities(tx, 'controller');
+  const controllers = view === 'processor' ? [] : await record.activities({ role: 'controller' });
   const processorScope: ProcessorScope =
     scope === null
       ? { kind: 'all' }
@@ -57,19 +48,23 @@ export async function buildReport(
     view === 'controller'
       ? []
       : scopeProcessorActivities(
-          await liveActivities(tx, 'processor', scope?.offeringId),
+          await processorActivities(record, scope?.offeringId),
           processorScope,
           day,
         );
 
-  // For the whole record, name the clients each activity covers today.
+  // For the whole record, name the clients each activity covers on the day.
   const clientsOf = new Map<string, string[]>();
   if (processorScope.kind === 'all' && processors.length > 0) {
-    const byOffering = await clientsByOffering(
-      tx,
-      processors.map(({ activity }) => activity.offeringId!),
-      now,
-    );
+    const byOffering = new Map<string, string[]>();
+    for (const row of await record.agreementsInForce({
+      direction: 'outbound',
+      offeringIds: processors.map(({ activity }) => activity.offeringId!),
+    })) {
+      const clients = byOffering.get(row.offeringId!) ?? [];
+      if (!clients.includes(row.partyId)) clients.push(row.partyId);
+      byOffering.set(row.offeringId!, clients);
+    }
     for (const { activity } of processors) {
       clientsOf.set(
         activity.id,
@@ -80,7 +75,7 @@ export async function buildReport(
     }
   }
 
-  const [self] = await tx.select().from(party).where(eq(party.kind, 'self')).limit(1);
+  const self = await record.self();
 
   // Every reference, loaded once per table for the whole report.
   const recipients = controllers.map((activity) =>
@@ -89,23 +84,23 @@ export async function buildReport(
   const engagements = [...recipients.flat(), ...processors.flatMap((entry) => entry.engagements)];
   const activities = [...controllers, ...processors.map((entry) => entry.activity)];
 
-  const parties = await loadRefs(tx, partyAggregate, [
+  const parties = await refsOf(record, 'party', [
     ...engagements.map((engagement) => engagement.partyId),
     ...[...clientsOf.values()].flat(),
     ...(scope?.clientId === null || scope === null ? [] : [scope.clientId]),
     ...(self === undefined ? [] : [self.id]),
   ]);
-  const subjectCategories = await loadRefs(
-    tx,
-    subjectCategoryAggregate,
+  const subjectCategories = await refsOf(
+    record,
+    'subject_category',
     activities.flatMap((activity) => activity.subjectCategoryIds),
   );
-  const securityMeasures = await loadRefs(
-    tx,
-    securityMeasureAggregate,
+  const securityMeasures = await refsOf(
+    record,
+    'security_measure',
     activities.flatMap((activity) => activity.securityMeasureIds),
   );
-  const offerings = await loadRefs(tx, offeringAggregate, [
+  const offerings = await refsOf(record, 'offering', [
     ...processors.map(({ activity }) => activity.offeringId!),
     ...(scope === null ? [] : [scope.offeringId]),
   ]);
@@ -120,31 +115,17 @@ export async function buildReport(
       ),
     ]),
   ];
-  const categories = new Map(
-    categoryIds.length === 0
-      ? []
-      : (
-          await tx
-            .select({
-              id: dataCategory.id,
-              slug: dataCategory.slug,
-              name: dataCategory.name,
-              special: dataCategory.special,
-            })
-            .from(dataCategory)
-            .where(inArray(dataCategory.id, categoryIds))
-        ).map((row) => [row.id, row]),
-  );
+  const categories = await record.get('data_category', categoryIds);
   const category = (id: string) => {
     const row = categories.get(id);
     if (row === undefined) throw new Error(`Dangling reference: data category ${id}`);
-    return row;
+    return { id: row.id, slug: row.slug, name: row.name, special: row.special };
   };
   const categoryRef = (id: string): Ref => {
     const { special: _special, ...ref } = category(id);
     return ref;
   };
-  const terms = scope === null ? null : await termsRef(tx, scope.termsId);
+  const terms = scope === null ? null : await termsRef(record, scope.termsId);
 
   const engagement = (row: Engagement): ReportEngagement => ({
     party: requireRef(parties, row.partyId, 'engagement.party'),
@@ -188,8 +169,8 @@ export async function buildReport(
   };
 
   return ReportResponse.parse({
-    generatedAt: now.toISOString(),
-    asOf: null,
+    generatedAt: read.generatedAt.toISOString(),
+    asOf: read.asOf,
     scope: {
       view,
       offering: scope === null ? null : requireRef(offerings, scope.offeringId, 'offering'),
@@ -238,6 +219,6 @@ export async function buildReport(
         dpiaSupportRef: activity.dpiaSupportRef,
       }),
     ),
-    subprocessors: scope === null ? null : await buildSubprocessors(tx, scope, now),
+    subprocessors: scope === null ? null : await buildSubprocessors(read, scope),
   });
 }

@@ -1,39 +1,32 @@
 import { CoverageResponse, FINDING_SEVERITY, type Finding, type Ref } from '@rulemark/ropa-schemas';
-import { eq, inArray } from 'drizzle-orm';
 
-import { agreementTerms, processingActivity, system } from '../../db/schema/index.js';
-import { loadActivitySnapshots } from '../../domain/activity/load.js';
-import { partyAggregate, systemAggregate } from '../../domain/aggregates.js';
-import { clientAgreementsFor, isoDate } from '../../domain/agreements.js';
-import { loadRefs, requireRef } from '../../domain/refs.js';
-import type { Transaction } from '../../domain/transaction.js';
+import { refOf, refsOf } from '../../domain/record/reader.js';
+import { requireRef } from '../../domain/refs.js';
 import { coverage, type CoverageFinding } from '../../domain/views/coverage.js';
+import { clientAgreementsFor, type ViewRead } from './scope.js';
 
 /**
- * `GET /coverage` (`ropa-api.md` §5.5). SQL loads the live activities, every
- * system, and the client agreements and terms in play; `coverage` decides what
- * is a finding (DB §6.3). Opening review items for them is a caller's job.
+ * `GET /coverage` (`ropa-api.md` §5.5). The record loads the active
+ * activities, every system, and the client agreements and terms in play;
+ * `coverage` decides what is a finding (DB §6.3). Opening review items for
+ * them is a caller's job. Always the record today: the route refuses `asOf`.
  */
-export async function buildCoverage(tx: Transaction, now: Date): Promise<CoverageResponse> {
-  const rows = await tx
-    .select()
-    .from(processingActivity)
-    .where(eq(processingActivity.status, 'active'));
-  const activities = await loadActivitySnapshots(tx, rows);
-  const systems = await tx.select().from(system);
+export async function buildCoverage(read: ViewRead): Promise<CoverageResponse> {
+  const { record } = read;
+  const activities = await record.activities();
+  const systems = await record.all('system');
 
   const agreements = await clientAgreementsFor(
-    tx,
+    record,
     activities.flatMap((activity) =>
       activity.role === 'processor' && activity.offeringId !== null ? [activity.offeringId] : [],
     ),
-    now,
   );
-  const termsIds = [...new Set(agreements.map((row) => row.termsId))];
-  const termsRows =
-    termsIds.length === 0
-      ? []
-      : await tx.select().from(agreementTerms).where(inArray(agreementTerms.id, termsIds));
+  const termsRows = [
+    ...(
+      await record.get('agreement_terms', [...new Set(agreements.map((row) => row.termsId))])
+    ).values(),
+  ];
 
   const findings = coverage({
     activities,
@@ -44,7 +37,7 @@ export async function buildCoverage(tx: Transaction, now: Date): Promise<Coverag
     })),
     agreements,
     terms: new Map(termsRows.map((row) => [row.id, row])),
-    day: isoDate(now),
+    day: record.day,
   });
 
   // Everything a finding names, loaded once for the whole list.
@@ -52,16 +45,16 @@ export async function buildCoverage(tx: Transaction, now: Date): Promise<Coverag
   const engagementsById = new Map(
     activities.flatMap((activity) => activity.engagements.map((row) => [row.id, row] as const)),
   );
-  const parties = await loadRefs(
-    tx,
-    partyAggregate,
+  const parties = await refsOf(
+    record,
+    'party',
     findings.flatMap((finding) =>
       'partyId' in finding
         ? [finding.partyId, ...('clientId' in finding ? [finding.clientId] : [])]
         : [],
     ),
   );
-  const systemRefs = new Map(systems.map((row) => [row.id, systemAggregate.toRef(row)]));
+  const systemRefs = new Map(systems.map((row) => [row.id, refOf('system', row)]));
   const terms = new Map(
     termsRows.map((row) => [row.id, { id: row.id, slug: row.slug, name: row.name }]),
   );
@@ -152,7 +145,7 @@ export async function buildCoverage(tx: Transaction, now: Date): Promise<Coverag
   }
 
   return CoverageResponse.parse({
-    generatedAt: now.toISOString(),
+    generatedAt: read.generatedAt.toISOString(),
     findings: findings.map(toOutput),
   });
 }

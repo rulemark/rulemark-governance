@@ -1,100 +1,71 @@
 import { DataMapResponse, type Ref } from '@rulemark/ropa-schemas';
-import { and, eq, sql } from 'drizzle-orm';
 
-import { activitySubjectCategory, processingActivity } from '../../db/schema/index.js';
-import { loadActivitySnapshots } from '../../domain/activity/load.js';
-import {
-  dataCategoryAggregate,
-  partyAggregate,
-  subjectCategoryAggregate,
-  systemAggregate,
-} from '../../domain/aggregates.js';
-import { activeAgreementsOf, isoDate } from '../../domain/agreements.js';
-import { findByIdentifier } from '../../domain/identifiers.js';
-import { loadRefs, requireRef } from '../../domain/refs.js';
-import type { Transaction } from '../../domain/transaction.js';
+import { refOf, refsOf } from '../../domain/record/reader.js';
+import { requireRef } from '../../domain/refs.js';
 import { dataMap } from '../../domain/views/data-map.js';
-import { refused } from './scope.js';
+import { clientAgreementsOf, noMatch, refused, type ViewRead } from './scope.js';
 
 /**
- * `GET /data-map` (`ropa-api.md` §5.4). SQL chooses what to load — the live
- * activities about the subject category, and the client's agreements — and
- * `dataMap` decides what a request touches and who acts on it (DB §6.3).
+ * `GET /data-map` (`ropa-api.md` §5.4). The record chooses what to load — the
+ * active activities about the subject category, and the client's agreements —
+ * and `dataMap` decides what a request touches and who acts on it (DB §6.3).
  */
 export async function buildDataMap(
-  tx: Transaction,
+  read: ViewRead,
   query: { readonly subjectCategory: string; readonly client?: string | undefined },
-  now: Date,
 ): Promise<DataMapResponse> {
-  const subject = await findByIdentifier<Parameters<typeof subjectCategoryAggregate.toRef>[0]>(
-    tx,
-    subjectCategoryAggregate,
-    query.subjectCategory,
-  );
+  const { record } = read;
+  const subject = await record.find('subject_category', query.subjectCategory);
   if (subject === undefined) {
     refused([
       {
         path: '/subjectCategory',
         code: 'unknown_reference',
-        message: `No subject category matching "${query.subjectCategory}"`,
+        message: noMatch(read, 'subject category', query.subjectCategory),
       },
     ]);
   }
 
   let client: { ref: Ref; offeringIds: Set<string> } | null = null;
   if (query.client !== undefined) {
-    const row = await findByIdentifier<Parameters<typeof partyAggregate.toRef>[0]>(
-      tx,
-      partyAggregate,
-      query.client,
-    );
-    if (row === undefined) {
+    const found = await record.find('party', query.client);
+    if (found === undefined) {
       refused([
         {
           path: '/client',
           code: 'unknown_reference',
-          message: `No party matching "${query.client}"`,
+          message: noMatch(read, 'party', query.client),
         },
       ]);
     }
     // No agreement is not an error here: the controller side still answers,
     // and the processor side is rightly empty.
-    const agreements = await activeAgreementsOf(tx, row.id, now);
+    const agreements = await clientAgreementsOf(record, found.id);
     client = {
-      ref: partyAggregate.toRef(row),
+      ref: refOf('party', found),
       offeringIds: new Set(agreements.map((agreement) => agreement.offeringId)),
     };
   }
 
-  const rows = await tx
-    .select()
-    .from(processingActivity)
-    .where(
-      and(
-        eq(processingActivity.status, 'active'),
-        sql`EXISTS (SELECT 1 FROM ${activitySubjectCategory} WHERE ${activitySubjectCategory.activityId} = ${processingActivity.id} AND ${activitySubjectCategory.subjectCategoryId} = ${subject.id})`,
-      ),
-    );
-
   const entries = dataMap({
     subjectCategoryId: subject.id,
     client: client === null ? null : { id: client.ref.id, offeringIds: client.offeringIds },
-    activities: await loadActivitySnapshots(tx, rows),
-    day: isoDate(now),
+    activities: await record.activities({ about: subject.id }),
+    day: record.day,
   });
 
   const [systems, parties, categories] = await Promise.all([
-    loadRefs(
-      tx,
-      systemAggregate,
+    refsOf(
+      record,
+      'system',
       entries.flatMap((entry) => entry.activity.systemIds),
     ),
-    loadRefs(
-      tx,
-      partyAggregate,
+    refsOf(
+      record,
+      'party',
       entries.flatMap((entry) => entry.vendors.map((vendor) => vendor.partyId)),
     ),
-    loadRefs(tx, dataCategoryAggregate, [
+    refsOf(record, 'data_category', [
       ...entries.flatMap((entry) => entry.vendors.flatMap((vendor) => vendor.dataCategoryIds)),
       ...entries.flatMap((entry) =>
         entry.activity.retentionRules.flatMap((rule) => rule.dataCategoryId ?? []),
@@ -103,9 +74,9 @@ export async function buildDataMap(
   ]);
 
   return DataMapResponse.parse({
-    generatedAt: now.toISOString(),
-    asOf: null,
-    subjectCategory: subjectCategoryAggregate.toRef(subject),
+    generatedAt: read.generatedAt.toISOString(),
+    asOf: read.asOf,
+    subjectCategory: refOf('subject_category', subject),
     client: client?.ref ?? null,
     entries: entries.map(({ activity, action, vendors }) => ({
       activity: { id: activity.id, code: activity.code, name: activity.name },
