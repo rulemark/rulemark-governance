@@ -21,6 +21,7 @@
 
 ## Carried-forward cautions
 - Render judges a push by its **newest commit**: a push ending in a docs commit deploys nothing, silently. Push code first, on its own.
+- **The Blueprint auto-syncs.** A `render.yaml` change applies on push with no manual sync; confirmed 2026-09-26, when `3a4f7c5` (`ipAllowList: []`) showed as the Blueprint's latest sync. It is a separate path from the service's deploy: `render.yaml` is outside the build filter.
 - `ropa-db` takes no external connections. Anything run against production runs from the `ropa-api` Shell.
 - Seed and `demo:data` tests reset the test database before and after, because the story brings a `self` party; a new test file that needs one must do the same, or use a prefix and clean up.
 - Prettier reformats after writing, so an exact-text edit can miss; match on current text.
