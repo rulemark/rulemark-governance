@@ -8,6 +8,7 @@ export * from './system.js';
 export * from './taxonomy.js';
 export * from './activity.js';
 export * from './review-item.js';
+export * from './changes.js';
 export { inputFromActivity } from './activity-input.js';
 export {
   ROLE_FIELDS,

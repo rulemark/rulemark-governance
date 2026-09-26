@@ -36,8 +36,8 @@ export interface RecordChangedData extends Record<string, unknown> {
 }
 
 /**
- * Review items have no revisions, so this event is their history (step 3,
- * open question 1). It carries the whole item as it stands after the change:
+ * Review items have no revisions (step 3, open question 1). Their history is
+ * `review_item_event`, written with this event (step 4, open question 3). It carries the whole item as it stands after the change:
  * with nothing behind it to point at, a bare "RI-7 was resolved" would not say
  * what RI-7 was about.
  */

@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import { Problem } from '../shared/problems.js';
-import { decodeCursor, encodeCursor, pageOf } from './pagination.js';
+import {
+  decodeCursor,
+  decodePositionCursor,
+  encodeCursor,
+  encodePositionCursor,
+  pageOf,
+} from './pagination.js';
 
 const ID = '0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e';
 
@@ -53,5 +59,25 @@ describe('pageOf', () => {
 
   it('handles an empty result', () => {
     expect(pageOf([], 50)).toEqual({ data: [], nextCursor: null });
+  });
+});
+
+describe('the position cursor (/changes)', () => {
+  const at = '2026-03-16T08:00:00.123456Z';
+  const id = '0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e';
+
+  it('round-trips a time to the microsecond, and an id', () => {
+    expect(decodePositionCursor(encodePositionCursor(at, id))).toEqual({ at, id });
+  });
+
+  it('refuses an id cursor, and one that is not ours', () => {
+    expect(() => decodePositionCursor(encodeCursor(id))).toThrow(/did not come from us/);
+    expect(() => decodePositionCursor('bm9wZQ')).toThrow(/did not come from us/);
+  });
+
+  it('refuses a position without microseconds, or without a proper id', () => {
+    const forged = (text: string) => Buffer.from(`ropa1t:${text}`).toString('base64url');
+    expect(() => decodePositionCursor(forged(`2026-03-16T08:00:00Z/${id}`))).toThrow(/not valid/);
+    expect(() => decodePositionCursor(forged(`${at}/not-an-id`))).toThrow(/not valid/);
   });
 });

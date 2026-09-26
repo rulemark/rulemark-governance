@@ -30,6 +30,32 @@ export function decodeCursor(cursor: string): string {
   return id;
 }
 
+/**
+ * A cursor for a list ordered by time, then id: `/changes`, where revisions
+ * are backdated and so id order is not time order. The time is kept as
+ * Postgres wrote it, to the microsecond; a JavaScript `Date` would round it to
+ * the millisecond, and a page boundary between two changes in the same
+ * millisecond would then skip one.
+ */
+const POSITION_PREFIX = 'ropa1t:';
+const POSITION = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z)\/(.+)$/;
+
+export function encodePositionCursor(at: string, id: string): string {
+  return Buffer.from(`${POSITION_PREFIX}${at}/${id}`, 'utf8').toString('base64url');
+}
+
+export function decodePositionCursor(cursor: string): { at: string; id: string } {
+  const decoded = Buffer.from(cursor, 'base64url').toString('utf8');
+  if (!decoded.startsWith(POSITION_PREFIX)) {
+    throw badRequest('This cursor did not come from us. Omit it to start from the beginning.');
+  }
+  const match = POSITION.exec(decoded.slice(POSITION_PREFIX.length));
+  if (match === null || !z.uuid().safeParse(match[2]).success) {
+    throw badRequest('This cursor is not valid. Omit it to start from the beginning.');
+  }
+  return { at: match[1]!, id: match[2]! };
+}
+
 export interface Page<T> {
   readonly data: T[];
   readonly nextCursor: string | null;

@@ -1,4 +1,4 @@
-import { ReviewItem } from '@rulemark/ropa-schemas';
+import { ReviewItem, ReviewItemInput } from '@rulemark/ropa-schemas';
 import { inArray, like, or, sql } from 'drizzle-orm';
 import type { Server } from 'node:http';
 import request from 'supertest';
@@ -8,6 +8,7 @@ import { createApp } from '../../src/api/app.js';
 import { recordsRouter } from '../../src/api/resources/index.js';
 import { createDb, createPool, type Database } from '../../src/db/client.js';
 import { party, processingActivity, reviewItem, system } from '../../src/db/schema/index.js';
+import { openReviewItem } from '../../src/domain/review-items.js';
 import { loadConfig } from '../../src/shared/config.js';
 import { TEST_DATABASE_URL } from './harness.js';
 
@@ -169,6 +170,22 @@ async function eventsFor(id: string) {
   return rows;
 }
 
+/** The history rows about one item, oldest first (step 4, open question 3). */
+async function historyOf(id: string) {
+  const { rows } = await pool.query<{
+    event_id: string;
+    change_type: string;
+    occurred_at: Date;
+    actor: string;
+    review_item: ReviewItem;
+  }>(
+    `SELECT event_id, change_type, occurred_at, actor, review_item FROM review_item_event
+     WHERE review_item_id = $1 ORDER BY occurred_at, id`,
+    [id],
+  );
+  return rows;
+}
+
 const codeNumber = (code: string) => Number(code.replace('RI-', ''));
 
 describe('POST /review-items', () => {
@@ -272,6 +289,52 @@ describe('POST /review-items', () => {
       occurredAt: item.createdAt,
       data: { changeType: 'opened', actor: 'svc:monitor', reviewItem: item },
     });
+  });
+});
+
+describe('review-item history (step 4, open question 3)', () => {
+  it('writes a history row beside the outbox row, sharing its event id', async () => {
+    const item = await open();
+    const [event] = await eventsFor(item.id);
+    const history = await historyOf(item.id);
+
+    expect(history).toEqual([
+      {
+        event_id: (event!.payload as unknown as { id: string }).id,
+        change_type: 'opened',
+        occurred_at: new Date(item.createdAt),
+        actor: 'svc:monitor',
+        review_item: item,
+      },
+    ]);
+  });
+
+  it('writes the close too, and nothing for a refused second close', async () => {
+    const item = await open();
+    const resolved = await call('editor', 'post', `/v1/review-items/${item.code}/resolve`).send({
+      resolutionNote: 'Aurelia told, and the EU region kept',
+    });
+    await call('editor', 'post', `/v1/review-items/${item.code}/dismiss`).send({
+      resolutionNote: 'Too late',
+    });
+
+    const history = await historyOf(item.id);
+    expect(history.map((row) => [row.change_type, row.actor])).toEqual([
+      ['opened', 'svc:monitor'],
+      ['resolved', 'priya.raman'],
+    ]);
+    expect(history[1]).toMatchObject({
+      occurred_at: new Date(resolved.body.closedAt as string),
+      review_item: resolved.body,
+    });
+  });
+
+  it('keeps the history even when the event goes to no destination', async () => {
+    const item = await db.transaction((tx) =>
+      openReviewItem(tx, ReviewItemInput.parse(ch6()), { actor: 'test', destinations: [] }),
+    );
+    expect(await eventsFor(item.id)).toEqual([]);
+    expect((await historyOf(item.id)).map((row) => row.change_type)).toEqual(['opened']);
   });
 });
 

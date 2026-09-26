@@ -57,6 +57,10 @@
       "description": "Findings carried to a person, until resolved or dismissed"
     },
     {
+      "name": "history",
+      "description": "What changed, when, by whom and why"
+    },
+    {
       "name": "views",
       "description": "Read models derived from the record"
     },
@@ -2312,6 +2316,154 @@
           "updatedAt"
         ],
         "additionalProperties": false
+      },
+      "Change": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                "description": "The revision’s id, or the review-item event’s.",
+                "examples": [
+                  "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                ]
+              },
+              "entity": {
+                "description": "The record, named as it was named by this change.",
+                "$ref": "#/components/schemas/Ref"
+              },
+              "occurredAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+                "description": "When the change took effect.",
+                "examples": [
+                  "2026-03-16T10:00:00Z"
+                ]
+              },
+              "actor": {
+                "type": "string",
+                "minLength": 1,
+                "description": "The token subject that made the change (§1.6)."
+              },
+              "entityType": {
+                "type": "string",
+                "enum": [
+                  "activity",
+                  "party",
+                  "agreement",
+                  "agreement_terms",
+                  "offering",
+                  "system",
+                  "subject_category",
+                  "data_category",
+                  "security_measure"
+                ]
+              },
+              "version": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "changeType": {
+                "type": "string",
+                "enum": [
+                  "created",
+                  "updated",
+                  "activated",
+                  "retired",
+                  "deleted"
+                ]
+              },
+              "changeNote": {
+                "description": "Why, as the change said.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "entity",
+              "occurredAt",
+              "actor",
+              "entityType",
+              "version",
+              "changeType",
+              "changeNote"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                "description": "The revision’s id, or the review-item event’s.",
+                "examples": [
+                  "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                ]
+              },
+              "entity": {
+                "description": "The record, named as it was named by this change.",
+                "$ref": "#/components/schemas/Ref"
+              },
+              "occurredAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+                "description": "When the change took effect.",
+                "examples": [
+                  "2026-03-16T10:00:00Z"
+                ]
+              },
+              "actor": {
+                "type": "string",
+                "minLength": 1,
+                "description": "The token subject that made the change (§1.6)."
+              },
+              "entityType": {
+                "type": "string",
+                "const": "review_item"
+              },
+              "version": {
+                "type": "null"
+              },
+              "changeType": {
+                "type": "string",
+                "enum": [
+                  "opened",
+                  "resolved",
+                  "dismissed"
+                ]
+              },
+              "changeNote": {
+                "description": "The resolution note, when the item was closed.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "entity",
+              "occurredAt",
+              "actor",
+              "entityType",
+              "version",
+              "changeType",
+              "changeNote"
+            ],
+            "additionalProperties": false
+          }
+        ]
       },
       "SubprocessorsResponse": {
         "type": "object",
@@ -13468,6 +13620,138 @@
           }
         },
         "x-required-permission": "activity:approve"
+      }
+    },
+    "/v1/changes": {
+      "get": {
+        "tags": [
+          "history"
+        ],
+        "summary": "What changed across the record",
+        "description": "Every revision and every review item opened or closed, in a time range, oldest first (§2; Ch8: “what changed since March”). Each change names its record as the record was named then, and says who made it and why. Also how the audit log backfills what it missed (§6).\n\nRequires the `history:read` permission.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Page size, 1–200. Default 50.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "From the previous page’s nextCursor.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "description": "Changes at or after this: a date means from the start of that day in UTC, a timestamp that instant.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "description": "Changes at or before this: a date means to the end of that day in UTC, a timestamp that instant. Earlier than from answers 422 from_after_to.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entityType",
+            "in": "query",
+            "required": false,
+            "description": "Only changes to this kind of record",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "activity",
+                "party",
+                "agreement",
+                "agreement_terms",
+                "offering",
+                "system",
+                "subject_category",
+                "data_category",
+                "security_measure",
+                "review_item"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of changes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "nextCursor"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Change"
+                      }
+                    },
+                    "nextCursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "Pass as ?cursor= for the next page. Null on the last page."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No token, or the token is not valid",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Valid token without the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request failed validation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "history:read"
       }
     },
     "/v1/review-items": {

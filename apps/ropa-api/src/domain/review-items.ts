@@ -7,12 +7,12 @@ import {
 import { and, eq, sql } from 'drizzle-orm';
 import type { PgColumn } from 'drizzle-orm/pg-core';
 
-import { reviewItem } from '../db/schema/workflow.js';
+import { reviewItem, reviewItemEvent } from '../db/schema/workflow.js';
 import { conflict, notFound, validationFailed } from '../shared/problems.js';
 import { activityAggregate } from './activity/load.js';
 import { partyAggregate, systemAggregate } from './aggregates.js';
 import { allocateCode } from './codes.js';
-import { enqueueEvent, reviewItemChangedEvent } from './events.js';
+import { enqueueEvent, reviewItemChangedEvent, type ReviewItemChangedData } from './events.js';
 import { findByIdentifier, type Identifiable } from './identifiers.js';
 import { loadRefs, requireRef, type RefSource } from './refs.js';
 import type { Transaction } from './transaction.js';
@@ -20,9 +20,9 @@ import type { Transaction } from './transaction.js';
 /**
  * Review items (DM §3.11, API §2 workflow). Not an aggregate: no version, no
  * revisions. Opening allocates an `RI-n` code; closing is a one-way status
- * change guarded in the `UPDATE` itself (§1.8). Each writes a
- * `review_item.changed` event in the same transaction, which is the item's
- * history (step 3, open question 1).
+ * change guarded in the `UPDATE` itself (§1.8). Each writes a history row in
+ * `review_item_event` and a `review_item.changed` event, in the same
+ * transaction as the change (step 3, open question 1; step 4, open question 3).
  */
 
 export type ReviewItemRow = typeof reviewItem.$inferSelect;
@@ -128,6 +128,27 @@ export async function toReviewItemOutputs(
   });
 }
 
+/**
+ * The change's history row and its outbox rows, sharing one event id. History
+ * is written whatever the destinations: the outbox is only how it is delivered.
+ */
+async function recordChange(
+  tx: Transaction,
+  data: ReviewItemChangedData,
+  context: ReviewContext,
+): Promise<void> {
+  const envelope = reviewItemChangedEvent(data);
+  await tx.insert(reviewItemEvent).values({
+    eventId: envelope.id,
+    reviewItemId: data.reviewItem.id,
+    changeType: data.changeType,
+    occurredAt: new Date(envelope.occurredAt),
+    actor: data.actor,
+    reviewItem: data.reviewItem,
+  });
+  await enqueueEvent(tx, envelope, { destinations: context.destinations });
+}
+
 async function single(tx: Transaction, row: ReviewItemRow): Promise<ReviewItem> {
   const [output] = await toReviewItemOutputs(tx, [row]);
   return output!;
@@ -167,11 +188,7 @@ export async function openReviewItem(
   if (row === undefined) throw new Error('review_item insert returned no row');
 
   const item = await single(tx, row);
-  await enqueueEvent(
-    tx,
-    reviewItemChangedEvent({ changeType: 'opened', actor: context.actor, reviewItem: item }),
-    { destinations: context.destinations },
-  );
+  await recordChange(tx, { changeType: 'opened', actor: context.actor, reviewItem: item }, context);
   return item;
 }
 
@@ -209,14 +226,6 @@ export async function closeReviewItem(
   }
 
   const item = await single(tx, row);
-  await enqueueEvent(
-    tx,
-    reviewItemChangedEvent({
-      changeType: status,
-      actor: context.actor,
-      reviewItem: item,
-    }),
-    { destinations: context.destinations },
-  );
+  await recordChange(tx, { changeType: status, actor: context.actor, reviewItem: item }, context);
   return item;
 }

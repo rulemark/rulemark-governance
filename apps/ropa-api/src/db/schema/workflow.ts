@@ -1,6 +1,21 @@
 import { sql } from 'drizzle-orm';
-import { check, date, index, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
-import { REVIEW_REASONS, REVIEW_SOURCES, REVIEW_STATUSES } from '@rulemark/ropa-schemas/enums';
+import {
+  check,
+  date,
+  index,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+  uuid,
+} from 'drizzle-orm/pg-core';
+import {
+  REVIEW_CHANGE_TYPES,
+  REVIEW_REASONS,
+  REVIEW_SOURCES,
+  REVIEW_STATUSES,
+} from '@rulemark/ropa-schemas/enums';
 
 import { processingActivity } from './activity.js';
 import { inList } from './checks.js';
@@ -11,7 +26,7 @@ import { system } from './system.js';
 /**
  * DM §3.11, DDL §4.5. A finding carried to a person. Not versioned: its only
  * change is a one-way close, guarded by status (API §1.8), and its history is
- * the `review_item.changed` event, so there is no `version` column.
+ * `review_item_event`, so there is no `version` column.
  */
 export const reviewItem = pgTable(
   'review_item',
@@ -66,5 +81,40 @@ export const reviewItem = pgTable(
     index('review_item_target_activity').on(t.targetActivityId),
     index('review_item_target_party').on(t.targetPartyId),
     index('review_item_target_system').on(t.targetSystemId),
+  ],
+);
+
+/**
+ * DM §3.11, DDL §4.5. The history of review items, which have no revisions:
+ * one row per open, resolve or dismiss, written in the same transaction as the
+ * change and its `review_item.changed` outbox rows (step 4, open question 3).
+ * The outbox is a delivery queue, purged once delivered; this is what
+ * `/changes` reads. Append-only under `revision_append_only`.
+ */
+export const reviewItemEvent = pgTable(
+  'review_item_event',
+  {
+    id: id(),
+    /** The event's id in the envelope, shared with its outbox rows. */
+    eventId: uuid().notNull(),
+    /**
+     * Deliberately no foreign key, like `revision.entity_id`: history
+     * describes the item, it does not depend on it.
+     */
+    reviewItemId: uuid().notNull(),
+    changeType: text({ enum: REVIEW_CHANGE_TYPES }).notNull(),
+    /** When the item was opened or closed: the envelope's `occurredAt`. */
+    occurredAt: timestamp({ withTimezone: true }).notNull(),
+    actor: text().notNull(),
+    /** The whole item after the change, as `GET /review-items/{ref}` returned it. */
+    reviewItem: jsonb().notNull(),
+    // No updatedAt: rows are never updated.
+    createdAt: createdAt(),
+  },
+  (t) => [
+    check('review_item_event_change_type', inList(t.changeType, REVIEW_CHANGE_TYPES)),
+    unique('review_item_event_once').on(t.eventId),
+    index('review_item_event_changes').on(t.occurredAt),
+    index('review_item_event_item').on(t.reviewItemId, t.occurredAt),
   ],
 );

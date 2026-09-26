@@ -7,6 +7,8 @@ import {
   AgreementInput,
   AgreementTerms,
   AgreementTermsInput,
+  CHANGE_ENTITY_TYPES,
+  Change,
   DataCategory,
   CoverageResponse,
   DataCategoryInput,
@@ -109,6 +111,7 @@ const OUTPUT_SCHEMAS: readonly [string, z.ZodType][] = [
   ['SecurityMeasure', SecurityMeasure],
   ['Activity', Activity],
   ['ReviewItem', ReviewItem],
+  ['Change', Change],
   ['SubprocessorsResponse', SubprocessorsResponse],
   ['ImpactResponse', ImpactResponse],
   ['DataMapResponse', DataMapResponse],
@@ -412,11 +415,11 @@ function pathsForResource(resource: ResourceDefinition<never, never, never>): Js
   };
 }
 
-/** Hand-written: these two are not resources, and have no Zod route schema. */
 /** `?asOf=` on every view that takes it (§5, DB §6.3). */
 const AS_OF =
   'The record as it stood then (Ch8): a date means the end of that day in UTC, a timestamp that instant. A moment after now answers 422 in_the_future. Names are the names of the time.';
 
+/** Hand-written: these two are not resources, and have no Zod route schema. */
 const HISTORY_SCHEMAS: JsonObject = {
   RevisionSummary: {
     type: 'object',
@@ -524,6 +527,42 @@ export function buildOpenApiDocument(): JsonObject {
   const reviewItems = `/${API_VERSION}/review-items`;
   const enumParam = (name: string, description: string, values: readonly string[]) =>
     queryParam(name, description, { type: 'string', enum: [...values] });
+
+  paths[`/${API_VERSION}/changes`] = {
+    get: guarded(
+      {
+        tags: ['history'],
+        summary: 'What changed across the record',
+        description:
+          'Every revision and every review item opened or closed, in a time range, oldest first (§2; Ch8: “what changed since March”). Each change names its record as the record was named then, and says who made it and why. Also how the audit log backfills what it missed (§6).',
+        parameters: [
+          queryParam('limit', `Page size, 1–${MAX_PAGE_SIZE}. Default ${DEFAULT_PAGE_SIZE}.`, {
+            type: 'integer',
+            minimum: 1,
+            maximum: MAX_PAGE_SIZE,
+          }),
+          queryParam('cursor', 'From the previous page’s nextCursor.'),
+          queryParam(
+            'from',
+            'Changes at or after this: a date means from the start of that day in UTC, a timestamp that instant.',
+          ),
+          queryParam(
+            'to',
+            'Changes at or before this: a date means to the end of that day in UTC, a timestamp that instant. Earlier than from answers 422 from_after_to.',
+          ),
+          enumParam('entityType', 'Only changes to this kind of record', CHANGE_ENTITY_TYPES),
+        ],
+        responses: {
+          '200': {
+            description: 'A page of changes',
+            content: { 'application/json': { schema: listResponseSchema('Change') } },
+          },
+          ...COMMON_ERRORS,
+        },
+      },
+      'history:read',
+    ),
+  };
 
   paths[reviewItems] = {
     get: guarded(
@@ -816,6 +855,7 @@ export function buildOpenApiDocument(): JsonObject {
         name: 'review-items',
         description: 'Findings carried to a person, until resolved or dismissed',
       },
+      { name: 'history', description: 'What changed, when, by whom and why' },
       { name: 'views', description: 'Read models derived from the record' },
       { name: 'service', description: 'Health and documentation' },
     ],

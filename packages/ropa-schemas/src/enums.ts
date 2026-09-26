@@ -176,6 +176,13 @@ export const REVISION_ENTITY_TYPES = list(
   'security_measure',
 );
 
+/**
+ * What `GET /changes` lists (API §2): every versioned record, and review
+ * items, whose history is events rather than revisions (step 4, open
+ * question 3).
+ */
+export const CHANGE_ENTITY_TYPES = list(...REVISION_ENTITY_TYPES, 'review_item');
+
 export const CHANGE_TYPES = list('created', 'updated', 'activated', 'retired', 'deleted');
 export const EVENT_TYPES = list('record.changed', 'subprocessors.changed', 'review_item.changed');
 
@@ -207,4 +214,5 @@ export type FindingType = (typeof FINDING_TYPES)[number];
 export type FindingSeverity = (typeof FINDING_SEVERITIES)[number];
 export type RevisionEntityType = (typeof REVISION_ENTITY_TYPES)[number];
 export type ChangeType = (typeof CHANGE_TYPES)[number];
+export type ChangeEntityType = (typeof CHANGE_ENTITY_TYPES)[number];
 export type EventType = (typeof EVENT_TYPES)[number];
