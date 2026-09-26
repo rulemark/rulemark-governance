@@ -115,3 +115,40 @@
 | Issue | Resolution |
 |---|---|
 | | |
+- **Phase 1: one reader, two sources (2026-09-26).** The plan asked for "one
+  record as of T with the same shape the live loaders give them". The live
+  loaders return a mix: Drizzle rows (Dates), snapshots (activities) and
+  hand-picked columns. So the shape both give is snapshots, behind a
+  `RecordReader` interface listing only what the views ask: find by
+  identifier, get by ids, all of a kind, `self`, active activities with four
+  filters, agreements in force. `liveRecord` keeps the SQL and the §6.4
+  indexes; `recordAsOf` runs DB §6.3 once and filters in memory.
+  - **The contract test is the proof.** As of today, both readers must answer
+    every question identically on the seeded record, timestamps and order
+    included. It caught nothing wrong, but it's what makes Phase 2 a
+    rewiring instead of a second implementation of each view.
+  - **Order is compared in code units, not `localeCompare`.** ICU collation
+    can ignore the hyphens in a UUID; two readers sorting by id must agree
+    to the character.
+  - **Slugs are matched as spelled at T.** `?client=aurelia&asOf=…` looks for
+    the slug in the snapshots of the time, consistent with names coming from
+    the revision of the date (DB §6.2). A slug renamed since would need its
+    old spelling, or the id. No slug changes in the story.
+  - **The whole record is loaded per `asOf` read.** One `DISTINCT ON` query,
+    every aggregate: trivial at the story's size (tens of records), and the
+    cost of a truly general "as of T". Noted in DB §6.3 as the thing to
+    revisit for a large record.
+  - `readSnapshot` now serves `/revisions/{version}` too, so every read of
+    history takes the upgrade path. The registry is empty; a made-up v0→v1
+    upgrader in the unit test proves the chain, the step check and the
+    refusals (no upgrader, newer than the code, no `schemaVersion`).
+  - **Breaking it on purpose:** 22 mutations across `resolveAsOf`,
+    `recordAsOf`, `liveRecord` and `readSnapshot`; one survived at first (the
+    live reader's `status = 'active'`, since today's story has no drafts or
+    retired activities), so a test now retires C3 in a rolled-back
+    transaction. The story also ends no agreement, so another rolled-back
+    test ends Northwind's and backdates a signing to check `signed_at` and
+    `ended_at` against the day.
+- **`npm run check` took over ten minutes once** with the suite itself at
+  18s: `tsc --build` ran at 9% CPU (77s wall for 6.6s of work), waiting on
+  the disk. Not the code; worth knowing before blaming a change.

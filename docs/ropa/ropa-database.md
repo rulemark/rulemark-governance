@@ -436,6 +436,7 @@ In Drizzle this is `db.transaction(async (tx) => { … })`, with every step usin
 - **Canonical, not the API shape.** Snapshots hold IDs, not Refs (DM §6), so that renaming a party doesn't change old snapshots. Names are resolved from the party's own revision as of the same date.
 - **Versioned.** Every snapshot has `"schemaVersion": 1`. Snapshots are append-only and are **never migrated in place**. When the aggregate's shape changes, the code gets an upgrader (`v1 → v2`) that runs when an old snapshot is read.
 - **Validated.** The snapshot has its own Zod schema per `schemaVersion`, used when writing and when reading back.
+- **As built (step 4):** every read of history goes through `readSnapshot` (`domain/snapshots.ts`), which runs the upgraders from the stored `schemaVersion` up to the current one, one version at a time, then validates. `SNAPSHOT_UPGRADERS` is empty: nothing has changed shape yet. A snapshot with no upgrader, or newer than the code, fails the read rather than reaching a view.
 
 ### 6.3 `asOf` reads
 
@@ -450,6 +451,13 @@ ORDER BY entity_type, entity_id, valid_from DESC;
 ```
 
 `revision_as_of` serves this. Views (`/report`, `/subprocessors`) then run the same logic over the snapshots instead of the live tables. That's why view logic lives in the domain layer as functions over aggregates, not as SQL-only queries.
+
+**As built (step 4):**
+- **What `asOf` means.** A date is the end of that day in UTC: revisions with `valid_from` before the next midnight, and that day for business dates (`signed_at`, scope and engagement dates). A timestamp is taken as given (`valid_from <= T`), its day its UTC date. A moment after now is refused (`422 in_the_future`). `asOf` today reads the same as no `asOf`.
+- **Ties.** The query orders by `valid_from DESC, version DESC`, so two revisions of one record at the same instant resolve to the later version.
+- **One reader, two sources.** The views ask a `RecordReader` (`domain/record/`) for what they need: records by identifier or id, active activities (by role, offering, party engaged or subject category), agreements in force, the `self` party. `liveRecord` answers from the tables (§6.4); `recordAsOf` loads every aggregate's revision at *T* once and answers in memory. Both answer in snapshots, and a test holds them equal for today on the seeded record.
+- **Names and identifiers of the time.** A Ref is built from the referenced record's own snapshot at *T*, so a renamed party reads under its old name. A slug in the query is matched as the record spelled it then.
+- **Cost.** An `asOf` read loads the whole record as of *T*: one query, then the filtering in memory. Right for a record of this size; a larger one would push the filters into the query.
 
 ### 6.4 Current-state views
 

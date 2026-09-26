@@ -11,7 +11,7 @@ Build step 4 from `docs/ropa/ropa-api.md` §8. **Enough for Ch8, the audit log,
 and a finding reaching a person on its own.**
 
 ## Current Phase
-Phase 1 (not started). All seven open questions resolved; ready to build
+Phase 2 (`asOf` in the views), not started. Phase 1 complete
 
 ## Definition of done for step 4
 - `GET /report?view=all&asOf=2026-03-01` on the seeded record answers Chapter 8:
@@ -44,16 +44,18 @@ during build step 2" and "Decided during build step 3".
 
 ### Phase 1: Reading the record as of a date
 Reference: DB §6.2, §6.3; DM §6
-- [ ] `asOf` resolved to a cut-off instant and a day: a date is the end of that day, UTC (`valid_from < next day 00:00Z`), and its own day for business dates; a timestamp is taken as given, its day its UTC date; a future `asOf` answers `422`
-- [ ] Load every aggregate's latest revision at or before the cut-off (`revision_as_of`), dropping `deleted` ones
-- [ ] Snapshots upgraded on read if an old `schemaVersion` ever exists (none yet: prove the path is there, don't build upgraders)
-- [ ] One "record as of T" the views read, with the same shape the live loaders give them: activities, agreements and terms, parties, systems, taxonomies
-- [ ] Names in Refs resolved from each record's own revision at T (DB §6.2), so a renamed party reads under its old name
+- [x] `asOf` resolved to a cut-off instant and a day: a date is the end of that day, UTC (`valid_from < next day 00:00Z`), and its own day for business dates; a timestamp is taken as given, its day its UTC date; a future `asOf` answers `422`
+- [x] Load every aggregate's latest revision at or before the cut-off (`revision_as_of`), dropping `deleted` ones
+- [x] Snapshots upgraded on read if an old `schemaVersion` ever exists (none yet: prove the path is there, don't build upgraders)
+- [x] One "record as of T" the views read, with the same shape the live loaders give them: activities, agreements and terms, parties, systems, taxonomies
+- [x] Names in Refs resolved from each record's own revision at T (DB §6.2), so a renamed party reads under its old name
+- **Built as** a `RecordReader` (`domain/record/`) with two sources, `liveRecord` and `recordAsOf`, answering in snapshots; as of today they answer the same (DB §6.3 "As built"). Phase 2 moves the views onto it
 - **Done when:** loading as of 2026-03-01 on the seeded record gives C1–C4 and P1 in their March state, and Aurelia is not a client
-- **Status:** pending
+- **Status:** complete
 
 ### Phase 2: `asOf` in the views
 Reference: API §5, §5.1, §5.2, §5.3, §5.4
+- [ ] The view builders take a `RecordReader` instead of a transaction (Phase 1); the loaders it replaces (`liveActivities`, `termsRef`, the agreement queries in `domain/agreements.ts` the views use, `loadRefs` in the views) go, and the existing view tests hold the rewiring to its word
 - [ ] `/report` (JSON and Markdown), `/subprocessors`, `/parties/{ref}/impact` and `/data-map` take `asOf`; `422 not_yet_supported` goes away
 - [ ] The response's `asOf` echoes what was asked for, date or timestamp (the schemas widen from `IsoDate`); `generatedAt` stays now
 - [ ] API §5 says it plainly: a date means the end of that day, UTC
@@ -150,6 +152,7 @@ Reference: API §8 ("Decided during build step 3"), §5.5
 | **The coverage cron job opens, never decides.** `svc:schedule`, role `service:schedule` (`view:coverage`, `review:read`, `review:create`; no `review:resolve`), a token minted per run with the secret passed by the Blueprint, the API reached over the private network, nightly at 02:00 UTC. A key with an open or dismissed item is skipped: a dismissal stands. It never closes an item: the person who fixes a finding says why | Step 4, open question 6 |
 | **The dispatcher is tested against real Postgres and real HTTP.** A unique destination per test isolates its rows from every other file's committed events (unconfigured destinations are ignored); `now` is a parameter, so the retry schedule is tested by advancing a clock, not by sleeping; a local receiver is scripted to succeed, fail or time out; real transactions on the test's own connections make double sends, ordering and at-least-once observable. The runner's loop and shutdown are tested without a database | Step 4, open question 7 |
 | The seeded-story acceptance tests share one replay per file (`governance-views.test.ts`); pure-view tests share `test/fixtures/story-snapshots.ts` | Step 3 |
+| **The views read a `RecordReader`**, live or as of a date, and get snapshots either way; a slug is matched as the record spelled it at *T*; an `asOf` read loads the whole record at *T* once | Step 4, Phase 1 |
 
 ## Known gaps, not scheduled
 - A client with agreements for several offerings (`ropa-api.md` §9, question 6).
