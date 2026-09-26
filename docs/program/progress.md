@@ -35,6 +35,12 @@
   `ActivitySnapshot` in the snapshot registry. 28 tests in
   `test/db/activity-save.test.ts`, written first. Open question 3 resolved:
   the root's `If-Match` is enough
+- **Phase 4 complete.** `/v1/activities` with the seven record routes,
+  `activate` and `retire`, and nine filters (`src/api/resources/activities.ts`),
+  on router extensions for custom saves, actions and new filter kinds; the
+  lifecycle in `src/domain/activity/lifecycle.ts`; the response shape in
+  `output.ts`; a batched loader. `openapi.json` regenerated (additive). 37
+  HTTP tests in `test/db/activity-endpoints.test.ts`, written first
 
 ## Test Results
 | Test | Command | Expected | Actual | Status |
@@ -45,6 +51,7 @@
 | Retention periods aligned | `npm run check` | Clean, all pass | Clean; 311 + 192 + 4 pass | ✅ |
 | Phase 2: the activity tables | `npm run check`; `drizzle-kit generate` | Clean, all pass; no pending changes | Clean; 346 + 192 + 4 pass; "No schema changes" | ✅ |
 | Phase 3: saving with children | `npm run check`; diff broken on purpose | Clean, all pass; the diff tests fail when deletes are skipped | Clean; 374 + 192 + 4 pass; 3 tests failed as expected, then restored | ✅ |
+| Phase 4: endpoints and lifecycle | `npm run check`; role rules disabled on purpose; `openapi.json` compared as JSON | Clean, all pass; role-rule tests fail when disabled; only additions | Clean; 421 + 194 + 4 pass; 3 tests failed as expected, then restored; no path or schema removed or changed | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -54,7 +61,7 @@
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Build step 2, Phase 4 (activity endpoints and lifecycle); Phases 1–3 complete |
+| Where am I? | Build step 2, Phase 5 (`GET /subprocessors`); Phases 1–4 complete |
 | Where am I going? | Activities and their rules, then `/subprocessors` and `/report`, then the Hireloop seed |
 | What's the goal? | Make the record a record: an Art. 30 entry that can be drafted, activated and read |
 | What have I learned? | See findings.md, and `plan-archive/2/findings.md` for step 1 |

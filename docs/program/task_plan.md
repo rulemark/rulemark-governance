@@ -9,7 +9,7 @@ turn the stored record into something a person reads.
 Build step 2 from `docs/ropa/ropa-api.md` §8. **Enough for story chapters 2–4.**
 
 ## Current Phase
-Phase 4
+Phase 5
 
 ## Definition of done for step 2
 - A controller activity and a processor activity can be created, edited,
@@ -70,12 +70,12 @@ Reference: `ropa-database.md` §6.1 step 3; `ropa-api.md` §1.4
 
 ### Phase 4: Activity endpoints and lifecycle
 Reference: `ropa-api.md` §2, §3.1, §3.4, §1.5
-- [ ] CRUD, with codes allocated per role prefix inside the transaction
-- [ ] `POST /activities/{ref}/activate` and `/retire`, both requiring `If-Match` and `activity:approve`
-- [ ] Role rules run on activate and on every save of an `active` activity; drafts may be incomplete
-- [ ] Filters: `role`, `status`, `offering`, `party`, `system`, `dataCategory`, `special=true`
+- [x] CRUD, with codes allocated per role prefix inside the transaction
+- [x] `POST /activities/{ref}/activate` and `/retire`, both requiring `If-Match` and `activity:approve`
+- [x] Role rules run on activate and on every save of an `active` activity; drafts may be incomplete
+- [x] Filters: `role`, `status`, `offering`, `party`, `system`, `dataCategory`, `special=true`, plus `subjectCategory` and `country` from API §2
 - **Done when:** an editor can draft an incomplete activity, cannot activate it, and an approver activating a stale version gets 412
-- **Status:** pending
+- **Status:** complete
 
 ### Phase 5: `GET /subprocessors`
 Reference: `ropa-api.md` §5.2; `ropa-data-model.md` §3.8, §7
@@ -134,6 +134,8 @@ Reference: `ropa-database.md` §9; `ropa-story.md`
 | A bare "role" means the GDPR sense; permission bundles are `PrincipalRole` | Step 2, before Phase 1 (`9406ac5`) |
 | The root's `If-Match` guards the whole activity; nested rows are written only by the aggregate save | Step 2, open question 3 |
 | "Active agreement" is judged as of the save's effective date (`validFrom`), not today | Step 2, Phase 3; lets the seed replay the story |
+| Lifecycle actions check `If-Match` before judging content, so a stale approver hears 412, not 422 | Step 2, Phase 4 (API §1.8) |
+| `joint_controller` is refused as a validation problem whose field error has code `not_yet_supported`, not as its own problem type | Step 2, Phase 4 |
 
 ## Errors encountered
 | Error | Attempt | Resolution |

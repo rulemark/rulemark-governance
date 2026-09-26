@@ -156,10 +156,49 @@
     (DM §3.2), and a scope client being of kind `client`. They are notes in
     the data model, not DM §5 rules. A scope client must hold an outbound
     agreement, which in practice makes it a client.
-- **For Phase 4.** `joint_controller` surfaces as a field error with code
-  `not_yet_supported` inside a validation problem. The app also has a
-  `notYetSupported()` problem type (`problems.ts`). Decide whether the route
-  maps one onto the other.
+- **How Phase 4 built it.**
+  - **The generic router grew rather than forked.** A resource may declare
+    its own `create`/`replace` (the activity uses the Phase 3 save), and
+    lifecycle **actions** (`POST /{ref}/{name}`, with `If-Match` and their
+    own permission). Filters gained three kinds: a `reference` that reaches
+    through a link table (`matches(id)`), a checked `value` (`?country=`),
+    and a `flag` (`?special=true`). Everything is declared, so the OpenAPI
+    document describes exactly what the router mounts; a test holds the two
+    actions to `activity:approve` and `If-Match`.
+  - **Every create now answers with `Location`**, by code, slug or id. That
+    is additive: the regenerated `openapi.json` was compared as JSON with the
+    previous one, and no existing path or schema changed except for that
+    header.
+  - **Lifecycle actions check the version first.** An approver holding
+    version 1 while version 2 exists gets 412 about the version, not 422
+    about content they never saw. The `UPDATE` checks it again inside the
+    transaction.
+  - **Activation judges the stored aggregate afresh**, using the same rules
+    as a save (converted with `resolvedFromSnapshot`): `canActivate`, the Art.
+    9/10 check against the taxonomy, and the cross-entity rules, because an
+    agreement may have ended since the draft was saved.
+  - **Saving an active activity** re-runs the role rules, and keeps
+    `startedAt` when the body leaves it out.
+  - **Deleting** is for drafts only (409 otherwise). `deleteAggregate` now
+    locks and snapshots *before* the `DELETE`, so the "deleted" revision
+    still shows the engagements the cascade removed. Foundation deletes are
+    unchanged; their 30 tests pass.
+  - **Duplicates** (a client listed twice, two default retention rules)
+    are 422 field errors with code `duplicate`. They are checked after
+    resolution, because two identifiers may name the same record; left to
+    Postgres they would have been a misleading 409 about identifiers.
+  - **`joint_controller`** stays a validation problem (422, type
+    `validation`) whose field error has code `not_yet_supported`, as API
+    §1.5 describes. The separate `notYetSupported()` problem type in
+    `problems.ts` is not used by activities.
+  - The tests were checked by disabling the role rules: the three tests
+    that cover them failed.
+  - `tsc` without the `development` condition reads the schemas package's
+    **built** output, so a new export needs `npm run build -w
+    packages/ropa-schemas` before the app type-checks (the step 1 caution,
+    met again).
+- **Still later, deliberately.** The engagement sub-resource (API §3.5) is
+  step 5, as the scope note says.
 
 ## Issues encountered
 | Issue | Resolution |
