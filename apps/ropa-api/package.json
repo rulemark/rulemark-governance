@@ -29,6 +29,7 @@
     "test:dist": "vitest run --config vitest.dist.config.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node dist/db/migrate.js",
+    "db:seed": "node dist/demo/replay.js",
     "openapi:write": "node dist/api/openapi/write.js",
     "coverage": "vitest run --coverage",
     "demo:data": "node dist/demo/seed.js"

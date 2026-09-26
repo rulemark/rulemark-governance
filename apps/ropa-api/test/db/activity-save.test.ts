@@ -1,4 +1,5 @@
 import {
+  ActivityInput,
   ControllerActivityInput,
   ProcessorActivityInput,
   type FieldError,
@@ -6,6 +7,7 @@ import {
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { SaveContext } from '../../src/domain/aggregate.js';
+import { inputFromSnapshot } from '../../src/domain/activity/input.js';
 import { createActivity, loadActivity, replaceActivity } from '../../src/domain/activity/save.js';
 import { ActivitySnapshot } from '../../src/domain/snapshots.js';
 import { Problem } from '../../src/shared/problems.js';
@@ -743,5 +745,51 @@ describe('replacing an activity (PUT, API §1.4)', () => {
       replaceActivity(db().db, '0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e', 1, c2(), PRIYA),
     );
     expect(problem.status).toBe(404);
+  });
+});
+
+describe('inputFromSnapshot: a stored activity as the PUT body that saves it unchanged', () => {
+  /** Everything but the version and the timestamps, which a save moves on. */
+  const content = ({
+    version: _version,
+    createdAt: _createdAt,
+    updatedAt: _updatedAt,
+    ...rest
+  }: Awaited<ReturnType<typeof load>>) => rest;
+
+  it.each([
+    [
+      'a processor with scoped engagements and an activity scope',
+      () =>
+        p1({
+          clientScope: {
+            mode: 'exclude',
+            clients: [{ client: 'aurelia', reason: 'Client objected', startedAt: '2026-04-14' }],
+          },
+          engagements: [
+            {
+              party: 'mailcrest',
+              role: 'subprocessor',
+              serviceDescription: 'Candidate notifications (US region)',
+              processingCountries: ['US'],
+              dataCategories: ['identity'],
+              transfers: [{ destinationCountry: 'US', mechanism: 'dpf', documentRef: 'DPA §9' }],
+              clientScope: { mode: 'exclude', clients: [{ client: 'aurelia', reason: 'EU only' }] },
+            },
+          ],
+        }),
+    ],
+    ['a controller with retention rules', () => c2({ dpiaRequired: true, dpiaRef: 'DPIA-1' })],
+  ])('round-trips %s', async (_label, build) => {
+    const created = await createActivity(db().db, build(), PRIYA);
+    const before = await load(created.id);
+
+    const body = ActivityInput.parse(inputFromSnapshot(before));
+    if (body.role === 'joint_controller') throw new Error('unexpected role');
+    await replaceActivity(db().db, created.id, 1, body, PRIYA);
+
+    const after = await load(created.id);
+    expect(after.version).toBe(2);
+    expect(content(after)).toEqual(content(before));
   });
 });

@@ -112,11 +112,22 @@ service (`DEMO_API_URL=https://… npm run demo:data`), which is how a Render
 preview environment gets filled. It is idempotent: run it twice and nothing
 changes.
 
-It is **not** the seed described in `docs/ropa/ropa-database.md` §9. That one
-writes through the domain layer so it can backdate `valid_from` and replay the
-story's timeline for `asOf` and `/changes`; backdating is deliberately not
-exposed over HTTP, so everything loaded here is stamped now. The real
-`npm run db:seed` arrives with build step 2, along with activities.
+It loads the foundation records only: the parties, terms, offering, systems and
+vocabularies. For the whole story, activities included, use the seed:
+
+```bash
+npm run db:seed                  # replays the Hireloop story into the database
+npm run db:seed -- --reset       # empties the record first, so codes start at C1 and P1
+```
+
+The seed writes through the domain layer, so every rule, code and revision
+behaves as in real use, and it backdates each save to its moment in the story
+(February to September 2026). That gives `asOf` and `/changes` a history to show.
+It produces C1–C4 and P1–P3 as `docs/ropa/ropa-story.md` tells them, and it is
+idempotent too. `--reset` empties everything, history included, so it refuses
+to run with `NODE_ENV=production` unless `ALLOW_SEED_RESET=true` is set.
+Backdating is deliberately not exposed over HTTP, which is why `demo:data`
+stamps everything now.
 
 Then open `http://localhost:3000/api-docs`, mint a token at `POST /v1/tokens`
 with the `TOKEN_MINT_SECRET` from your `.env`, press **Authorize**, and explore.

@@ -10,7 +10,7 @@ import { z } from 'zod';
  * Variables are added to this schema by the phase that first uses them, so
  * `npm run dev` never demands configuration for a feature that does not exist
  */
-const PostgresUrl = z.string().refine((value) => {
+export const PostgresUrl = z.string().refine((value) => {
   // A connection string, not a bare host:port, and not a URL for a different
   // database that happens to parse: a pasted MySQL or Redis URL is a likelier
   // mistake than a malformed one.

@@ -20,6 +20,7 @@
     "test": "npm run test --workspaces --if-present",
     "dev": "npm run dev -w apps/ropa-api",
     "db:migrate": "npm run build && npm run db:migrate -w apps/ropa-api",
+    "db:seed": "npm run build && npm run db:seed -w apps/ropa-api --",
     "openapi:write": "npm run build && npm run openapi:write -w apps/ropa-api",
     "check": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run test:dist",
     "test:dist": "npm run build && npm run test:dist --workspaces --if-present",
