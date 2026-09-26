@@ -1,5 +1,5 @@
 import { createDb, createPool } from '../db/client.js';
-import { databaseUrlOrExit } from '../shared/startup.js';
+import { loadDatabaseConfigOrExit } from '../shared/startup.js';
 import { replayStory, resetDatabase } from './replay-story.js';
 
 /**
@@ -14,7 +14,7 @@ import { replayStory, resetDatabase } from './replay-story.js';
 const reset = process.argv.includes('--reset');
 
 async function main(): Promise<void> {
-  const databaseUrl = databaseUrlOrExit();
+  const { databaseUrl } = loadDatabaseConfigOrExit();
 
   if (
     reset &&

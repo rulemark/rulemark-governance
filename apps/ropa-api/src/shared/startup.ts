@@ -1,7 +1,13 @@
 import { fileURLToPath } from 'node:url';
 import { config as loadDotenv } from 'dotenv';
 
-import { ConfigError, PostgresUrl, loadConfig, type Config } from './config.js';
+import {
+  ConfigError,
+  loadConfig,
+  loadDatabaseConfig,
+  type Config,
+  type DatabaseConfig,
+} from './config.js';
 
 /**
  * What every entry point does before it can do anything else. The service and
@@ -38,17 +44,16 @@ export function loadConfigOrExit(): Config {
   }
 }
 
-/**
- * For tools that only touch the database, such as `db:seed`: `DATABASE_URL`
- * and nothing else. Asking a seed for a JWT secret it never uses is how
- * configuration errors end up in places that have nothing to do with them.
- */
-export function databaseUrlOrExit(): string {
+/** For tools that only touch the database: see `loadDatabaseConfig`. */
+export function loadDatabaseConfigOrExit(): DatabaseConfig {
   loadEnvFile();
-  const parsed = PostgresUrl.safeParse(process.env['DATABASE_URL']);
-  if (!parsed.success) {
-    process.stderr.write('DATABASE_URL must be a postgres:// connection string\n');
-    process.exit(1);
+  try {
+    return loadDatabaseConfig();
+  } catch (error) {
+    if (error instanceof ConfigError) {
+      process.stderr.write(`${error.message}\n`);
+      process.exit(1);
+    }
+    throw error;
   }
-  return parsed.data;
 }

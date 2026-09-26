@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   DIST_ARGS,
   DIST_ENTRY,
+  DIST_MIGRATE,
   exitOf,
   freePort,
   startService,
@@ -80,5 +81,21 @@ describe('the built service', () => {
     const exited = exitOf(service);
     service.child.kill('SIGTERM');
     expect(await exited).toBe(0);
+  }, 20_000);
+});
+
+describe('the built migrator, as the pre-deploy command runs it', () => {
+  it('migrates with nothing but DATABASE_URL: no secrets, no principals', async () => {
+    const migrator = startService([DIST_MIGRATE], {
+      NODE_ENV: 'production',
+      LOG_LEVEL: 'silent',
+      // Blank is unset (config.ts), so these override whatever the harness or
+      // the developer's environment would otherwise pass along.
+      JWT_SECRET: '',
+      TOKEN_MINT_SECRET: '',
+      PRINCIPALS: '',
+    });
+    running = migrator;
+    expect(await exitOf(migrator), migrator.stderr()).toBe(0);
   }, 20_000);
 });

@@ -8,7 +8,10 @@ export type { Logger };
  * Structured JSON logs. Render's log stream parses JSON, so on the platform we
  * emit it raw; locally `pino-pretty` makes it readable.
  */
-export function createLogger(config: Config, destination?: DestinationStream): Logger {
+export function createLogger(
+  config: Pick<Config, 'logLevel' | 'nodeEnv'>,
+  destination?: DestinationStream,
+): Logger {
   const options = {
     level: config.logLevel,
     // A bearer token in a log line is a credential in a log line (§1.9).

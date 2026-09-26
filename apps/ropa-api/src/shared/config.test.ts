@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { ConfigError, loadConfig } from './config.js';
+import { ConfigError, loadConfig, loadDatabaseConfig } from './config.js';
 
 /** The variables with no sensible default: everything else may be omitted. */
 const REQUIRED = {
@@ -215,5 +215,29 @@ describe('auth switches', () => {
     expect(
       loadConfig({ ...REQUIRED, NODE_ENV: 'development', AUTH_DISABLED: 'true' }).authDisabled,
     ).toBe(true);
+  });
+});
+
+describe('loadDatabaseConfig: for tools that only touch the database', () => {
+  const DATABASE_URL = 'postgres://ropa:ropa@localhost:5432/ropa';
+
+  it('needs DATABASE_URL and nothing else: no secrets, no principals', () => {
+    expect(loadDatabaseConfig({ DATABASE_URL })).toEqual({
+      nodeEnv: 'development',
+      logLevel: 'info',
+      databaseUrl: DATABASE_URL,
+    });
+  });
+
+  it('reads the environment and log level the logger needs', () => {
+    expect(
+      loadDatabaseConfig({ DATABASE_URL, NODE_ENV: 'production', LOG_LEVEL: 'warn' }),
+    ).toMatchObject({ nodeEnv: 'production', logLevel: 'warn' });
+  });
+
+  it('checks what it does read, as strictly as loadConfig', () => {
+    expect(() => loadDatabaseConfig({})).toThrow(ConfigError);
+    expect(() => loadDatabaseConfig({ DATABASE_URL: 'mysql://x' })).toThrow(/DATABASE_URL/);
+    expect(() => loadDatabaseConfig({ DATABASE_URL, LOG_LEVEL: 'loud' })).toThrow(/LOG_LEVEL/);
   });
 });

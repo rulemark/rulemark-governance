@@ -17,6 +17,9 @@ export const APP_ROOT = fileURLToPath(new URL('..', import.meta.url));
 const SOURCE_ENTRY = fileURLToPath(new URL('../src/index.ts', import.meta.url));
 export const DIST_ENTRY = fileURLToPath(new URL('../dist/index.js', import.meta.url));
 
+/** The migrator Render's pre-deploy command runs. */
+export const DIST_MIGRATE = fileURLToPath(new URL('../dist/db/migrate.js', import.meta.url));
+
 /** The sources, through tsx, with workspace packages resolved to their sources. */
 export const SOURCE_ARGS = ['--import', 'tsx', '--conditions=development', SOURCE_ENTRY];
 

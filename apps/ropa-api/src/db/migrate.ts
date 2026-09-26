@@ -44,9 +44,11 @@ export async function runMigrations(databaseUrl: string): Promise<void> {
 /** CLI entry: `npm run db:migrate`. */
 async function main(): Promise<void> {
   const { createLogger } = await import('../shared/logger.js');
-  const { loadConfigOrExit } = await import('../shared/startup.js');
+  const { loadDatabaseConfigOrExit } = await import('../shared/startup.js');
 
-  const config = loadConfigOrExit();
+  // DATABASE_URL and the log settings only: a pre-deploy that failed over a
+  // missing JWT secret would block a deploy for a reason unrelated to it.
+  const config = loadDatabaseConfigOrExit();
   const logger = createLogger(config);
 
   try {

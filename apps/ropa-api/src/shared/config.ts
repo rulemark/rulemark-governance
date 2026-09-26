@@ -10,7 +10,7 @@ import { z } from 'zod';
  * Variables are added to this schema by the phase that first uses them, so
  * `npm run dev` never demands configuration for a feature that does not exist
  */
-export const PostgresUrl = z.string().refine((value) => {
+const PostgresUrl = z.string().refine((value) => {
   // A connection string, not a bare host:port, and not a URL for a different
   // database that happens to parse: a pasted MySQL or Redis URL is a likelier
   // mistake than a malformed one.
@@ -63,14 +63,17 @@ const Principals = z.string().transform((value, ctx) => {
  */
 const Secret = z.string().min(16, 'Must be at least 16 characters');
 
+/** What every process reads, the service and the database tools alike. */
+const databaseFields = {
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
+  DATABASE_URL: PostgresUrl,
+};
+
 const EnvSchema = z
   .object({
-    NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+    ...databaseFields,
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
-    LOG_LEVEL: z
-      .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
-      .default('info'),
-    DATABASE_URL: PostgresUrl,
     JWT_SECRET: Secret,
     TOKEN_MINT_SECRET: Secret,
     PRINCIPALS: Principals,
@@ -133,28 +136,48 @@ function withoutBlanks(env: Readonly<Record<string, string | undefined>>) {
   );
 }
 
-export function loadConfig(
-  env: Readonly<Record<string, string | undefined>> = process.env,
-): Config {
-  const result = EnvSchema.safeParse(withoutBlanks(env));
-
+/** Every problem at once: fixing one variable per restart is miserable. */
+function parseEnv<T>(schema: z.ZodType<T>, env: Readonly<Record<string, string | undefined>>): T {
+  const result = schema.safeParse(withoutBlanks(env));
   if (!result.success) {
-    // Every problem at once: fixing one variable per restart is miserable.
     const lines = result.error.issues.map(
       (issue) => `  ${issue.path.join('.') || '(root)'}: ${issue.message}`,
     );
     throw new ConfigError(`Invalid environment configuration:\n${lines.join('\n')}`);
   }
+  return result.data;
+}
+
+export function loadConfig(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): Config {
+  const data = parseEnv(EnvSchema, env);
 
   return {
-    nodeEnv: result.data.NODE_ENV,
-    port: result.data.PORT,
-    logLevel: result.data.LOG_LEVEL,
-    databaseUrl: result.data.DATABASE_URL,
-    jwtSecret: result.data.JWT_SECRET,
-    tokenMintSecret: result.data.TOKEN_MINT_SECRET,
-    principals: result.data.PRINCIPALS,
-    requireAuthForReads: result.data.REQUIRE_AUTH_FOR_READS,
-    authDisabled: result.data.AUTH_DISABLED,
+    nodeEnv: data.NODE_ENV,
+    port: data.PORT,
+    logLevel: data.LOG_LEVEL,
+    databaseUrl: data.DATABASE_URL,
+    jwtSecret: data.JWT_SECRET,
+    tokenMintSecret: data.TOKEN_MINT_SECRET,
+    principals: data.PRINCIPALS,
+    requireAuthForReads: data.REQUIRE_AUTH_FOR_READS,
+    authDisabled: data.AUTH_DISABLED,
   };
+}
+
+/**
+ * What a tool that only touches the database needs: the migrator, the seed.
+ * Asking the pre-deploy command for a JWT secret it never uses would make a
+ * deploy fail over a setting that has nothing to do with migrating.
+ */
+export type DatabaseConfig = Pick<Config, 'nodeEnv' | 'logLevel' | 'databaseUrl'>;
+
+const DatabaseEnvSchema = z.object(databaseFields);
+
+export function loadDatabaseConfig(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): DatabaseConfig {
+  const data = parseEnv(DatabaseEnvSchema, env);
+  return { nodeEnv: data.NODE_ENV, logLevel: data.LOG_LEVEL, databaseUrl: data.DATABASE_URL };
 }
