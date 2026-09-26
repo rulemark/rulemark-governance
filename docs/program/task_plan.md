@@ -9,7 +9,7 @@ turn the stored record into something a person reads.
 Build step 2 from `docs/ropa/ropa-api.md` §8. **Enough for story chapters 2–4.**
 
 ## Current Phase
-Phase 2
+Phase 3
 
 ## Definition of done for step 2
 - A controller activity and a processor activity can be created, edited,
@@ -50,14 +50,14 @@ Reference: `ropa-data-model.md` §3.1–§3.4, §5; `ropa-packages.md` §4.1, §
 
 ### Phase 2: The activity tables
 Reference: `ropa-database.md` §4.4, §4.6
-- [ ] `processing_activity` with the role-dependent checks, including the three guarded by `status = 'active'`
-- [ ] `engagement`, `transfer`, `retention_rule`, `activity_client_scope`, `engagement_client_scope`
-- [ ] The four link tables, with the indexes the views will need
-- [ ] Attach `forbid_immutable_change` to `code` and `role` — the function has been waiting since step 1
-- [ ] Migration reviewed against §4.4, and a test per named constraint
-- [ ] `retention_period` check tested with the same accepted and rejected values as `IsoDuration` in `primitives.test.ts`, so the two stay identical
+- [x] `processing_activity` with the role-dependent checks, including the three guarded by `status = 'active'`
+- [x] `engagement`, `transfer`, `retention_rule`, `activity_client_scope`, `engagement_client_scope`
+- [x] The four link tables, with the indexes the views will need
+- [x] Attach `forbid_immutable_change` to `code` and `role` — the function has been waiting since step 1
+- [x] Migration reviewed against §4.4, and a test per named constraint
+- [x] `retention_period` check tested with the same accepted and rejected values as `IsoDuration` in `primitives.test.ts`, so the two stay identical
 - **Done when:** Postgres refuses a processor activity with `purposes`, and refuses to change a saved `role`
-- **Status:** pending
+- **Status:** complete
 
 ### Phase 3: Saving an aggregate with children
 Reference: `ropa-database.md` §6.1 step 3; `ropa-api.md` §1.4

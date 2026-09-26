@@ -24,6 +24,12 @@
   `describeRoleRules` and `canActivate` (`resources/activity-role-rules.ts`);
   `validateActivityShape`. `fieldErrorsFromZod` moved from the API app into
   the package and reads a rule's own code. Tests written first
+- **Phase 2 complete.** The activity aggregate's eleven tables
+  (`src/db/schema/activity.ts`), `arrayInList` in `checks.ts`, and
+  migrations `0003_activity_aggregate` (generated, reviewed against DB §4.4)
+  and `0004_activity_triggers` (hand-written). 35 constraint tests in
+  `test/db/activity-schema.test.ts`, written first; the table-list test in
+  `schema.test.ts` now expects them
 
 ## Test Results
 | Test | Command | Expected | Actual | Status |
@@ -31,6 +37,8 @@
 | Inherited from step 1 | `npm run check` | 422 tests pass | 422 pass | ✅ |
 | Principal role rename | `npm run typecheck && npm run lint && npm test` | Clean, all pass | Clean; 314 + 104 pass | ✅ |
 | Phase 1: the activity shape | `npm run check` | Clean, all pass | Clean; 311 + 180 + 4 pass (3 tests moved from the app to the package) | ✅ |
+| Retention periods aligned | `npm run check` | Clean, all pass | Clean; 311 + 192 + 4 pass | ✅ |
+| Phase 2: the activity tables | `npm run check`; `drizzle-kit generate` | Clean, all pass; no pending changes | Clean; 346 + 192 + 4 pass; "No schema changes" | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -40,7 +48,7 @@
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Build step 2, Phase 2 (the activity tables); Phase 1 complete |
+| Where am I? | Build step 2, Phase 3 (saving an aggregate with children); Phases 1–2 complete |
 | Where am I going? | Activities and their rules, then `/subprocessors` and `/report`, then the Hireloop seed |
 | What's the goal? | Make the record a record: an Art. 30 entry that can be drafted, activated and read |
 | What have I learned? | See findings.md, and `plan-archive/2/findings.md` for step 1 |

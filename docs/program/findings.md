@@ -88,6 +88,29 @@
     `<> 'P'`.
   - `dpiaRequired` defaults to `false` in the controller input, which
     satisfies `processing_activity_active_controller`.
+- **How Phase 2 built it.**
+  - Migration `0003_activity_aggregate` is generated and matches DB §4.4
+    check for check. The deliberate differences: every check is named
+    `<table>_<meaning>` instead of being inline, every table has the §3
+    timestamps (link tables carry `created_at` only, because they are
+    replaced wholesale and never updated), and the link tables' primary keys
+    are named `<table>_pkey`.
+  - Migration `0004_activity_triggers` is hand-written. It attaches
+    `forbid_immutable_change('code', 'role')` as `BEFORE UPDATE OF code,
+    role`, and `set_updated_at` to the six editable tables.
+  - **Postgres runs CHECK constraints in alphabetical order by name**, and
+    reports the first that fails. `processing_activity_code_prefix` reads the
+    role (`ELSE 'J'`), so an unknown role with a `C` code fails there before
+    `_role`. `_active_started` treats any status but `draft` as live, so an
+    unknown status without a start date fails there before `_status`. Three
+    fixtures had to be fixed for this. Phase 4 maps constraint names to API
+    errors, so it should expect the first failing name, not the most
+    specific one; Zod reports these first anyway.
+  - The `retention_rule_period` test runs every value against both Postgres
+    and `IsoDuration`, so the two cannot drift apart silently.
+  - The local development database has not been migrated. The test database
+    has (`global-setup.ts`). Run `npm run db:migrate` before using the dev
+    server against activities.
 - **For Phase 4.** `joint_controller` surfaces as a field error with code
   `not_yet_supported` inside a validation problem. The app also has a
   `notYetSupported()` problem type (`problems.ts`). Decide whether the route
