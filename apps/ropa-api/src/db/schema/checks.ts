@@ -9,12 +9,6 @@ import { MAX_SLUG } from '@rulemark/ropa-schemas';
  */
 
 /**
- * Step 2 adds `arrayInList` here for the activity aggregate's enum arrays
- * (`lawful_bases`, `special_conditions`); no table in step 1 has one, and an
- * untested helper nobody calls is a liability rather than a head start.
- */
-
-/**
  * Values are inlined as SQL literals, not bound as parameters. A CHECK
  * constraint is DDL: `sql`${value}`` would emit `IN ($1, $2)`, which is not a
  * constraint anyone can apply. Everything passed here is a compile-time
@@ -31,6 +25,15 @@ function literals(values: readonly string[]): SQL {
  */
 export function inList(column: AnyPgColumn, values: readonly string[]): SQL {
   return sql`${column} IN (${literals(values)})`;
+}
+
+/**
+ * Every element of an enum array is an allowed value: `lawful_bases`,
+ * `special_conditions`. An empty array passes, which is how "none" is spelled
+ * (§3).
+ */
+export function arrayInList(column: AnyPgColumn, values: readonly string[]): SQL {
+  return sql`${column} <@ ARRAY[${literals(values)}]::text[]`;
 }
 
 /**

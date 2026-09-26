@@ -22,6 +22,20 @@
       "when": 1789987260174,
       "tag": "0002_bound_slug_length",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790429067869,
+      "tag": "0003_activity_aggregate",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790429081442,
+      "tag": "0004_activity_triggers",
+      "breakpoints": true
     }
   ]
 }

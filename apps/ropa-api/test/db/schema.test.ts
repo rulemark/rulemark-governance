@@ -311,24 +311,35 @@ describe('code_counter', () => {
 });
 
 describe('the migration itself', () => {
-  it('created every foundation table and nothing from step 2', async () => {
+  it('created the foundation tables and the activity aggregate, and no review items yet', async () => {
     const { rows } = await db().sql.query<{ table_name: string }>(
       `SELECT table_name FROM information_schema.tables
        WHERE table_schema = 'public' AND table_type = 'BASE TABLE' AND table_name <> '__drizzle_migrations'
        ORDER BY table_name`,
     );
     expect(rows.map((row) => row.table_name)).toEqual([
+      'activity_client_scope',
+      'activity_data_category',
+      'activity_security_measure',
+      'activity_subject_category',
+      'activity_system',
       'agreement',
       'agreement_terms',
       'code_counter',
       'data_category',
+      'engagement',
+      'engagement_client_scope',
+      'engagement_data_category',
       'event_outbox',
       'offering',
       'party',
+      'processing_activity',
+      'retention_rule',
       'revision',
       'security_measure',
       'subject_category',
       'system',
+      'transfer',
     ]);
   });
 
