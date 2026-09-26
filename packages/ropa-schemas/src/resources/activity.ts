@@ -363,7 +363,7 @@ const Transfer = z.object({
   documentRef: Name.nullable(),
 });
 
-const RetentionRule = z.object({
+export const RetentionRule = z.object({
   id: Uuid,
   dataCategory: Ref.nullable().describe('Null for the activity’s default rule.'),
   retentionPeriod: IsoDuration,
@@ -474,3 +474,4 @@ export type ProcessorActivity = z.infer<typeof ProcessorActivity>;
 export type Activity = z.infer<typeof Activity>;
 export type ActivateInput = z.infer<typeof ActivateInput>;
 export type RetireInput = z.infer<typeof RetireInput>;
+export type RetentionRule = z.infer<typeof RetentionRule>;

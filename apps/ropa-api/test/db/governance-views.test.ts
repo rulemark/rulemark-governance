@@ -1,4 +1,4 @@
-import { ImpactResponse } from '@rulemark/ropa-schemas';
+import { DataMapResponse, ImpactResponse } from '@rulemark/ropa-schemas';
 import type { Server } from 'node:http';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -195,6 +195,130 @@ describe('asking for an impact', () => {
 
   it('says asOf is not supported yet, rather than quietly answering for today', async () => {
     const response = await as('monitor', '/v1/parties/mailcrest/impact?asOf=2026-06-03');
+    expect(response.status).toBe(422);
+    expect(response.body.errors[0].code).toBe('not_yet_supported');
+  });
+});
+
+describe('GET /data-map: the DSAR tracker’s two requests in Chapter 7', () => {
+  async function ask(query: string): Promise<DataMapResponse> {
+    const response = await as('dsar', `/v1/data-map?${query}`);
+    expect(response.status, JSON.stringify(response.body)).toBe(200);
+    return DataMapResponse.parse(response.body);
+  }
+
+  const entry = (map: DataMapResponse, code: string) =>
+    map.entries.find((candidate) => candidate.activity.code === code)!;
+  const slugs = (refs: readonly { slug?: string | undefined }[]) => refs.map((ref) => ref.slug);
+
+  describe('Lena: a candidate who applied to Northwind', () => {
+    let lena: DataMapResponse;
+    beforeAll(async () => {
+      lena = await ask('subjectCategory=candidates&client=northwind');
+    });
+
+    it('forwards P1 and P3 to Northwind and acts on C4 itself', () => {
+      expect(lena.subjectCategory.slug).toBe('candidates');
+      expect(lena.client?.slug).toBe('northwind');
+      expect(lena.entries.map((row) => `${row.activity.code} ${row.action}`)).toEqual([
+        'C4 act',
+        'P1 forward',
+        'P3 forward',
+      ]);
+    });
+
+    it('gives C4 its retention, and P1 and P3 none: that is Northwind’s decision', () => {
+      expect(entry(lena, 'C4').retention).toEqual([
+        expect.objectContaining({ dataCategory: null, retentionPeriod: 'P90D' }),
+      ]);
+      expect(entry(lena, 'P1').retention).toBeNull();
+      expect(entry(lena, 'P3').retention).toBeNull();
+    });
+
+    it('points at where her data is: the systems, and the vendors used for Northwind', () => {
+      expect(slugs(entry(lena, 'P1').systems)).toContain('hireloop-db');
+      expect(slugs(entry(lena, 'P1').vendors.map((vendor) => vendor.party))).toEqual([
+        'render',
+        'mailcrest',
+        'glitchlog',
+      ]);
+      expect(slugs(entry(lena, 'P3').vendors.map((vendor) => vendor.party))).toEqual([
+        'render',
+        'scribe-ai',
+      ]);
+    });
+
+    it('lists what Glitchlog receives for C4 as recorded, telemetry included (Q6)', () => {
+      const glitchlog = entry(lena, 'C4').vendors.find(
+        (vendor) => vendor.party.slug === 'glitchlog',
+      );
+      expect(slugs(glitchlog!.dataCategories).sort()).toEqual(['identity', 'telemetry']);
+    });
+
+    it('leaves out P2, a module Northwind never enabled', () => {
+      expect(lena.entries.map((row) => row.activity.code)).not.toContain('P2');
+    });
+  });
+
+  describe('Kees: a former Hireloop employee', () => {
+    let kees: DataMapResponse;
+    beforeAll(async () => {
+      kees = await ask('subjectCategory=employees');
+    });
+
+    it('finds only C1, where Hireloop decides, in Peoplehub and on no Render system', () => {
+      expect(kees.client).toBeNull();
+      expect(kees.entries.map((row) => `${row.activity.code} ${row.action}`)).toEqual(['C1 act']);
+      expect(slugs(kees.entries[0]!.vendors.map((vendor) => vendor.party))).toEqual(['peoplehub']);
+    });
+
+    it('gives the rules that decide it: sick leave after 2 years, payroll after 7', () => {
+      const rules = kees.entries[0]!.retention!.map(
+        (rule) => `${rule.dataCategory?.slug ?? 'default'} ${rule.retentionPeriod}`,
+      );
+      expect(rules).toEqual(expect.arrayContaining(['health P2Y', 'payroll P7Y']));
+      const payroll = kees.entries[0]!.retention!.find(
+        (rule) => rule.dataCategory?.slug === 'payroll',
+      );
+      expect(payroll?.legalRef).toBe('Dutch tax law');
+    });
+  });
+});
+
+describe('asking for a data map', () => {
+  it('needs a subject category, and names one that does not exist', async () => {
+    const missing = await as('dsar', '/v1/data-map');
+    expect(missing.status).toBe(422);
+    expect(missing.body.errors[0].path).toBe('/subjectCategory');
+
+    const unknown = await as('dsar', '/v1/data-map?subjectCategory=martians');
+    expect(unknown.status).toBe(422);
+    expect(unknown.body.errors[0]).toMatchObject({
+      path: '/subjectCategory',
+      code: 'unknown_reference',
+    });
+  });
+
+  it('names a client that does not exist', async () => {
+    const response = await as('dsar', '/v1/data-map?subjectCategory=candidates&client=nobody');
+    expect(response.status).toBe(422);
+    expect(response.body.errors[0]).toMatchObject({ path: '/client', code: 'unknown_reference' });
+  });
+
+  it('answers for a party with no agreement with Hireloop’s own activities only', async () => {
+    const response = await as('dsar', '/v1/data-map?subjectCategory=candidates&client=mailcrest');
+    expect(response.status).toBe(200);
+    expect(response.body.entries.map((row: { action: string }) => row.action)).toEqual(['act']);
+  });
+
+  it('is refused to a token without view:datamap', async () => {
+    const response = await as('monitor', '/v1/data-map?subjectCategory=candidates');
+    expect(response.status).toBe(403);
+    expect(response.body.requiredPermission).toBe('view:datamap');
+  });
+
+  it('says asOf is not supported yet', async () => {
+    const response = await as('dsar', '/v1/data-map?subjectCategory=candidates&asOf=2026-07-01');
     expect(response.status).toBe(422);
     expect(response.body.errors[0].code).toBe('not_yet_supported');
   });

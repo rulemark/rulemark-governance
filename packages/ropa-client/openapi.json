@@ -3118,6 +3118,242 @@
         ],
         "additionalProperties": false
       },
+      "DataMapResponse": {
+        "type": "object",
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+            "description": "An RFC 3339 timestamp.",
+            "examples": [
+              "2026-03-16T10:00:00Z"
+            ]
+          },
+          "asOf": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                "description": "A date, \"YYYY-MM-DD\".",
+                "examples": [
+                  "2026-03-16"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "subjectCategory": {
+            "$ref": "#/components/schemas/Ref"
+          },
+          "client": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Ref"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "activity": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "description": "A UUID. Records are keyed by UUIDv7.",
+                      "examples": [
+                        "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                      ]
+                    },
+                    "code": {
+                      "type": "string",
+                      "minLength": 2,
+                      "maxLength": 20,
+                      "pattern": "^[A-Z]+-?\\d+$",
+                      "description": "A stable, system-assigned code shown next to the name: \"P3\".",
+                      "examples": [
+                        "P3",
+                        "RI-42"
+                      ]
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "examples": [
+                        "Mailcrest Inc."
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "code",
+                    "name"
+                  ],
+                  "additionalProperties": false
+                },
+                "role": {
+                  "type": "string",
+                  "enum": [
+                    "controller",
+                    "processor"
+                  ]
+                },
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "act",
+                    "forward"
+                  ]
+                },
+                "systems": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Ref"
+                  }
+                },
+                "vendors": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "party": {
+                        "$ref": "#/components/schemas/Ref"
+                      },
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "processor",
+                          "subprocessor",
+                          "recipient",
+                          "joint_controller"
+                        ]
+                      },
+                      "dataCategories": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/Ref"
+                        }
+                      }
+                    },
+                    "required": [
+                      "party",
+                      "role",
+                      "dataCategories"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "retention": {
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                            "description": "A UUID. Records are keyed by UUIDv7.",
+                            "examples": [
+                              "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                            ]
+                          },
+                          "dataCategory": {
+                            "anyOf": [
+                              {
+                                "$ref": "#/components/schemas/Ref"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "description": "Null for the activity’s default rule."
+                          },
+                          "retentionPeriod": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 20,
+                            "pattern": "^P(?!$)([0-9]+Y)?([0-9]+M)?([0-9]+W)?([0-9]+D)?$",
+                            "description": "An ISO 8601 duration in years, months, weeks or days: \"P90D\", \"P7Y\", \"P1Y6M\".",
+                            "examples": [
+                              "P90D",
+                              "P7Y"
+                            ]
+                          },
+                          "triggerEvent": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "examples": [
+                              "Mailcrest Inc."
+                            ]
+                          },
+                          "legalRef": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 200,
+                                "examples": [
+                                  "Mailcrest Inc."
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "dataCategory",
+                          "retentionPeriod",
+                          "triggerEvent",
+                          "legalRef"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "activity",
+                "role",
+                "action",
+                "systems",
+                "vendors",
+                "retention"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "generatedAt",
+          "asOf",
+          "subjectCategory",
+          "client",
+          "entries"
+        ],
+        "additionalProperties": false
+      },
       "ReportResponse": {
         "type": "object",
         "properties": {
@@ -13485,6 +13721,87 @@
           }
         },
         "x-required-permission": "view:impact"
+      }
+    },
+    "/v1/data-map": {
+      "get": {
+        "tags": [
+          "views"
+        ],
+        "summary": "Where a subject category’s data lives, and who acts on a request",
+        "description": "For the DSAR tracker (§5.4). One entry per live activity about the subject category, in code order: `act` where Hireloop is the controller, with its retention rules; `forward` where it is the processor, and the client decides. `client` scopes processor activities to what is done for that client; controller activities are always included. Vendor data categories are what each vendor receives for the activity, as recorded: an upper bound.\n\nRequires the `view:datamap` permission.",
+        "parameters": [
+          {
+            "name": "subjectCategory",
+            "in": "query",
+            "required": true,
+            "description": "Whose data, by id or slug: \"candidates\", \"employees\".",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "client",
+            "in": "query",
+            "required": false,
+            "description": "A client, by id or slug: what is done for them.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "asOf",
+            "in": "query",
+            "required": false,
+            "description": "Not supported yet: answered with 422 not_yet_supported.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The data map",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataMapResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No token, or the token is not valid",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Valid token without the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request failed validation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "view:datamap"
       }
     }
   }

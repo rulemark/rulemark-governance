@@ -1,4 +1,10 @@
-import { API_VERSION, ImpactQuery, ReportQuery, SubprocessorsQuery } from '@rulemark/ropa-schemas';
+import {
+  API_VERSION,
+  DataMapQuery,
+  ImpactQuery,
+  ReportQuery,
+  SubprocessorsQuery,
+} from '@rulemark/ropa-schemas';
 import { Router, type Request } from 'express';
 
 import type { Database } from '../../db/client.js';
@@ -7,6 +13,7 @@ import { partyAggregate } from '../../domain/aggregates.js';
 import { findByIdentifier } from '../../domain/identifiers.js';
 import { fieldErrorsFromZod, notFound } from '../../shared/problems.js';
 import { requires } from '../middleware/authorize.js';
+import { buildDataMap } from '../views/data-map.js';
 import { buildImpact } from '../views/impact.js';
 import { renderReportMarkdown } from '../views/markdown.js';
 import { buildReport } from '../views/report.js';
@@ -128,6 +135,21 @@ export function viewsRouter(db: Database): Router {
             );
           }),
         );
+      } catch (error) {
+        next(error);
+      }
+    })();
+  });
+
+  router.get(`/${API_VERSION}/data-map`, requires('view:datamap'), (req, res, next) => {
+    void (async () => {
+      try {
+        const parsed = DataMapQuery.safeParse(queryOf(req));
+        if (!parsed.success) refused(fieldErrorsFromZod(parsed.error));
+        refuseAsOf(parsed.data.asOf);
+
+        const now = new Date();
+        res.json(await consistently((tx) => buildDataMap(tx, parsed.data, now)));
       } catch (error) {
         next(error);
       }

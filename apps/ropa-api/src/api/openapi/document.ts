@@ -9,6 +9,7 @@ import {
   AgreementTermsInput,
   DataCategory,
   DataCategoryInput,
+  DataMapResponse,
   ImpactResponse,
   DEFAULT_PAGE_SIZE,
   MAX_PAGE_SIZE,
@@ -109,6 +110,7 @@ const OUTPUT_SCHEMAS: readonly [string, z.ZodType][] = [
   ['ReviewItem', ReviewItem],
   ['SubprocessorsResponse', SubprocessorsResponse],
   ['ImpactResponse', ImpactResponse],
+  ['DataMapResponse', DataMapResponse],
   ['ReportResponse', ReportResponse],
   ['TokenResponse', TokenResponse],
   ['MeResponse', MeResponse],
@@ -735,6 +737,33 @@ export function buildOpenApiDocument(): JsonObject {
         },
       },
       'view:impact',
+    ),
+  };
+
+  paths[`/${API_VERSION}/data-map`] = {
+    get: guarded(
+      {
+        tags: ['views'],
+        summary: 'Where a subject category’s data lives, and who acts on a request',
+        description:
+          'For the DSAR tracker (§5.4). One entry per live activity about the subject category, in code order: `act` where Hireloop is the controller, with its retention rules; `forward` where it is the processor, and the client decides. `client` scopes processor activities to what is done for that client; controller activities are always included. Vendor data categories are what each vendor receives for the activity, as recorded: an upper bound.',
+        parameters: [
+          {
+            name: 'subjectCategory',
+            in: 'query',
+            required: true,
+            description: 'Whose data, by id or slug: "candidates", "employees".',
+            schema: { type: 'string' },
+          },
+          queryParam('client', 'A client, by id or slug: what is done for them.'),
+          queryParam('asOf', 'Not supported yet: answered with 422 not_yet_supported.'),
+        ],
+        responses: {
+          '200': json('DataMapResponse', 'The data map'),
+          ...COMMON_ERRORS,
+        },
+      },
+      'view:datamap',
     ),
   };
 
