@@ -421,6 +421,8 @@ All views are read-only, computed from current state or, with `asOf`, from revis
 
 CSV (one row per activity × engagement) stays in the last build step.
 
+**As built (step 2):** `offering` or `client` implies the processor view, and `view=controller` or `all` with either is refused (`422 scope_needs_processor_view`), so a client's extract never carries Hireloop's own controller records. A scoped report closes with the list `GET /subprocessors` gives for the same scope, built by the same function. Processor activities name the controllers they serve: the one client; "all clients on the offering's standard terms" without names (a prospect reads it); or, unscoped, every client each activity covers today. Only active activities appear. `asOf` and `format=csv` answer `422 not_yet_supported` until steps 4 and 5.
+
 ### 5.2 `GET /subprocessors`
 
 Exactly one of `offering` or `client` is required. `asOf` is optional.
@@ -453,6 +455,8 @@ Example: `GET /v1/subprocessors?client=aurelia&asOf=2026-05-01` (after P3 CV par
 The list is built from the client's **effective engagements** (DM §3.8) and grouped by party: Aurelia sees Mailcrest in Ireland with no transfer, while `?client=northwind` shows Mailcrest in the US (DPF) plus Glitchlog.
 
 With `?offering=ats` instead, the list shows the standard terms: engagements with an `include` scope are left out (they're client-specific), so Mailcrest appears with its US region, and Glitchlog and Scribe AI are included. Opt-in activities such as P2 appear under a separate `optionalModules` array with their own subprocessors.
+
+**As built (step 2):** by client, the scope names the offering and the **terms the client signed** (Aurelia's DPA, not the default), which the Monitor needs to tell who is notified and who must approve. A client with no agreement in force answers `422 no_active_agreement`. A client with agreements for **several offerings** answers `422 several_offerings`, because the response names one offering and one set of terms (§9, question 6). Neither or both of `offering`/`client` answers `422 exactly_one_scope`. `asOf` answers `422 not_yet_supported` until step 4.
 
 ### 5.3 `GET /parties/{ref}/impact`
 
@@ -605,6 +609,13 @@ RoPA **pushes** events to its consumers (Q3). Delivery is HTTP `POST` to configu
 4. **History:** `asOf`, `/revisions`, `/changes`, event outbox and push delivery. Enough for Ch8 and the audit log.
 5. **Conveniences:** CSV report format; engagement sub-resource (§3.5).
 
+**Decided during build step 2 (2026-09-26)**, for the steps that follow:
+- **Step 4 builds `subprocessors.changed` (§6) with the dispatcher**, not before: the events belong with what delivers them (DB §6.1 step 5). The save computes the list before and after for the offering and for each client the change affects, using the same functions `GET /subprocessors` uses (`domain/views/subprocessors.ts`), and writes `added[]`/`removed[]`.
+- **`asOf` arrives in step 4 without new view logic.** The views are pure functions over activity aggregates (DB §6.3); only the loading is SQL. `asOf` feeds them snapshots from revisions instead of live rows. Until then, `?asOf=` answers `422 not_yet_supported` rather than answering for today.
+- **`/revisions` already exists** (step 1), and every save has written `record.changed` outbox rows since step 1. What step 4 adds is `asOf`, `/changes`, `subprocessors.changed` and delivery. Still open: how to test the dispatcher, which manages its own transactions (not one per test).
+- **Step 5:** `format=csv` answers `422 not_yet_supported` until then. The engagement sub-resource can build on `inputFromSnapshot` (`domain/activity/input.ts`), which turns a stored activity into the `PUT` body that saves it unchanged.
+- **Deploying:** Render judges a push by its newest commit, so code is pushed on its own and documentation separately (README, Deployment).
+
 ## 9. Open questions
 
 1. ~~**Concurrency**~~ **Resolved (2026-09-19):** `If-Match` required on `PUT`, `DELETE`, `activate` and `retire`. Review-item transitions are protected by a status check. See §1.8.
@@ -612,3 +623,4 @@ RoPA **pushes** events to its consumers (Q3). Delivery is HTTP `POST` to configu
 3. ~~**Events vs polling**~~ **Resolved (2026-09-19):** push, using a transactional outbox with at-least-once delivery; `/changes` stays available for reconciliation. See §6.
 4. ~~**Nested sub-resources**~~ **Resolved (2026-09-19):** yes, `/activities/{ref}/engagements` as a convenience that still versions the whole activity. Designed now, built later (§8, step 5). See §3.5.
 5. ~~**Report formats**~~ **Resolved (2026-09-19):** Markdown moves forward to step 2 because it feeds the architecture document; CSV stays in step 5. See §5.1 and §8.
+6. **A client on several offerings** (open, 2026-09-26): `/subprocessors?client=` and `/report?client=` answer for one offering and one set of terms, so a client with agreements for two offerings is refused (`several_offerings`). The story never has one. Options when it matters: accept `offering` alongside `client` to choose, or return one scope per agreement.

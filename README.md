@@ -148,31 +148,31 @@ npm run dev                      # API on :3000, docs at /api-docs
 
 ### Demo data
 
-```bash
-npm run demo:data                # loads the Hireloop cast through the API
-```
-
-This talks HTTP like any other client, so it also works against a deployed
-service (`DEMO_API_URL=https://… npm run demo:data`), which is how a Render
-preview environment gets filled. It is idempotent: run it twice and nothing
-changes.
-
-It loads the foundation records only: the parties, terms, offering, systems and
-vocabularies. For the whole story, activities included, use the seed:
+Two ways to load the Hireloop story. Both are idempotent: run either twice and
+nothing changes.
 
 ```bash
-npm run db:seed                  # replays the Hireloop story into the database
+npm run db:seed                  # replays the story into the database, backdated
 npm run db:seed -- --reset       # empties the record first, so codes start at C1 and P1
+npm run demo:data                # loads the story through the API, stamped now
 ```
 
-The seed writes through the domain layer, so every rule, code and revision
+**`db:seed`** writes through the domain layer, so every rule, code and revision
 behaves as in real use, and it backdates each save to its moment in the story
-(February to September 2026). That gives `asOf` and `/changes` a history to show.
-It produces C1–C4 and P1–P3 as `docs/ropa/ropa-story.md` tells them, and it is
-idempotent too. `--reset` empties everything, history included, so it refuses
-to run with `NODE_ENV=production` unless `ALLOW_SEED_RESET=true` is set.
-Backdating is deliberately not exposed over HTTP, which is why `demo:data`
-stamps everything now.
+(February to September 2026). That gives `asOf` and `/changes` a history to
+show. It produces C1–C4 and P1–P3 as `docs/ropa/ropa-story.md` tells them.
+`--reset` empties everything, history included, so it refuses to run with
+`NODE_ENV=production` unless `ALLOW_SEED_RESET=true` is set. It needs only
+`DATABASE_URL`.
+
+**`demo:data`** talks HTTP like any other client, so it also works against a
+deployed service (`DEMO_API_URL=https://… npm run demo:data`), which is how a
+Render preview environment gets filled, and doubles as a smoke test. It creates
+and approves the activities, then makes the story's later edits by reading each
+activity and sending it back changed. Everything is stamped now, because
+backdating is deliberately not exposed over HTTP. It needs only
+`TOKEN_MINT_SECRET` and a subject with the admin role (`DEMO_SUBJECT`, default
+`svc:seed`).
 
 Then open `http://localhost:3000/api-docs`, mint a token at `POST /v1/tokens`
 with the `TOKEN_MINT_SECRET` from your `.env`, press **Authorize**, and explore.

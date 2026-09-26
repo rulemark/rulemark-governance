@@ -257,6 +257,8 @@ All scope rows on one engagement must use the same `mode`. An engagement with no
 
 **Covered clients and effective engagements.** Views use these definitions throughout (§7).
 
+An agreement is **active** on a day when its terms are outbound, it was signed on or before that day, and it has not ended by it. Rules are judged as of the save's effective date (`valid_from`), so a backdated save is judged by the agreements in force then; views, as of the day they are asked about. (Defined in build step 2, `domain/agreements.ts`.)
+
 Processor activity *A* **covers** client *X* when:
 1. *X* holds an active outbound agreement for *A*'s offering; and
 2. either `client_coverage = all_enrolled` and *X* has no active `exclude` row, **or** `client_coverage = opt_in` and *X* has an active `include` row.
