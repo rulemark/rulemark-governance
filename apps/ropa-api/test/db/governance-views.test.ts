@@ -1,4 +1,4 @@
-import { DataMapResponse, ImpactResponse } from '@rulemark/ropa-schemas';
+import { CoverageResponse, DataMapResponse, ImpactResponse } from '@rulemark/ropa-schemas';
 import type { Server } from 'node:http';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -25,13 +25,14 @@ const ENV = {
   PRINCIPALS: JSON.stringify([
     { sub: 'svc:monitor', name: 'Subprocessor Monitor', roles: ['service:monitor'] },
     { sub: 'svc:dsar', name: 'DSAR tracker', roles: ['service:dsar'] },
+    { sub: 'svc:snapshot', name: 'Architecture Snapshot', roles: ['service:snapshot'] },
   ]),
 };
 
 let db: Database;
 let pool: ReturnType<typeof createPool>;
 let server: Server;
-const tokens = { monitor: '', dsar: '' };
+const tokens = { monitor: '', dsar: '', snapshot: '' };
 
 async function mint(subject: string): Promise<string> {
   const response = await request(server)
@@ -52,6 +53,7 @@ beforeAll(async () => {
   await replayStory(db);
   tokens.monitor = await mint('svc:monitor');
   tokens.dsar = await mint('svc:dsar');
+  tokens.snapshot = await mint('svc:snapshot');
 });
 
 afterAll(async () => {
@@ -321,5 +323,83 @@ describe('asking for a data map', () => {
     const response = await as('dsar', '/v1/data-map?subjectCategory=candidates&asOf=2026-07-01');
     expect(response.status).toBe(422);
     expect(response.body.errors[0].code).toBe('not_yet_supported');
+  });
+});
+
+describe('GET /coverage: what the Snapshot sees after Chapter 6', () => {
+  let report: CoverageResponse;
+  beforeAll(async () => {
+    const response = await as('snapshot', '/v1/coverage');
+    expect(response.status, JSON.stringify(response.body)).toBe(200);
+    report = CoverageResponse.parse(response.body);
+  });
+
+  it('finds one thing: Aurelia’s EU-only clause, broken by Helpdesk Partners in India', () => {
+    expect(report.findings).toHaveLength(1);
+    const [finding] = report.findings;
+    expect(finding).toMatchObject({
+      type: 'region_violation',
+      severity: 'high',
+      targetType: 'activity',
+      target: { code: 'P1' },
+      details: {
+        engagement: { serviceDescription: 'Candidate notifications (EU region)' },
+        party: { slug: 'mailcrest' },
+        client: { slug: 'aurelia' },
+        terms: { slug: 'aurelia-dpa' },
+        allowedRegions: ['EEA'],
+        country: 'IN',
+        via: 'transfer',
+        onwardVia: 'Helpdesk Partners Pvt Ltd',
+      },
+    });
+  });
+
+  it('flags nothing the story calls legitimate: C1 has no Render system, and that is fine', () => {
+    const aboutC1 = report.findings.filter((finding) => finding.target.code === 'C1');
+    expect(aboutC1).toEqual([]);
+    expect(report.findings.map((finding) => finding.type)).not.toContain('unmapped_system');
+    expect(report.findings.map((finding) => finding.type)).not.toContain('transfer_missing');
+  });
+
+  it('gives the finding the same key on every run (Q4)', async () => {
+    const again = CoverageResponse.parse((await as('snapshot', '/v1/coverage')).body);
+    expect(again.findings.map((finding) => finding.key)).toEqual(
+      report.findings.map((finding) => finding.key),
+    );
+  });
+
+  it('can be carried to a person: the Snapshot opens a review item with the key (Ch5)', async () => {
+    const [finding] = report.findings;
+    const opened = await request(server)
+      .post('/v1/review-items')
+      .set('Authorization', `Bearer ${tokens.snapshot}`)
+      .send({
+        targetType: finding!.targetType,
+        target: finding!.target.id,
+        source: 'snapshot',
+        reason: finding!.type,
+        details: { key: finding!.key, ...finding!.details },
+      });
+    expect(opened.status, JSON.stringify(opened.body)).toBe(201);
+    expect(opened.body).toMatchObject({
+      target: { code: 'P1' },
+      reason: 'region_violation',
+      details: { key: finding!.key },
+    });
+  });
+});
+
+describe('asking for coverage', () => {
+  it('refuses a date: coverage is a question about today', async () => {
+    const response = await as('snapshot', '/v1/coverage?asOf=2026-06-01');
+    expect(response.status).toBe(422);
+    expect(response.body.errors[0]).toMatchObject({ path: '/asOf', code: 'not_supported' });
+  });
+
+  it('is refused to a token without view:coverage', async () => {
+    const response = await as('dsar', '/v1/coverage');
+    expect(response.status).toBe(403);
+    expect(response.body.requiredPermission).toBe('view:coverage');
   });
 });

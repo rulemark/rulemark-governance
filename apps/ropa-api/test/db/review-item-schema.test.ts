@@ -175,6 +175,14 @@ describe('review_item', () => {
     );
   });
 
+  it('review_item_reason accepts every coverage finding, external_saas_mismatch included', async () => {
+    await expect(
+      insertItem(
+        anItem({ reason: 'external_saas_mismatch', targetPartyId: null, targetActivityId: p1 }),
+      ),
+    ).resolves.toBeDefined();
+  });
+
   it('review_item_resolution refuses a closed item that says nothing about why', async () => {
     await expectViolation('review_item_resolution', () =>
       insertItem(anItem({ ...closed(), resolutionNote: null })),

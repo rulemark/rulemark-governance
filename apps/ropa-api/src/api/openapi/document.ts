@@ -8,6 +8,7 @@ import {
   AgreementTerms,
   AgreementTermsInput,
   DataCategory,
+  CoverageResponse,
   DataCategoryInput,
   DataMapResponse,
   ImpactResponse,
@@ -111,6 +112,7 @@ const OUTPUT_SCHEMAS: readonly [string, z.ZodType][] = [
   ['SubprocessorsResponse', SubprocessorsResponse],
   ['ImpactResponse', ImpactResponse],
   ['DataMapResponse', DataMapResponse],
+  ['CoverageResponse', CoverageResponse],
   ['ReportResponse', ReportResponse],
   ['TokenResponse', TokenResponse],
   ['MeResponse', MeResponse],
@@ -764,6 +766,22 @@ export function buildOpenApiDocument(): JsonObject {
         },
       },
       'view:datamap',
+    ),
+  };
+
+  paths[`/${API_VERSION}/coverage`] = {
+    get: guarded(
+      {
+        tags: ['views'],
+        summary: 'Gaps between the record and the architecture',
+        description:
+          'Advisory findings, never blocking (§5.5): `unmapped_system`, `transfer_missing`, `external_saas_mismatch`, `region_violation` and `review_overdue`, most severe first. Severity is fixed per type. Each finding has a stable `key` (the same cause gives the same key on every run) and the `targetType` and `target` a review item for it would point at; a caller that opens review items stores the key in the item’s `details`. The record as it is today: `asOf` is refused.',
+        responses: {
+          '200': json('CoverageResponse', 'The findings'),
+          ...COMMON_ERRORS,
+        },
+      },
+      'view:coverage',
     ),
   };
 

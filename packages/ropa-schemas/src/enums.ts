@@ -133,6 +133,8 @@ export const REVIEW_REASONS = list(
   'transfer_missing',
   'region_violation',
   'review_overdue',
+  // Added in build step 3: every coverage finding can become a review item.
+  'external_saas_mismatch',
 );
 export const REVIEW_STATUSES = list('open', 'resolved', 'dismissed');
 
@@ -148,6 +150,18 @@ export const REVIEW_TARGET_TYPES = list('activity', 'party', 'system');
  * `CHANGE_TYPES`: review items have no revisions, so the event is their history.
  */
 export const REVIEW_CHANGE_TYPES = list('opened', 'resolved', 'dismissed');
+
+/** What `GET /coverage` can find (API §5.5). Each is also a review-item reason. */
+export const FINDING_TYPES = list(
+  'unmapped_system',
+  'transfer_missing',
+  'external_saas_mismatch',
+  'region_violation',
+  'review_overdue',
+);
+
+/** Fixed per finding type, highest first (step 3, open question 3). */
+export const FINDING_SEVERITIES = list('high', 'medium', 'low');
 
 /** Which aggregate a revision belongs to (DM §3.12). */
 export const REVISION_ENTITY_TYPES = list(
@@ -189,6 +203,8 @@ export type ReviewReason = (typeof REVIEW_REASONS)[number];
 export type ReviewStatus = (typeof REVIEW_STATUSES)[number];
 export type ReviewTargetType = (typeof REVIEW_TARGET_TYPES)[number];
 export type ReviewChangeType = (typeof REVIEW_CHANGE_TYPES)[number];
+export type FindingType = (typeof FINDING_TYPES)[number];
+export type FindingSeverity = (typeof FINDING_SEVERITIES)[number];
 export type RevisionEntityType = (typeof REVISION_ENTITY_TYPES)[number];
 export type ChangeType = (typeof CHANGE_TYPES)[number];
 export type EventType = (typeof EVENT_TYPES)[number];

@@ -8,10 +8,13 @@ import {
   DATA_CATEGORY_SPECIALS,
   ENGAGEMENT_ROLES,
   EVENT_TYPES,
+  FINDING_SEVERITIES,
+  FINDING_TYPES,
   LAWFUL_BASES,
   PARTY_KINDS,
   RENDER_SYSTEM_KINDS,
   REVIEW_CHANGE_TYPES,
+  REVIEW_REASONS,
   REVIEW_TARGET_TYPES,
   SPECIAL_CONDITIONS,
   SYSTEM_KINDS,
@@ -98,6 +101,21 @@ describe('the values the data model names', () => {
   it('gives review items their own event, since they have no revisions (step 3, Q1)', () => {
     expect(EVENT_TYPES).toContain('review_item.changed');
     expect(REVIEW_CHANGE_TYPES).toEqual(['opened', 'resolved', 'dismissed']);
+  });
+
+  it('names the five coverage findings, three severities, high first (§5.5, Q3)', () => {
+    expect(FINDING_TYPES).toEqual([
+      'unmapped_system',
+      'transfer_missing',
+      'external_saas_mismatch',
+      'region_violation',
+      'review_overdue',
+    ]);
+    expect(FINDING_SEVERITIES).toEqual(['high', 'medium', 'low']);
+  });
+
+  it('can carry every coverage finding to a review item', () => {
+    for (const type of FINDING_TYPES) expect(REVIEW_REASONS).toContain(type);
   });
 
   it('names the taxonomy types as they appear in URLs', () => {

@@ -1,0 +1,2 @@
+ALTER TABLE "review_item" DROP CONSTRAINT "review_item_reason";--> statement-breakpoint
+ALTER TABLE "review_item" ADD CONSTRAINT "review_item_reason" CHECK ("review_item"."reason" IN ('vendor_subprocessor_added', 'vendor_subprocessor_removed', 'unmapped_system', 'transfer_missing', 'region_violation', 'review_overdue', 'external_saas_mismatch'));

@@ -2165,7 +2165,8 @@
               "unmapped_system",
               "transfer_missing",
               "region_violation",
-              "review_overdue"
+              "review_overdue",
+              "external_saas_mismatch"
             ]
           },
           "details": {
@@ -3351,6 +3352,481 @@
           "subjectCategory",
           "client",
           "entries"
+        ],
+        "additionalProperties": false
+      },
+      "CoverageResponse": {
+        "type": "object",
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+            "description": "An RFC 3339 timestamp.",
+            "examples": [
+              "2026-03-16T10:00:00Z"
+            ]
+          },
+          "findings": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2000
+                    },
+                    "type": {
+                      "type": "string",
+                      "const": "unmapped_system"
+                    },
+                    "severity": {
+                      "type": "string",
+                      "const": "medium"
+                    },
+                    "targetType": {
+                      "type": "string",
+                      "const": "system"
+                    },
+                    "target": {
+                      "$ref": "#/components/schemas/Ref"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "render_web_service",
+                            "render_private_service",
+                            "render_worker",
+                            "render_cron",
+                            "render_static_site",
+                            "render_postgres",
+                            "render_key_value",
+                            "external_saas"
+                          ]
+                        },
+                        "renderResourceId": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 200,
+                              "examples": [
+                                "Mailcrest Inc."
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "renderResourceId"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "type",
+                    "severity",
+                    "targetType",
+                    "target",
+                    "details"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2000
+                    },
+                    "type": {
+                      "type": "string",
+                      "const": "transfer_missing"
+                    },
+                    "severity": {
+                      "type": "string",
+                      "const": "medium"
+                    },
+                    "targetType": {
+                      "type": "string",
+                      "const": "activity"
+                    },
+                    "target": {
+                      "$ref": "#/components/schemas/Ref"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "engagement": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                              "description": "A UUID. Records are keyed by UUIDv7.",
+                              "examples": [
+                                "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                              ]
+                            },
+                            "serviceDescription": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 200,
+                              "examples": [
+                                "Mailcrest Inc."
+                              ]
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "serviceDescription"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "party": {
+                          "$ref": "#/components/schemas/Ref"
+                        },
+                        "country": {
+                          "type": "string",
+                          "pattern": "^[A-Z]{2}$",
+                          "description": "An ISO 3166-1 alpha-2 country code.",
+                          "examples": [
+                            "NL",
+                            "US",
+                            "DE"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "engagement",
+                        "party",
+                        "country"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "type",
+                    "severity",
+                    "targetType",
+                    "target",
+                    "details"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2000
+                    },
+                    "type": {
+                      "type": "string",
+                      "const": "external_saas_mismatch"
+                    },
+                    "severity": {
+                      "type": "string",
+                      "const": "low"
+                    },
+                    "targetType": {
+                      "type": "string",
+                      "const": "activity"
+                    },
+                    "target": {
+                      "$ref": "#/components/schemas/Ref"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "direction": {
+                          "type": "string",
+                          "enum": [
+                            "system_without_engagement",
+                            "engagement_without_system"
+                          ]
+                        },
+                        "party": {
+                          "$ref": "#/components/schemas/Ref"
+                        },
+                        "systems": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Ref"
+                          }
+                        },
+                        "engagement": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "format": "uuid",
+                                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                                  "description": "A UUID. Records are keyed by UUIDv7.",
+                                  "examples": [
+                                    "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                                  ]
+                                },
+                                "serviceDescription": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 200,
+                                  "examples": [
+                                    "Mailcrest Inc."
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "serviceDescription"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "direction",
+                        "party",
+                        "systems",
+                        "engagement"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "type",
+                    "severity",
+                    "targetType",
+                    "target",
+                    "details"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2000
+                    },
+                    "type": {
+                      "type": "string",
+                      "const": "region_violation"
+                    },
+                    "severity": {
+                      "type": "string",
+                      "const": "high"
+                    },
+                    "targetType": {
+                      "type": "string",
+                      "const": "activity"
+                    },
+                    "target": {
+                      "$ref": "#/components/schemas/Ref"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "engagement": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                              "description": "A UUID. Records are keyed by UUIDv7.",
+                              "examples": [
+                                "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                              ]
+                            },
+                            "serviceDescription": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 200,
+                              "examples": [
+                                "Mailcrest Inc."
+                              ]
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "serviceDescription"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "party": {
+                          "$ref": "#/components/schemas/Ref"
+                        },
+                        "client": {
+                          "$ref": "#/components/schemas/Ref"
+                        },
+                        "terms": {
+                          "$ref": "#/components/schemas/Ref"
+                        },
+                        "allowedRegions": {
+                          "type": "array",
+                          "items": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "const": "EEA"
+                              },
+                              {
+                                "type": "string",
+                                "pattern": "^[A-Z]{2}$",
+                                "description": "An ISO 3166-1 alpha-2 country code.",
+                                "examples": [
+                                  "NL",
+                                  "US",
+                                  "DE"
+                                ]
+                              }
+                            ],
+                            "description": "\"EEA\", or an ISO 3166-1 alpha-2 country code.",
+                            "examples": [
+                              "EEA",
+                              "IE"
+                            ]
+                          }
+                        },
+                        "country": {
+                          "type": "string",
+                          "pattern": "^[A-Z]{2}$",
+                          "description": "An ISO 3166-1 alpha-2 country code.",
+                          "examples": [
+                            "NL",
+                            "US",
+                            "DE"
+                          ]
+                        },
+                        "via": {
+                          "type": "string",
+                          "enum": [
+                            "processing",
+                            "transfer"
+                          ]
+                        },
+                        "onwardVia": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 200,
+                              "examples": [
+                                "Mailcrest Inc."
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "engagement",
+                        "party",
+                        "client",
+                        "terms",
+                        "allowedRegions",
+                        "country",
+                        "via",
+                        "onwardVia"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "type",
+                    "severity",
+                    "targetType",
+                    "target",
+                    "details"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2000
+                    },
+                    "type": {
+                      "type": "string",
+                      "const": "review_overdue"
+                    },
+                    "severity": {
+                      "type": "string",
+                      "const": "low"
+                    },
+                    "targetType": {
+                      "type": "string",
+                      "const": "activity"
+                    },
+                    "target": {
+                      "$ref": "#/components/schemas/Ref"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "reviewDueAt": {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                          "description": "A date, \"YYYY-MM-DD\".",
+                          "examples": [
+                            "2026-03-16"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "reviewDueAt"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "type",
+                    "severity",
+                    "targetType",
+                    "target",
+                    "details"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "generatedAt",
+          "findings"
         ],
         "additionalProperties": false
       },
@@ -6228,7 +6704,8 @@
               "unmapped_system",
               "transfer_missing",
               "region_violation",
-              "review_overdue"
+              "review_overdue",
+              "external_saas_mismatch"
             ]
           },
           "details": {
@@ -13003,7 +13480,8 @@
                 "unmapped_system",
                 "transfer_missing",
                 "region_violation",
-                "review_overdue"
+                "review_overdue",
+                "external_saas_mismatch"
               ]
             }
           },
@@ -13802,6 +14280,58 @@
           }
         },
         "x-required-permission": "view:datamap"
+      }
+    },
+    "/v1/coverage": {
+      "get": {
+        "tags": [
+          "views"
+        ],
+        "summary": "Gaps between the record and the architecture",
+        "description": "Advisory findings, never blocking (§5.5): `unmapped_system`, `transfer_missing`, `external_saas_mismatch`, `region_violation` and `review_overdue`, most severe first. Severity is fixed per type. Each finding has a stable `key` (the same cause gives the same key on every run) and the `targetType` and `target` a review item for it would point at; a caller that opens review items stores the key in the item’s `details`. The record as it is today: `asOf` is refused.\n\nRequires the `view:coverage` permission.",
+        "responses": {
+          "200": {
+            "description": "The findings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoverageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No token, or the token is not valid",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Valid token without the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request failed validation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "view:coverage"
       }
     }
   }

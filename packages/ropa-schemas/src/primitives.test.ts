@@ -19,6 +19,8 @@ import {
   Name,
   Ref,
   RegionCode,
+  EEA_COUNTRIES,
+  expandRegions,
   Slug,
   Text,
   Url,
@@ -208,5 +210,71 @@ describe('length bounds', () => {
       expect(Slug.safeParse(slug).success, slug).toBe(true);
     }
     expect(Name.safeParse('Aurelia Health N.V.').success).toBe(true);
+  });
+});
+
+describe('EEA_COUNTRIES (step 3, open question 2)', () => {
+  it('is the EU 27 plus Iceland, Liechtenstein and Norway: 30 in all', () => {
+    expect([...EEA_COUNTRIES].sort()).toEqual(
+      [
+        'AT',
+        'BE',
+        'BG',
+        'HR',
+        'CY',
+        'CZ',
+        'DK',
+        'EE',
+        'FI',
+        'FR',
+        'DE',
+        'GR',
+        'HU',
+        'IE',
+        'IT',
+        'LV',
+        'LT',
+        'LU',
+        'MT',
+        'NL',
+        'PL',
+        'PT',
+        'RO',
+        'SK',
+        'SI',
+        'ES',
+        'SE',
+        'IS',
+        'LI',
+        'NO',
+      ].sort(),
+    );
+  });
+
+  it('spells Greece GR, as ISO 3166 does, not EL as EU documents do', () => {
+    expect(EEA_COUNTRIES).toContain('GR');
+    expect(EEA_COUNTRIES).not.toContain('EL');
+  });
+
+  it('leaves out adequacy countries: an adequacy decision is not membership', () => {
+    for (const country of ['GB', 'CH', 'JP']) expect(EEA_COUNTRIES).not.toContain(country);
+  });
+
+  it('holds only valid country codes', () => {
+    for (const country of EEA_COUNTRIES) expect(CountryCode.safeParse(country).success).toBe(true);
+  });
+});
+
+describe('expandRegions', () => {
+  it('expands EEA into its members and keeps a country as itself', () => {
+    const allowed = expandRegions(['EEA', 'CH']);
+    expect(allowed.size).toBe(31);
+    expect(allowed.has('IE')).toBe(true);
+    expect(allowed.has('CH')).toBe(true);
+    expect(allowed.has('IN')).toBe(false);
+  });
+
+  it('expands nothing to nothing', () => {
+    expect(expandRegions([]).size).toBe(0);
   });
 });

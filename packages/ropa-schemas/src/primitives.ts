@@ -93,6 +93,54 @@ export const RegionCode = z
   .meta({ examples: ['EEA', 'IE'] });
 
 /**
+ * The EEA's members: the EU 27 plus Iceland, Liechtenstein and Norway, as
+ * ISO 3166-1 codes (so Greece is `GR`, not the `EL` EU documents use). What
+ * `EEA` in `allowedRegions` expands to, and what "outside the EEA" means for
+ * `transfer_missing` (step 3, open question 2).
+ *
+ * An adequacy decision (Art. 45) is not membership: the UK and Switzerland are
+ * third countries whose transfers are recorded with `mechanism: adequacy`.
+ * Membership changes about once a decade, so this is released with the code.
+ */
+export const EEA_COUNTRIES: readonly string[] = Object.freeze([
+  'AT',
+  'BE',
+  'BG',
+  'HR',
+  'CY',
+  'CZ',
+  'DK',
+  'EE',
+  'FI',
+  'FR',
+  'DE',
+  'GR',
+  'HU',
+  'IE',
+  'IT',
+  'LV',
+  'LT',
+  'LU',
+  'MT',
+  'NL',
+  'PL',
+  'PT',
+  'RO',
+  'SK',
+  'SI',
+  'ES',
+  'SE',
+  'IS',
+  'LI',
+  'NO',
+]);
+
+/** The countries a list of region codes allows: `EEA` expanded, countries as themselves. */
+export function expandRegions(regions: readonly string[]): Set<string> {
+  return new Set(regions.flatMap((region) => (region === 'EEA' ? EEA_COUNTRIES : [region])));
+}
+
+/**
  * ISO 8601 duration in whole years, months, weeks and days: `P90D`, `P7Y`,
  * `P1Y6M` (retention periods). No time components, which also means `M` can
  * only be months, never minutes.

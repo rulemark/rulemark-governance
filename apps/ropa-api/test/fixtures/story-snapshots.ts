@@ -52,11 +52,15 @@ export function engagement(
   };
 }
 
-export const transfer = (destinationCountry: string, mechanism: 'dpf' | 'sccs') => ({
+export const transfer = (
+  destinationCountry: string,
+  mechanism: 'adequacy' | 'dpf' | 'sccs',
+  onwardVia: string | null = null,
+) => ({
   id: nextId('tr'),
   destinationCountry,
   mechanism,
-  onwardVia: null,
+  onwardVia,
   documentRef: null,
 });
 
@@ -237,6 +241,7 @@ export const C4 = controller('C4', {
     engagement(GLITCHLOG, 'Error tracking', ['US'], {
       role: 'processor',
       dataCategoryIds: [TELEMETRY, IDENTITY],
+      transfers: [transfer('US', 'sccs')],
     }),
   ],
 });

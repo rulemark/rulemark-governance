@@ -13,6 +13,7 @@ import { partyAggregate } from '../../domain/aggregates.js';
 import { findByIdentifier } from '../../domain/identifiers.js';
 import { fieldErrorsFromZod, notFound } from '../../shared/problems.js';
 import { requires } from '../middleware/authorize.js';
+import { buildCoverage } from '../views/coverage.js';
 import { buildDataMap } from '../views/data-map.js';
 import { buildImpact } from '../views/impact.js';
 import { renderReportMarkdown } from '../views/markdown.js';
@@ -150,6 +151,28 @@ export function viewsRouter(db: Database): Router {
 
         const now = new Date();
         res.json(await consistently((tx) => buildDataMap(tx, parsed.data, now)));
+      } catch (error) {
+        next(error);
+      }
+    })();
+  });
+
+  router.get(`/${API_VERSION}/coverage`, requires('view:coverage'), (req, res, next) => {
+    void (async () => {
+      try {
+        // Coverage is a question about today (step 3, open question 2), so a
+        // date is refused rather than quietly ignored.
+        if (queryOf(req)['asOf'] !== undefined) {
+          refused([
+            {
+              path: '/asOf',
+              code: 'not_supported',
+              message: 'Coverage reports on the record as it is today',
+            },
+          ]);
+        }
+        const now = new Date();
+        res.json(await consistently((tx) => buildCoverage(tx, now)));
       } catch (error) {
         next(error);
       }
