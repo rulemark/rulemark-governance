@@ -260,6 +260,48 @@
   - `openapi.json` compared as JSON: `/v1/report` and `ReportResponse`
     added, nothing else changed.
 
+- **How Phase 7 built it.**
+  - `npm run db:seed [-- --reset]` runs `src/demo/replay.ts`, whose core
+    is `replay-story.ts` (tested). It replays 71 steps in story order.
+    Foundation records go through the same resource definitions a `POST`
+    uses (`input.parse` → `toValues` → `createAggregate`); activities go
+    through `createActivity`, `activateActivity` and `replaceActivity`.
+    Every save is backdated with `validFrom`, and the rules judge it as of
+    that day.
+  - **Idempotent step by step**, each step in its own transaction: records
+    by slug, agreements by party and terms, activities by code, activation
+    by status, edits by their change note in the revision history. A second
+    run applied nothing, and a test holds that.
+  - **Codes must line up.** If a story code is held by a different activity,
+    or the counter would give P1 another number, the seed stops and says to
+    use `--reset`, rather than seeding a record whose P1 is not the story's
+    P1. The failed create rolls back, so no code is spent.
+  - **`--reset`** truncates every public table except `code_counter`, whose
+    counters restart at 0; the migrations table (schema `drizzle`) is kept.
+    `TRUNCATE` does not fire the row triggers that make revisions
+    append-only, which is why this is a seed-only tool, and why it refuses
+    `NODE_ENV=production` without `ALLOW_SEED_RESET=true`.
+  - **The dataset now follows the story's cast.** Aurelia Bank S.A. (LU),
+    Northwind Logistics B.V. (NL), Fjord Outdoor AS, Glitchlog Ltd, Peoplehub
+    GmbH (DE), Ledgerpay Ltd (IE), Scribe AI Inc. (US); all seven Render
+    systems plus Peoplehub HR; inbound DPAs for every vendor. `demo:data`
+    reads the same file, so a fresh `demo:data` load changes too; an
+    already-loaded database keeps its old names, because both loaders skip
+    records that exist.
+  - **Chapter 6 is in the seed:** the onward transfer to India (Helpdesk
+    Partners, SCCs) on every Mailcrest engagement, the EU region included,
+    effective 2026-07-03. The story leaves the resolution open, and recording
+    it is what gives step 3's `/coverage` its `region_violation`.
+  - `inputFromSnapshot` (`domain/activity/input.ts`) turns a stored activity
+    into the `PUT` body that saves it unchanged; round-trip tests hold that.
+    The story's edits start from it.
+  - `databaseUrlOrExit()` in `startup.ts` loads `DATABASE_URL` alone, so the
+    seed does not demand a JWT secret. The same fix would narrow `demo:data`
+    and `db:migrate` (the carried-over item).
+  - Checked end to end on a throwaway database (migrate, seed with
+    `--reset`, seed again, production guard), then dropped. Tests checked
+    by removing the backdating: both date tests failed.
+
 ## Issues encountered
 | Issue | Resolution |
 |---|---|

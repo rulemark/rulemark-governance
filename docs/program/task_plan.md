@@ -9,7 +9,7 @@ turn the stored record into something a person reads.
 Build step 2 from `docs/ropa/ropa-api.md` §8. **Enough for story chapters 2–4.**
 
 ## Current Phase
-Phase 7
+Phase 8
 
 ## Definition of done for step 2
 - A controller activity and a processor activity can be created, edited,
@@ -98,11 +98,11 @@ Reference: `ropa-api.md` §5.1
 
 ### Phase 7: The Hireloop seed
 Reference: `ropa-database.md` §9; `ropa-story.md`
-- [ ] `npm run db:seed`, written through the domain layer so codes, revisions and validation behave as in real use
-- [ ] Replays February to September 2026 in story order, backdating `valid_from` — the `SaveContext.validFrom` that step 1 built and tested
-- [ ] Idempotent by slug and code; `--reset` truncates first
+- [x] `npm run db:seed`, written through the domain layer so codes, revisions and validation behave as in real use
+- [x] Replays February to September 2026 in story order, backdating `valid_from` — the `SaveContext.validFrom` that step 1 built and tested
+- [x] Idempotent by slug and code; `--reset` truncates first
 - **Done when:** the seed produces C1–C4 and P1–P3 with the engagements, transfers and client scopes the story describes
-- **Status:** pending
+- **Status:** complete
 
 ### Phase 8: Deploy and verify
 - [ ] The views answer on the deployed service
@@ -114,7 +114,7 @@ Reference: `ropa-database.md` §9; `ropa-story.md`
 - [ ] Confirm a docs-only commit deploys nothing, and an `apps/ropa-api/**` commit does
 - [ ] Narrow `demo:data`'s configuration: it validates the whole config, so it
       demands a `DATABASE_URL` and `JWT_SECRET` it never uses
-- [ ] `demo:data` gains the activities once they exist
+- [ ] `demo:data` gains the activities once they exist. *The story's activities now exist as data (`src/demo/story.ts`) and `db:seed` loads them; `demo:data` still posts foundation records only. Adding them over HTTP means activating as an approver and a GET-then-PUT for the Ch4 edit, which `inputFromSnapshot` makes straightforward.*
 
 ## Open questions
 1. ~~Zod discriminated unions and the Input/Output split: `z.discriminatedUnion` on `role`, or one object with a `superRefine` that branches?~~ **Resolved 2026-09-26: a discriminated union**, with forbidden fields checked on the field itself. It gives `oneOf` *and* the better field errors; see findings.md. *Phase 1.*
