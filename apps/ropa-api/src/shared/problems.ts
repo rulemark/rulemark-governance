@@ -1,4 +1,9 @@
-import { PROBLEM_TYPE_BASE, type FieldError, type ProblemDetails } from '@rulemark/ropa-schemas';
+import {
+  PROBLEM_TYPE_BASE,
+  fieldErrorsFromZod,
+  type FieldError,
+  type ProblemDetails,
+} from '@rulemark/ropa-schemas';
 import type { ZodError } from 'zod';
 
 /**
@@ -10,7 +15,7 @@ import type { ZodError } from 'zod';
  * throwing one, which stays private to the app (`ropa-packages.md` §3).
  */
 export type { FieldError, ProblemDetails };
-export { PROBLEM_TYPE_BASE };
+export { PROBLEM_TYPE_BASE, fieldErrorsFromZod };
 
 interface ProblemInit {
   readonly status: number;
@@ -139,20 +144,6 @@ const STATUS_TITLES: Readonly<Record<number, string>> = {
   428: 'If-Match header required',
   429: 'Too many requests',
 };
-
-/** RFC 6901: `~` and `/` are the only characters that need escaping. */
-function escapePointerSegment(segment: PropertyKey): string {
-  return String(segment).replaceAll('~', '~0').replaceAll('/', '~1');
-}
-
-export function fieldErrorsFromZod(error: ZodError): FieldError[] {
-  return error.issues.map((issue) => ({
-    // An empty path means the whole document, which RFC 6901 writes as "".
-    path: issue.path.map((segment) => `/${escapePointerSegment(segment)}`).join(''),
-    code: issue.code,
-    message: issue.message,
-  }));
-}
 
 function isZodError(error: unknown): error is ZodError {
   return (

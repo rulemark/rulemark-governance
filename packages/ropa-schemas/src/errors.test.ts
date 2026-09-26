@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
 
-import { ProblemDetails } from './errors.js';
+import { ProblemDetails, fieldErrorsFromZod } from './errors.js';
 
 /** The §1.7 example, parsed as a client would parse it. */
 const EXAMPLE = {
@@ -49,5 +50,65 @@ describe('ProblemDetails', () => {
 
   it('rejects a status that is not a whole number', () => {
     expect(ProblemDetails.safeParse({ ...EXAMPLE, status: 422.5 }).success).toBe(false);
+  });
+});
+
+describe('fieldErrorsFromZod', () => {
+  const schema = z.object({
+    purposes: z.array(z.string()),
+    engagements: z.array(z.object({ role: z.string() })),
+  });
+
+  it('reports each issue as a JSON Pointer path, like the §1.7 example', () => {
+    const result = schema.safeParse({ engagements: [{ role: 1 }] });
+    const errors = fieldErrorsFromZod(result.error!);
+    const paths = errors.map((error) => error.path);
+    expect(paths).toContain('/purposes');
+    expect(paths).toContain('/engagements/0/role');
+    for (const error of errors) {
+      expect(error.code).toBeTruthy();
+      expect(error.message).toBeTruthy();
+    }
+  });
+
+  it('uses the whole-document pointer for a root-level issue', () => {
+    const result = z.string().safeParse(42);
+    expect(fieldErrorsFromZod(result.error!)[0]?.path).toBe('');
+  });
+
+  it('escapes the reserved JSON Pointer characters', () => {
+    const result = z
+      .object({ 'a/b': z.string(), 'c~d': z.string() })
+      .safeParse({ 'a/b': 1, 'c~d': 1 });
+    const paths = fieldErrorsFromZod(result.error!).map((error) => error.path);
+    expect(paths).toContain('/a~1b');
+    expect(paths).toContain('/c~0d');
+  });
+
+  it('reports a rule’s own code rather than Zod’s generic "custom"', () => {
+    const result = z
+      .string()
+      .refine(() => false, { message: 'No', params: { code: 'forbidden_for_role' } })
+      .safeParse('x');
+    expect(fieldErrorsFromZod(result.error!)[0]?.code).toBe('forbidden_for_role');
+  });
+
+  it('falls back to Zod’s code for a refinement that names none', () => {
+    const result = z
+      .string()
+      .refine(() => false, 'No')
+      .safeParse('x');
+    expect(fieldErrorsFromZod(result.error!)[0]?.code).toBe('custom');
+  });
+
+  it('produces what ProblemDetails accepts', () => {
+    const result = schema.safeParse({});
+    const problem = {
+      type: 'https://ropa.example/problems/validation',
+      title: 'Validation failed',
+      status: 422,
+      errors: fieldErrorsFromZod(result.error!),
+    };
+    expect(ProblemDetails.safeParse(problem).success).toBe(true);
   });
 });

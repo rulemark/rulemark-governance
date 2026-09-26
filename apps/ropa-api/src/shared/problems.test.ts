@@ -6,7 +6,6 @@ import {
   Problem,
   badRequest,
   conflict,
-  fieldErrorsFromZod,
   forbidden,
   notFound,
   notYetSupported,
@@ -97,39 +96,6 @@ describe('toProblemDetails', () => {
     const details = toProblemDetails(result.error);
     expect(details.status).toBe(422);
     expect(details.errors?.[0]?.path).toBe('/name');
-  });
-});
-
-describe('fieldErrorsFromZod', () => {
-  const schema = z.object({
-    purposes: z.array(z.string()),
-    engagements: z.array(z.object({ role: z.string() })),
-  });
-
-  it('reports each issue as a JSON Pointer path, like the §1.7 example', () => {
-    const result = schema.safeParse({ engagements: [{ role: 1 }] });
-    const errors = fieldErrorsFromZod(result.error!);
-    const paths = errors.map((error) => error.path);
-    expect(paths).toContain('/purposes');
-    expect(paths).toContain('/engagements/0/role');
-    for (const error of errors) {
-      expect(error.code).toBeTruthy();
-      expect(error.message).toBeTruthy();
-    }
-  });
-
-  it('uses the whole-document pointer for a root-level issue', () => {
-    const result = z.string().safeParse(42);
-    expect(fieldErrorsFromZod(result.error!)[0]?.path).toBe('');
-  });
-
-  it('escapes the reserved JSON Pointer characters', () => {
-    const result = z
-      .object({ 'a/b': z.string(), 'c~d': z.string() })
-      .safeParse({ 'a/b': 1, 'c~d': 1 });
-    const paths = fieldErrorsFromZod(result.error!).map((error) => error.path);
-    expect(paths).toContain('/a~1b');
-    expect(paths).toContain('/c~0d');
   });
 });
 
