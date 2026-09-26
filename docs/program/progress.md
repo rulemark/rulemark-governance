@@ -30,6 +30,11 @@
   and `0004_activity_triggers` (hand-written). 35 constraint tests in
   `test/db/activity-schema.test.ts`, written first; the table-list test in
   `schema.test.ts` now expects them
+- **Phase 3 complete.** Saving the activity aggregate with its children
+  (`src/domain/activity/`), on the generic save with a new `afterWrite` hook;
+  `ActivitySnapshot` in the snapshot registry. 28 tests in
+  `test/db/activity-save.test.ts`, written first. Open question 3 resolved:
+  the root's `If-Match` is enough
 
 ## Test Results
 | Test | Command | Expected | Actual | Status |
@@ -39,6 +44,7 @@
 | Phase 1: the activity shape | `npm run check` | Clean, all pass | Clean; 311 + 180 + 4 pass (3 tests moved from the app to the package) | ✅ |
 | Retention periods aligned | `npm run check` | Clean, all pass | Clean; 311 + 192 + 4 pass | ✅ |
 | Phase 2: the activity tables | `npm run check`; `drizzle-kit generate` | Clean, all pass; no pending changes | Clean; 346 + 192 + 4 pass; "No schema changes" | ✅ |
+| Phase 3: saving with children | `npm run check`; diff broken on purpose | Clean, all pass; the diff tests fail when deletes are skipped | Clean; 374 + 192 + 4 pass; 3 tests failed as expected, then restored | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -48,7 +54,7 @@
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Build step 2, Phase 3 (saving an aggregate with children); Phases 1–2 complete |
+| Where am I? | Build step 2, Phase 4 (activity endpoints and lifecycle); Phases 1–3 complete |
 | Where am I going? | Activities and their rules, then `/subprocessors` and `/report`, then the Hireloop seed |
 | What's the goal? | Make the record a record: an Art. 30 entry that can be drafted, activated and read |
 | What have I learned? | See findings.md, and `plan-archive/2/findings.md` for step 1 |

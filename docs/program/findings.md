@@ -111,6 +111,51 @@
   - The local development database has not been migrated. The test database
     has (`global-setup.ts`). Run `npm run db:migrate` before using the dev
     server against activities.
+- **How Phase 3 built it.**
+  - The generic save gained two things and changed no behaviour: `toSnapshot`
+    may read through the transaction, and create/update take an `afterWrite`
+    hook. The hook runs after the root row is written and locked, and before
+    the revision is taken. The activity writes its nested rows there, so the
+    snapshot sees them.
+  - `src/domain/activity/`: `resolve.ts` (every reference, one batch query
+    per record type, every unknown one reported at its path), `rules.ts` (the
+    cross-entity rules), `children.ts` (nested-id checks and the diff),
+    `load.ts` (the canonical aggregate, which is also the snapshot) and
+    `save.ts`.
+  - **Order of checks:** references and cross-entity rules run before the
+    version check, because the root's values need resolved ids. A request
+    that is both stale and invalid therefore gets 422, not 412. Nothing is
+    written either way.
+  - **Nested ids are checked against the aggregate.** An id must name a row
+    this activity holds, under the same parent, once (`unknown_row`,
+    `duplicate_row`). Otherwise quoting an id could adopt another activity's
+    engagement or move a transfer between engagements.
+  - **"Active outbound agreement"** means signed on or before the save's
+    effective date and not ended by it, with outbound terms for the
+    activity's offering (`clientsWithActiveAgreement`, for Phase 5 to reuse).
+    The effective date is `validFrom`, so the backdated seed is judged by the
+    agreements in force at the time. A scope entry that cites an agreement
+    must cite that client's own.
+  - The tests were checked by breaking the diff (no deletes): the three
+    diff tests failed as they should.
+- **Left for later, deliberately.**
+  - **Phase 4, delete:** `deleteAggregate` takes its snapshot after the
+    `DELETE`. For an activity, the cascade has already removed the children
+    by then, so the "deleted" revision would show none. Load the snapshot
+    before deleting.
+  - **Phase 4, active saves:** a `PUT` of an active activity must pass the
+    role rules, and must keep `startedAt`. The input may leave it out, and
+    `processing_activity_active_started` would then refuse the row.
+  - **Phase 4, swaps:** deletes run before updates, but two rows swapping a
+    unique value in one `PUT` (two retention rules exchanging data
+    categories) would still collide mid-update. It is rare; if it matters,
+    defer the constraint or update in two passes.
+  - **Phase 5:** `subprocessors.changed` events (DB §6.1 step 5) need the
+    subprocessor list, which Phase 5 builds.
+  - **Not checked:** an engagement's party being a `vendor` or `other`
+    (DM §3.2), and a scope client being of kind `client`. They are notes in
+    the data model, not DM §5 rules. A scope client must hold an outbound
+    agreement, which in practice makes it a client.
 - **For Phase 4.** `joint_controller` surfaces as a field error with code
   `not_yet_supported` inside a validation problem. The app also has a
   `notYetSupported()` problem type (`problems.ts`). Decide whether the route

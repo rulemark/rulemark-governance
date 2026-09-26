@@ -9,7 +9,7 @@ turn the stored record into something a person reads.
 Build step 2 from `docs/ropa/ropa-api.md` §8. **Enough for story chapters 2–4.**
 
 ## Current Phase
-Phase 3
+Phase 4
 
 ## Definition of done for step 2
 - A controller activity and a processor activity can be created, edited,
@@ -61,12 +61,12 @@ Reference: `ropa-database.md` §4.4, §4.6
 
 ### Phase 3: Saving an aggregate with children
 Reference: `ropa-database.md` §6.1 step 3; `ropa-api.md` §1.4
-- [ ] The children diff: rows with an `id` update, without one insert, left out delete
-- [ ] Link tables replaced wholesale
-- [ ] The snapshot covers the whole aggregate, children included, with its own schema
-- [ ] Cross-entity rules inside the save transaction (DM §5): engagement data categories ⊆ the activity's, scope clients hold an active agreement, `supersedes` points at a retired activity
+- [x] The children diff: rows with an `id` update, without one insert, left out delete
+- [x] Link tables replaced wholesale
+- [x] The snapshot covers the whole aggregate, children included, with its own schema
+- [x] Cross-entity rules inside the save transaction (DM §5): engagement data categories ⊆ the activity's, scope clients hold an active agreement, `supersedes` points at a retired activity
 - **Done when:** a `PUT` that drops one engagement and edits another leaves exactly the right rows, and the revision's snapshot shows it
-- **Status:** pending
+- **Status:** complete
 
 ### Phase 4: Activity endpoints and lifecycle
 Reference: `ropa-api.md` §2, §3.1, §3.4, §1.5
@@ -117,7 +117,7 @@ Reference: `ropa-database.md` §9; `ropa-story.md`
 ## Open questions
 1. ~~Zod discriminated unions and the Input/Output split: `z.discriminatedUnion` on `role`, or one object with a `superRefine` that branches?~~ **Resolved 2026-09-26: a discriminated union**, with forbidden fields checked on the field itself. It gives `oneOf` *and* the better field errors; see findings.md. *Phase 1.*
 2. Markdown generation: hand-rolled template strings, or a builder? It has to be diffable and stable, because it feeds the architecture document. *Phase 6.*
-3. The children diff is the first place two writers can conflict *within* one aggregate. `If-Match` covers the root; is that enough, or does a nested row need its own guard? *Phase 3.*
+3. ~~The children diff is the first place two writers can conflict *within* one aggregate. `If-Match` covers the root; is that enough?~~ **Resolved 2026-09-26: yes.** Every save locks the root row with its version check before touching a nested row, and nothing writes a nested row any other way, so a second writer on the same version always gets 412, even when editing a different engagement. Tested. *Phase 3.*
 4. Do the views read through the domain layer over aggregates, or as SQL? DB §6.3 says the former, so `asOf` can reuse them in step 4 — confirm that holds once the queries are real. *Phase 5.*
 5. Test isolation for the dispatcher, still open from step 1: it manages its own transactions, so transaction-per-test will not do. *Step 4.*
 
@@ -132,6 +132,8 @@ Reference: `ropa-database.md` §9; `ropa-story.md`
 | The dashboard is not where infrastructure changes are made | Both Render resources are Blueprint-managed; `render.yaml` is the source of truth |
 | The activity is a Zod discriminated union on `role`; forbidden-by-role is a field-level check | Step 2, open question 1; tested against Zod 4.6.5 |
 | A bare "role" means the GDPR sense; permission bundles are `PrincipalRole` | Step 2, before Phase 1 (`9406ac5`) |
+| The root's `If-Match` guards the whole activity; nested rows are written only by the aggregate save | Step 2, open question 3 |
+| "Active agreement" is judged as of the save's effective date (`validFrom`), not today | Step 2, Phase 3; lets the seed replay the story |
 
 ## Errors encountered
 | Error | Attempt | Resolution |
