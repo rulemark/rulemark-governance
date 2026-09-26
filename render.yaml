@@ -40,6 +40,13 @@ projects:
             # Paid: the free tier expires after 30 days whatever the account
             # plan, and pre-deploy commands need a paid service.
             plan: 0.1c-256mb
+            # No connections from the public internet at all: the service
+            # reaches the database over the private network, and anything a
+            # person needs to run against it (the migrator, `db:seed`) runs
+            # from the service's Shell in the dashboard. An empty list blocks
+            # every external connection; leaving the key out would keep
+            # whatever the database already allows.
+            ipAllowList: []
 
         services:
           - type: web
