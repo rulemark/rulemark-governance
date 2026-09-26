@@ -236,11 +236,69 @@ export function snapshotSchemaFor(entityType: RevisionEntityType): z.ZodType {
   return schema;
 }
 
+/**
+ * Turns a snapshot of one `schemaVersion` into the next. Keyed by the version
+ * it upgrades *from*, so reading a v1 snapshot when the code is at v3 runs the
+ * v1 and v2 upgraders in turn.
+ */
+export type SnapshotUpgrader = (snapshot: Record<string, unknown>) => Record<string, unknown>;
+export type SnapshotUpgraders = Partial<
+  Record<SnapshotEntityType, Readonly<Record<number, SnapshotUpgrader>>>
+>;
+
+/**
+ * None yet: no aggregate has changed shape since `schemaVersion` 1. The first
+ * change to a snapshot schema bumps `SNAPSHOT_SCHEMA_VERSION` and adds its
+ * upgrader here, and every revision written before it reads as the new shape.
+ */
+export const SNAPSHOT_UPGRADERS: SnapshotUpgraders = {};
+
+/**
+ * A stored snapshot, brought up to the current shape and validated (§6.2).
+ * Every read of history goes through here, so an old revision can never reach
+ * a view in a shape the view does not expect.
+ */
+export function readSnapshot<K extends SnapshotEntityType>(
+  entityType: K,
+  stored: unknown,
+  upgraders: SnapshotUpgraders = SNAPSHOT_UPGRADERS,
+): z.infer<(typeof SNAPSHOT_SCHEMAS)[K]> {
+  const schema = snapshotSchemaFor(entityType);
+  let snapshot = stored as Record<string, unknown>;
+  let version = snapshot['schemaVersion'];
+  if (typeof version !== 'number') {
+    throw new Error(`A ${entityType} snapshot has no schemaVersion`);
+  }
+  if (version > SNAPSHOT_SCHEMA_VERSION) {
+    throw new Error(
+      `A ${entityType} snapshot has schemaVersion ${version}, newer than this code understands (${SNAPSHOT_SCHEMA_VERSION})`,
+    );
+  }
+  while (version < SNAPSHOT_SCHEMA_VERSION) {
+    const upgrade = upgraders[entityType]?.[version];
+    if (upgrade === undefined) {
+      throw new Error(`No upgrader for ${entityType} snapshots from schemaVersion ${version}`);
+    }
+    snapshot = upgrade(snapshot);
+    // One step at a time, or a faulty upgrader would loop here forever.
+    if (snapshot['schemaVersion'] !== version + 1) {
+      throw new Error(
+        `The ${entityType} upgrader from schemaVersion ${version} returned schemaVersion ${String(snapshot['schemaVersion'])}`,
+      );
+    }
+    version += 1;
+  }
+  return schema.parse(snapshot) as z.infer<(typeof SNAPSHOT_SCHEMAS)[K]>;
+}
+
 export type PartySnapshot = z.infer<typeof PartySnapshot>;
 export type AgreementTermsSnapshot = z.infer<typeof AgreementTermsSnapshot>;
 export type OfferingSnapshot = z.infer<typeof OfferingSnapshot>;
 export type AgreementSnapshot = z.infer<typeof AgreementSnapshot>;
 export type SystemSnapshot = z.infer<typeof SystemSnapshot>;
+export type SubjectCategorySnapshot = z.infer<typeof SubjectCategorySnapshot>;
+export type DataCategorySnapshot = z.infer<typeof DataCategorySnapshot>;
+export type SecurityMeasureSnapshot = z.infer<typeof SecurityMeasureSnapshot>;
 export type ActivitySnapshot = z.infer<typeof ActivitySnapshot>;
 
 /**

@@ -20,7 +20,7 @@ export function isoDate(moment: Date): string {
  * Outbound by default: an agreement with a client. Inbound is a vendor's DPA
  * with us, which the impact view reads for the vendor's notice (API §5.3).
  */
-function inForce(day: string, direction: AgreementDirection = 'outbound'): SQL {
+export function agreementInForce(day: string, direction: AgreementDirection = 'outbound'): SQL {
   return and(
     eq(agreementTerms.direction, direction),
     lte(agreement.signedAt, day),
@@ -50,7 +50,7 @@ export async function activeAgreementsOf(
     })
     .from(agreement)
     .innerJoin(agreementTerms, eq(agreementTerms.id, agreement.termsId))
-    .where(and(eq(agreement.partyId, clientId), inForce(isoDate(asOf))));
+    .where(and(eq(agreement.partyId, clientId), agreementInForce(isoDate(asOf))));
   // Outbound terms always name an offering (§4); the filter makes that visible.
   return rows.flatMap((row) =>
     row.offeringId === null ? [] : [{ ...row, offeringId: row.offeringId }],
@@ -73,7 +73,7 @@ export async function clientsWithActiveAgreement(
       and(
         eq(agreement.offeringId, offeringId),
         inArray(agreement.partyId, [...new Set(clientIds)]),
-        inForce(isoDate(asOf)),
+        agreementInForce(isoDate(asOf)),
       ),
     );
   return new Set(rows.map((row) => row.partyId));
@@ -91,7 +91,12 @@ export async function clientsByOffering(
     .select({ partyId: agreement.partyId, offeringId: agreement.offeringId })
     .from(agreement)
     .innerJoin(agreementTerms, eq(agreementTerms.id, agreement.termsId))
-    .where(and(inArray(agreement.offeringId, [...new Set(offeringIds)]), inForce(isoDate(asOf))));
+    .where(
+      and(
+        inArray(agreement.offeringId, [...new Set(offeringIds)]),
+        agreementInForce(isoDate(asOf)),
+      ),
+    );
   for (const row of rows) {
     if (row.offeringId === null) continue;
     const clients = byOffering.get(row.offeringId) ?? [];
@@ -120,7 +125,12 @@ export async function clientAgreementsFor(
     })
     .from(agreement)
     .innerJoin(agreementTerms, eq(agreementTerms.id, agreement.termsId))
-    .where(and(inArray(agreement.offeringId, [...new Set(offeringIds)]), inForce(isoDate(asOf))))
+    .where(
+      and(
+        inArray(agreement.offeringId, [...new Set(offeringIds)]),
+        agreementInForce(isoDate(asOf)),
+      ),
+    )
     .orderBy(desc(agreement.signedAt), agreement.id);
 
   const seen = new Set<string>();
@@ -145,7 +155,7 @@ export async function vendorTermsIdsOf(
     .select({ termsId: agreement.termsId })
     .from(agreement)
     .innerJoin(agreementTerms, eq(agreementTerms.id, agreement.termsId))
-    .where(and(eq(agreement.partyId, partyId), inForce(isoDate(asOf), 'inbound')))
+    .where(and(eq(agreement.partyId, partyId), agreementInForce(isoDate(asOf), 'inbound')))
     .orderBy(agreement.signedAt, agreement.id);
   return [...new Set(rows.map((row) => row.termsId))];
 }
