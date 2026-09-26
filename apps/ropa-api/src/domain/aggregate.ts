@@ -13,8 +13,9 @@ import type { Transaction } from './transaction.js';
  * The save algorithm from `ropa-database.md` §6.1, in one transaction:
  * version check and lock → validate → nested rows → snapshot → events → commit.
  *
- * Foundation records have no nested rows (DM §4), so step 3 is a no-op here;
- * the activity aggregate adds it in step 2 without changing the rest.
+ * Foundation records have no nested rows (DM §4), so step 3 is a no-op for
+ * them. The activity aggregate supplies it through `afterWrite`, which runs
+ * after the root row is written and locked and before the snapshot is taken.
  *
  * Everything takes a `Transaction` rather than the pool, so the record, its
  * history and its events become visible together or not at all.
@@ -30,8 +31,12 @@ export interface AggregateSpec<TRow, TSnapshot> {
   readonly entityType: RevisionEntityType;
   readonly table: RootTable;
   readonly snapshotSchema: z.ZodType<TSnapshot>;
-  /** Row → canonical snapshot: ids, not Refs, and ISO timestamps (§6.2). */
-  readonly toSnapshot: (row: TRow) => TSnapshot;
+  /**
+   * Row → canonical snapshot: ids, not Refs, and ISO timestamps (§6.2). An
+   * aggregate with nested rows reads them through `tx`, so the snapshot sees
+   * this transaction's writes.
+   */
+  readonly toSnapshot: (row: TRow, tx: Transaction) => TSnapshot | Promise<TSnapshot>;
   /** How this record is named in an event (§6). */
   readonly toRef: (row: TRow) => Ref;
 }
@@ -43,6 +48,15 @@ export interface SaveContext {
   /** Seed-only: backdates `valid_from` to replay the story's timeline (§9). */
   readonly validFrom?: Date | undefined;
   readonly destinations?: readonly string[] | undefined;
+}
+
+/**
+ * Step 3 of the save, for an aggregate with nested rows. It runs inside the
+ * transaction after the root row is written — and, on an update, locked by the
+ * version check — so no other writer can change the aggregate underneath it.
+ */
+export interface SaveHooks<TRow> {
+  readonly afterWrite?: (row: TRow) => Promise<void>;
 }
 
 /**
@@ -60,11 +74,13 @@ export async function createAggregate<TRow extends RowShape, TSnapshot>(
   spec: AggregateSpec<TRow, TSnapshot>,
   values: AnyValues,
   context: SaveContext,
+  hooks: SaveHooks<TRow> = {},
 ): Promise<TRow> {
   const [row] = (await (tx.insert(spec.table) as AnyBuilder).values(values).returning()) as TRow[];
 
   if (row === undefined) throw new Error('insert returned no row');
 
+  await hooks.afterWrite?.(row);
   await recordRevision(tx, spec, row, 'created', context);
   return row;
 }
@@ -77,6 +93,7 @@ export async function updateAggregate<TRow extends RowShape, TSnapshot>(
   values: AnyValues,
   context: SaveContext,
   changeType: ChangeType = 'updated',
+  hooks: SaveHooks<TRow> = {},
 ): Promise<TRow> {
   // The version check happens in the database, in this transaction, never as a
   // separate read beforehand (§1.8): a read-then-write leaves a window in which
@@ -92,6 +109,7 @@ export async function updateAggregate<TRow extends RowShape, TSnapshot>(
     await assertExists(tx, spec, id, expectedVersion);
   }
 
+  await hooks.afterWrite?.(row as TRow);
   await recordRevision(tx, spec, row as TRow, changeType, context);
   return row as TRow;
 }
@@ -162,7 +180,7 @@ async function recordRevision<TRow extends RowShape, TSnapshot>(
   context: SaveContext,
 ): Promise<void> {
   const snapshot = spec.snapshotSchema.parse({
-    ...spec.toSnapshot(row),
+    ...(await spec.toSnapshot(row, tx)),
     ...toSnapshotTimestamps(row),
   });
   const validFrom = context.validFrom ?? new Date();

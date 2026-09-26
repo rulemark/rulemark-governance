@@ -1,14 +1,23 @@
 import {
+  ACTIVITY_ROLES,
+  ACTIVITY_STATUSES,
   AGREEMENT_DIRECTIONS,
   AUTHORIZATION_TYPES,
+  CLIENT_COVERAGES,
   CountryCode,
   DATA_CATEGORY_SPECIALS,
+  ENGAGEMENT_ROLES,
   IsoDate,
   IsoDateTime,
+  IsoDuration,
+  LAWFUL_BASES,
   PARTY_KINDS,
   RegionCode,
+  SCOPE_MODES,
+  SPECIAL_CONDITIONS,
   Slug,
   SYSTEM_KINDS,
+  TRANSFER_MECHANISMS,
   Uuid,
   type RevisionEntityType,
 } from '@rulemark/ropa-schemas';
@@ -108,6 +117,94 @@ export const DataCategorySnapshot = z.object({
 export const SecurityMeasureSnapshot = z.object(taxonomyFields);
 
 /**
+ * The activity aggregate (DM §4): the root and every nested row, so one
+ * revision says everything the record said at that version. One flat shape for
+ * both roles, mirroring the tables; the role rules are the API's business, not
+ * history's. Nested rows keep their ids, which is what lets a later reader
+ * follow one engagement across versions. Lists come in id order, so two
+ * snapshots of the same state are byte-for-byte equal.
+ */
+const nullableText = z.string().nullable();
+
+export const ActivitySnapshot = z.object({
+  ...rootFields,
+  code: z.string().min(2),
+  name: z.string().min(1),
+  description: nullableText,
+  supersedesId: Uuid.nullable(),
+  role: z.enum(ACTIVITY_ROLES),
+  roleRationale: nullableText,
+  status: z.enum(ACTIVITY_STATUSES),
+  owner: z.string().min(1),
+  offeringId: Uuid.nullable(),
+  clientCoverage: z.enum(CLIENT_COVERAGES).nullable(),
+  purposes: z.array(z.string()),
+  lawfulBases: z.array(z.enum(LAWFUL_BASES)),
+  specialConditions: z.array(z.enum(SPECIAL_CONDITIONS)),
+  processingCategories: z.array(z.string()),
+  dpiaRequired: z.boolean().nullable(),
+  dpiaRef: nullableText,
+  dpiaSupportRef: nullableText,
+  reviewDueAt: IsoDate.nullable(),
+  startedAt: IsoDate.nullable(),
+  endedAt: IsoDate.nullable(),
+  subjectCategoryIds: z.array(Uuid),
+  dataCategoryIds: z.array(Uuid),
+  systemIds: z.array(Uuid),
+  securityMeasureIds: z.array(Uuid),
+  retentionRules: z.array(
+    z.object({
+      id: Uuid,
+      dataCategoryId: Uuid.nullable(),
+      retentionPeriod: IsoDuration,
+      triggerEvent: z.string().min(1),
+      legalRef: nullableText,
+    }),
+  ),
+  clientScope: z.array(
+    z.object({
+      id: Uuid,
+      clientPartyId: Uuid,
+      mode: z.enum(SCOPE_MODES),
+      reason: nullableText,
+      agreementId: Uuid.nullable(),
+      startedAt: IsoDate,
+      endedAt: IsoDate.nullable(),
+    }),
+  ),
+  engagements: z.array(
+    z.object({
+      id: Uuid,
+      partyId: Uuid,
+      role: z.enum(ENGAGEMENT_ROLES),
+      serviceDescription: z.string().min(1),
+      processingCountries: z.array(CountryCode),
+      startedAt: IsoDate.nullable(),
+      endedAt: IsoDate.nullable(),
+      dataCategoryIds: z.array(Uuid),
+      transfers: z.array(
+        z.object({
+          id: Uuid,
+          destinationCountry: CountryCode,
+          mechanism: z.enum(TRANSFER_MECHANISMS),
+          onwardVia: nullableText,
+          documentRef: nullableText,
+        }),
+      ),
+      clientScope: z.array(
+        z.object({
+          id: Uuid,
+          clientPartyId: Uuid,
+          mode: z.enum(SCOPE_MODES),
+          reason: z.string().min(1),
+          agreementId: Uuid.nullable(),
+        }),
+      ),
+    }),
+  ),
+});
+
+/**
  * The schema for each entity type, used when a snapshot is written and again
  * when it is read back. A snapshot that cannot be parsed is a bug worth failing
  * on: it means history no longer says what the code thinks it says.
@@ -121,6 +218,7 @@ export const SNAPSHOT_SCHEMAS = {
   subject_category: SubjectCategorySnapshot,
   data_category: DataCategorySnapshot,
   security_measure: SecurityMeasureSnapshot,
+  activity: ActivitySnapshot,
 } as const satisfies Partial<Record<RevisionEntityType, z.ZodType>>;
 
 export type SnapshotEntityType = keyof typeof SNAPSHOT_SCHEMAS;
@@ -143,6 +241,7 @@ export type AgreementTermsSnapshot = z.infer<typeof AgreementTermsSnapshot>;
 export type OfferingSnapshot = z.infer<typeof OfferingSnapshot>;
 export type AgreementSnapshot = z.infer<typeof AgreementSnapshot>;
 export type SystemSnapshot = z.infer<typeof SystemSnapshot>;
+export type ActivitySnapshot = z.infer<typeof ActivitySnapshot>;
 
 /**
  * Rows carry `Date` objects and snapshots are JSON, so timestamps are written

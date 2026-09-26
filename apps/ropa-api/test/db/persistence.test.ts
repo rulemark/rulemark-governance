@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { REVISION_ENTITY_TYPES, type RevisionEntityType } from '@rulemark/ropa-schemas';
 import { eq } from 'drizzle-orm';
 import { Router } from 'express';
 import request from 'supertest';
@@ -556,15 +557,18 @@ describe('failing loudly rather than quietly', () => {
     await expect(allocateCode(db().db, 'J')).rejects.toThrow(/db:migrate/);
   });
 
-  it('has a snapshot schema for every entity type it writes revisions for', () => {
-    for (const aggregate of [partyAggregate, agreementTermsAggregate, offeringAggregate]) {
-      expect(() => snapshotSchemaFor(aggregate.entityType), aggregate.entityType).not.toThrow();
+  it('has a snapshot schema for every entity type a revision can be written for', () => {
+    for (const entityType of REVISION_ENTITY_TYPES) {
+      expect(() => snapshotSchemaFor(entityType), entityType).not.toThrow();
     }
   });
 
   it('refuses an entity type with no snapshot schema', () => {
     // Adding an aggregate without a schema would otherwise be discovered by
-    // writing unvalidated history.
-    expect(() => snapshotSchemaFor('activity')).toThrow(/No snapshot schema/);
+    // writing unvalidated history. `review_item` is a workflow entity with no
+    // revisions of its own (DM §4), so it is the natural example.
+    expect(() => snapshotSchemaFor('review_item' as RevisionEntityType)).toThrow(
+      /No snapshot schema/,
+    );
   });
 });
