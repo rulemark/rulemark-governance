@@ -53,6 +53,10 @@
       "description": "The record itself: processing activities"
     },
     {
+      "name": "review-items",
+      "description": "Findings carried to a person, until resolved or dismissed"
+    },
+    {
       "name": "views",
       "description": "Read models derived from the record"
     },
@@ -2107,6 +2111,206 @@
         "discriminator": {
           "propertyName": "role"
         }
+      },
+      "ReviewItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "A UUID. Records are keyed by UUIDv7.",
+            "examples": [
+              "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+            ]
+          },
+          "code": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 20,
+            "pattern": "^[A-Z]+-?\\d+$",
+            "description": "A stable, system-assigned code shown next to the name: \"P3\".",
+            "examples": [
+              "P3",
+              "RI-42"
+            ]
+          },
+          "targetType": {
+            "type": "string",
+            "enum": [
+              "activity",
+              "party",
+              "system"
+            ],
+            "description": "What kind of record needs attention. Says how to read `target`."
+          },
+          "target": {
+            "$ref": "#/components/schemas/Ref"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "monitor",
+              "snapshot",
+              "manual",
+              "schedule"
+            ],
+            "description": "Who opened it."
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "vendor_subprocessor_added",
+              "vendor_subprocessor_removed",
+              "unmapped_system",
+              "transfer_missing",
+              "region_violation",
+              "review_overdue"
+            ]
+          },
+          "details": {
+            "anyOf": [
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {},
+                "description": "Context from whoever opened it, e.g. the Monitor’s diff."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "deadlines": {
+            "anyOf": [
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {},
+                "description": "Dates that bear on the decision, e.g. the vendor’s effective date and each client’s notice."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dueAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                "description": "The earliest deadline.",
+                "examples": [
+                  "2026-03-16"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "resolved",
+              "dismissed"
+            ]
+          },
+          "resolutionNote": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "openedBy": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "examples": [
+              "Mailcrest Inc."
+            ]
+          },
+          "closedBy": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "examples": [
+                  "Mailcrest Inc."
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "closedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+                "description": "An RFC 3339 timestamp.",
+                "examples": [
+                  "2026-03-16T10:00:00Z"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+            "description": "An RFC 3339 timestamp.",
+            "examples": [
+              "2026-03-16T10:00:00Z"
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+            "description": "An RFC 3339 timestamp.",
+            "examples": [
+              "2026-03-16T10:00:00Z"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "targetType",
+          "target",
+          "source",
+          "reason",
+          "details",
+          "deadlines",
+          "dueAt",
+          "status",
+          "resolutionNote",
+          "openedBy",
+          "closedBy",
+          "closedAt",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
       },
       "SubprocessorsResponse": {
         "type": "object",
@@ -5387,6 +5591,95 @@
             "maxLength": 2000
           }
         }
+      },
+      "ReviewItemInput": {
+        "type": "object",
+        "properties": {
+          "targetType": {
+            "type": "string",
+            "enum": [
+              "activity",
+              "party",
+              "system"
+            ],
+            "description": "What kind of record needs attention. Says how to read `target`."
+          },
+          "target": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "The record, by id, code or slug: \"P3\", \"mailcrest\", \"cv-parser\".",
+            "examples": [
+              "mailcrest"
+            ]
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "monitor",
+              "snapshot",
+              "manual",
+              "schedule"
+            ],
+            "description": "Who opened it."
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "vendor_subprocessor_added",
+              "vendor_subprocessor_removed",
+              "unmapped_system",
+              "transfer_missing",
+              "region_violation",
+              "review_overdue"
+            ]
+          },
+          "details": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {},
+            "description": "Context from whoever opened it, e.g. the Monitor’s diff."
+          },
+          "deadlines": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {},
+            "description": "Dates that bear on the decision, e.g. the vendor’s effective date and each client’s notice."
+          },
+          "dueAt": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+            "description": "The earliest deadline.",
+            "examples": [
+              "2026-03-16"
+            ]
+          }
+        },
+        "required": [
+          "targetType",
+          "target",
+          "source",
+          "reason"
+        ]
+      },
+      "CloseReviewItemInput": {
+        "type": "object",
+        "properties": {
+          "resolutionNote": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "What was decided. Required: closing says why."
+          }
+        },
+        "required": [
+          "resolutionNote"
+        ]
       },
       "TokenRequest": {
         "type": "object",
@@ -12041,6 +12334,506 @@
           }
         },
         "x-required-permission": "activity:approve"
+      }
+    },
+    "/v1/review-items": {
+      "get": {
+        "tags": [
+          "review-items"
+        ],
+        "summary": "List review items",
+        "description": "Findings carried to a person (§2 workflow): opened by the Monitor, the Snapshot, a schedule or by hand, and closed by resolving or dismissing them.\n\nRequires the `review:read` permission.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Page size, 1–200. Default 50.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "From the previous page’s nextCursor.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "open, resolved or dismissed",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "open",
+                "resolved",
+                "dismissed"
+              ]
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "description": "Who opened it",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "monitor",
+                "snapshot",
+                "manual",
+                "schedule"
+              ]
+            }
+          },
+          {
+            "name": "reason",
+            "in": "query",
+            "required": false,
+            "description": "Why it was opened",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "vendor_subprocessor_added",
+                "vendor_subprocessor_removed",
+                "unmapped_system",
+                "transfer_missing",
+                "region_violation",
+                "review_overdue"
+              ]
+            }
+          },
+          {
+            "name": "targetType",
+            "in": "query",
+            "required": false,
+            "description": "Items about this kind of record. Required with target.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "activity",
+                "party",
+                "system"
+              ]
+            }
+          },
+          {
+            "name": "target",
+            "in": "query",
+            "required": false,
+            "description": "Items about this record, by id, code or slug. Needs targetType: a slug alone could be a party’s or a system’s.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dueBefore",
+            "in": "query",
+            "required": false,
+            "description": "Items due before this date (YYYY-MM-DD).",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of review items",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "nextCursor"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ReviewItem"
+                      }
+                    },
+                    "nextCursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "Pass as ?cursor= for the next page. Null on the last page."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No token, or the token is not valid",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Valid token without the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request failed validation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "review:read"
+      },
+      "post": {
+        "tags": [
+          "review-items"
+        ],
+        "summary": "Open a review item",
+        "description": "Gets an `RI-n` code. `targetType` says how to read `target`. Who opened it comes from the token, never from the body (§1.6).\n\nRequires the `review:create` permission.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewItemInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewItem"
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "description": "Where the new item lives, by its code.",
+                "schema": {
+                  "type": "string",
+                  "example": "/v1/review-items/RI-7"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No token, or the token is not valid",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Valid token without the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request failed validation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "review:create"
+      }
+    },
+    "/v1/review-items/{ref}": {
+      "get": {
+        "tags": [
+          "review-items"
+        ],
+        "summary": "Read a review item",
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "path",
+            "required": true,
+            "description": "The review item: its id or code (RI-7): an id, code or slug (§1.2).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewItem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No token, or the token is not valid",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Valid token without the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such review item",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request failed validation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "description": "Requires the `review:read` permission.",
+        "x-required-permission": "review:read"
+      }
+    },
+    "/v1/review-items/{ref}/resolve": {
+      "post": {
+        "tags": [
+          "review-items"
+        ],
+        "summary": "Resolve a review item: the finding was acted on",
+        "description": "Closes an open item with a required `resolutionNote`, recording who closed it and when. Review items are not versioned, so there is no If-Match: only an open item can be closed, and closing one that is not answers 409 (§1.8).\n\nRequires the `review:resolve` permission.",
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "path",
+            "required": true,
+            "description": "The review item: its id or code (RI-7): an id, code or slug (§1.2).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseReviewItemInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The closed item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewItem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No token, or the token is not valid",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Valid token without the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such review item",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The item is not open",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request failed validation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "review:resolve"
+      }
+    },
+    "/v1/review-items/{ref}/dismiss": {
+      "post": {
+        "tags": [
+          "review-items"
+        ],
+        "summary": "Dismiss a review item: the finding needs no action",
+        "description": "Closes an open item with a required `resolutionNote`, recording who closed it and when. Review items are not versioned, so there is no If-Match: only an open item can be closed, and closing one that is not answers 409 (§1.8).\n\nRequires the `review:resolve` permission.",
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "path",
+            "required": true,
+            "description": "The review item: its id or code (RI-7): an id, code or slug (§1.2).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseReviewItemInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The closed item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewItem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No token, or the token is not valid",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Valid token without the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such review item",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The item is not open",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request failed validation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "review:resolve"
       }
     },
     "/v1/report": {

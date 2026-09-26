@@ -13,6 +13,7 @@ import {
   systemsResource,
 } from './definitions.js';
 import { activitiesResource } from './activities.js';
+import { reviewItemsRouter } from '../routes/review-items.js';
 import { viewsRouter } from '../routes/views.js';
 import { resourceRouter } from './resource-router.js';
 
@@ -38,6 +39,7 @@ export function recordsRouter(db: Database): Router {
   for (const resource of RESOURCES) {
     router.use(`/${API_VERSION}`, resourceRouter(db, resource as never));
   }
+  router.use(reviewItemsRouter(db));
   router.use(viewsRouter(db));
 
   return router;

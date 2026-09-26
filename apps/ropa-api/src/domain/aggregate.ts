@@ -3,9 +3,9 @@ import { and, eq, sql } from 'drizzle-orm';
 import type { PgColumn, PgTable } from 'drizzle-orm/pg-core';
 import type { z } from 'zod';
 
-import { eventOutbox, revision } from '../db/schema/history.js';
+import { revision } from '../db/schema/history.js';
 import { notFound, preconditionFailed } from '../shared/problems.js';
-import { DEFAULT_EVENT_DESTINATIONS, recordChangedEvent } from './events.js';
+import { enqueueEvent, recordChangedEvent } from './events.js';
 import { toSnapshotTimestamps } from './snapshots.js';
 import type { Transaction } from './transaction.js';
 
@@ -229,17 +229,8 @@ async function recordRevision<TRow extends RowShape, TSnapshot>(
     validFrom: validFrom.toISOString(),
   });
 
-  const destinations = context.destinations ?? DEFAULT_EVENT_DESTINATIONS;
-  if (destinations.length === 0) return;
-
-  // One row per destination, so a slow consumer cannot hold up the others.
-  await tx.insert(eventOutbox).values(
-    destinations.map((destination) => ({
-      eventId: envelope.id,
-      eventType: envelope.type,
-      destination,
-      payload: envelope,
-      revisionId: written.id,
-    })),
-  );
+  await enqueueEvent(tx, envelope, {
+    destinations: context.destinations,
+    revisionId: written.id,
+  });
 }

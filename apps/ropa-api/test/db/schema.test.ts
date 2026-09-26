@@ -311,7 +311,7 @@ describe('code_counter', () => {
 });
 
 describe('the migration itself', () => {
-  it('created the foundation tables and the activity aggregate, and no review items yet', async () => {
+  it('created the foundation tables, the activity aggregate and review items', async () => {
     const { rows } = await db().sql.query<{ table_name: string }>(
       `SELECT table_name FROM information_schema.tables
        WHERE table_schema = 'public' AND table_type = 'BASE TABLE' AND table_name <> '__drizzle_migrations'
@@ -335,6 +335,7 @@ describe('the migration itself', () => {
       'party',
       'processing_activity',
       'retention_rule',
+      'review_item',
       'revision',
       'security_measure',
       'subject_category',

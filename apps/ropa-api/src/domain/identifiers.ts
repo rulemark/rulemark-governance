@@ -1,7 +1,6 @@
 import { eq } from 'drizzle-orm';
-import type { PgColumn } from 'drizzle-orm/pg-core';
+import type { PgColumn, PgTable } from 'drizzle-orm/pg-core';
 
-import type { RootTable } from './aggregate.js';
 import type { Transaction } from './transaction.js';
 
 /**
@@ -21,8 +20,16 @@ export function identifierKind(value: string): IdentifierKind {
   return 'slug';
 }
 
+/**
+ * Any table keyed by `id`. Wider than an aggregate root: review items are
+ * found by code too, but carry no version (API §1.8).
+ */
+export interface KeyedTable extends PgTable {
+  id: PgColumn;
+}
+
 export interface Identifiable {
-  readonly table: RootTable;
+  readonly table: KeyedTable;
   /** The natural identifier this record type carries, if any. */
   readonly slugColumn?: PgColumn | undefined;
   readonly codeColumn?: PgColumn | undefined;

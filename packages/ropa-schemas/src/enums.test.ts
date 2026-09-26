@@ -7,9 +7,12 @@ import {
   AUTHORIZATION_TYPES,
   DATA_CATEGORY_SPECIALS,
   ENGAGEMENT_ROLES,
+  EVENT_TYPES,
   LAWFUL_BASES,
   PARTY_KINDS,
   RENDER_SYSTEM_KINDS,
+  REVIEW_CHANGE_TYPES,
+  REVIEW_TARGET_TYPES,
   SPECIAL_CONDITIONS,
   SYSTEM_KINDS,
   TAXONOMY_TYPES,
@@ -86,6 +89,15 @@ describe('the values the data model names', () => {
   it('derives the Render system kinds from the full list, so the two cannot drift', () => {
     expect(RENDER_SYSTEM_KINDS).toEqual(SYSTEM_KINDS.filter((kind) => kind.startsWith('render_')));
     expect(RENDER_SYSTEM_KINDS).not.toContain('external_saas');
+  });
+
+  it('points review items at the three records a finding can be about (DM §3.11)', () => {
+    expect(REVIEW_TARGET_TYPES).toEqual(['activity', 'party', 'system']);
+  });
+
+  it('gives review items their own event, since they have no revisions (step 3, Q1)', () => {
+    expect(EVENT_TYPES).toContain('review_item.changed');
+    expect(REVIEW_CHANGE_TYPES).toEqual(['opened', 'resolved', 'dismissed']);
   });
 
   it('names the taxonomy types as they appear in URLs', () => {

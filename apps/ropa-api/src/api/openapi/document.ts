@@ -20,6 +20,13 @@ import {
   Ref,
   ReportResponse,
   RetireInput,
+  CloseReviewItemInput,
+  REVIEW_REASONS,
+  REVIEW_SOURCES,
+  REVIEW_STATUSES,
+  REVIEW_TARGET_TYPES,
+  ReviewItem,
+  ReviewItemInput,
   SecurityMeasure,
   SecurityMeasureInput,
   SubjectCategory,
@@ -82,6 +89,8 @@ const INPUT_SCHEMAS: readonly [string, z.ZodType][] = [
   ['ActivityInput', ActivityInput],
   ['ActivateInput', ActivateInput],
   ['RetireInput', RetireInput],
+  ['ReviewItemInput', ReviewItemInput],
+  ['CloseReviewItemInput', CloseReviewItemInput],
   ['TokenRequest', TokenRequest],
 ];
 
@@ -96,6 +105,7 @@ const OUTPUT_SCHEMAS: readonly [string, z.ZodType][] = [
   ['DataCategory', DataCategory],
   ['SecurityMeasure', SecurityMeasure],
   ['Activity', Activity],
+  ['ReviewItem', ReviewItem],
   ['SubprocessorsResponse', SubprocessorsResponse],
   ['ReportResponse', ReportResponse],
   ['TokenResponse', TokenResponse],
@@ -501,6 +511,128 @@ export function buildOpenApiDocument(): JsonObject {
     schema,
   });
 
+  const reviewItems = `/${API_VERSION}/review-items`;
+  const enumParam = (name: string, description: string, values: readonly string[]) =>
+    queryParam(name, description, { type: 'string', enum: [...values] });
+
+  paths[reviewItems] = {
+    get: guarded(
+      {
+        tags: ['review-items'],
+        summary: 'List review items',
+        description:
+          'Findings carried to a person (§2 workflow): opened by the Monitor, the Snapshot, a schedule or by hand, and closed by resolving or dismissing them.',
+        parameters: [
+          queryParam('limit', `Page size, 1–${MAX_PAGE_SIZE}. Default ${DEFAULT_PAGE_SIZE}.`, {
+            type: 'integer',
+            minimum: 1,
+            maximum: MAX_PAGE_SIZE,
+          }),
+          queryParam('cursor', 'From the previous page’s nextCursor.'),
+          enumParam('status', 'open, resolved or dismissed', REVIEW_STATUSES),
+          enumParam('source', 'Who opened it', REVIEW_SOURCES),
+          enumParam('reason', 'Why it was opened', REVIEW_REASONS),
+          enumParam(
+            'targetType',
+            'Items about this kind of record. Required with target.',
+            REVIEW_TARGET_TYPES,
+          ),
+          queryParam(
+            'target',
+            'Items about this record, by id, code or slug. Needs targetType: a slug alone could be a party’s or a system’s.',
+          ),
+          queryParam('dueBefore', 'Items due before this date (YYYY-MM-DD).', {
+            type: 'string',
+            format: 'date',
+          }),
+        ],
+        responses: {
+          '200': {
+            description: 'A page of review items',
+            content: { 'application/json': { schema: listResponseSchema('ReviewItem') } },
+          },
+          ...COMMON_ERRORS,
+        },
+      },
+      'review:read',
+    ),
+    post: guarded(
+      {
+        tags: ['review-items'],
+        summary: 'Open a review item',
+        description:
+          'Gets an `RI-n` code. `targetType` says how to read `target`. Who opened it comes from the token, never from the body (§1.6).',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': { schema: { $ref: '#/components/schemas/ReviewItemInput' } },
+          },
+        },
+        responses: {
+          '201': {
+            ...json('ReviewItem', 'The new item'),
+            headers: {
+              Location: {
+                description: 'Where the new item lives, by its code.',
+                schema: { type: 'string', example: '/v1/review-items/RI-7' },
+              },
+            },
+          },
+          ...COMMON_ERRORS,
+        },
+      },
+      'review:create',
+    ),
+  };
+
+  paths[`${reviewItems}/{ref}`] = {
+    get: guarded(
+      {
+        tags: ['review-items'],
+        summary: 'Read a review item',
+        parameters: [REF_PARAM('review item: its id or code (RI-7)')],
+        responses: {
+          '200': json('ReviewItem', 'The item'),
+          '404': problem('No such review item'),
+          ...COMMON_ERRORS,
+        },
+      },
+      'review:read',
+    ),
+  };
+
+  for (const [action, outcome] of [
+    ['resolve', 'Resolve a review item: the finding was acted on'],
+    ['dismiss', 'Dismiss a review item: the finding needs no action'],
+  ] as const) {
+    paths[`${reviewItems}/{ref}/${action}`] = {
+      post: guarded(
+        {
+          tags: ['review-items'],
+          summary: outcome,
+          description:
+            'Closes an open item with a required `resolutionNote`, recording who closed it and when. Review items are not versioned, so there is no If-Match: only an open item can be closed, and closing one that is not answers 409 (§1.8).',
+          parameters: [REF_PARAM('review item: its id or code (RI-7)')],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/CloseReviewItemInput' },
+              },
+            },
+          },
+          responses: {
+            '200': json('ReviewItem', 'The closed item'),
+            '404': problem('No such review item'),
+            '409': problem('The item is not open'),
+            ...COMMON_ERRORS,
+          },
+        },
+        'review:resolve',
+      ),
+    };
+  }
+
   paths[`/${API_VERSION}/report`] = {
     get: guarded(
       {
@@ -598,6 +730,10 @@ export function buildOpenApiDocument(): JsonObject {
       { name: 'data-categories', description: 'Shared vocabulary: what data' },
       { name: 'security-measures', description: 'Shared vocabulary: how it is protected' },
       { name: 'activities', description: 'The record itself: processing activities' },
+      {
+        name: 'review-items',
+        description: 'Findings carried to a person, until resolved or dismissed',
+      },
       { name: 'views', description: 'Read models derived from the record' },
       { name: 'service', description: 'Health and documentation' },
     ],

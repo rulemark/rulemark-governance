@@ -136,6 +136,19 @@ export const REVIEW_REASONS = list(
 );
 export const REVIEW_STATUSES = list('open', 'resolved', 'dismissed');
 
+/**
+ * What a review item can be about. The database holds one foreign key per type,
+ * exactly one set (`review_item_one_target`); the API shows `targetType` and
+ * `target` (DM §3.11).
+ */
+export const REVIEW_TARGET_TYPES = list('activity', 'party', 'system');
+
+/**
+ * A review item's lifecycle, as `review_item.changed` reports it. Not
+ * `CHANGE_TYPES`: review items have no revisions, so the event is their history.
+ */
+export const REVIEW_CHANGE_TYPES = list('opened', 'resolved', 'dismissed');
+
 /** Which aggregate a revision belongs to (DM §3.12). */
 export const REVISION_ENTITY_TYPES = list(
   'activity',
@@ -150,7 +163,7 @@ export const REVISION_ENTITY_TYPES = list(
 );
 
 export const CHANGE_TYPES = list('created', 'updated', 'activated', 'retired', 'deleted');
-export const EVENT_TYPES = list('record.changed', 'subprocessors.changed');
+export const EVENT_TYPES = list('record.changed', 'subprocessors.changed', 'review_item.changed');
 
 // --- types ---
 
@@ -174,6 +187,8 @@ export type TaxonomyType = (typeof TAXONOMY_TYPES)[number];
 export type ReviewSource = (typeof REVIEW_SOURCES)[number];
 export type ReviewReason = (typeof REVIEW_REASONS)[number];
 export type ReviewStatus = (typeof REVIEW_STATUSES)[number];
+export type ReviewTargetType = (typeof REVIEW_TARGET_TYPES)[number];
+export type ReviewChangeType = (typeof REVIEW_CHANGE_TYPES)[number];
 export type RevisionEntityType = (typeof REVISION_ENTITY_TYPES)[number];
 export type ChangeType = (typeof CHANGE_TYPES)[number];
 export type EventType = (typeof EVENT_TYPES)[number];
