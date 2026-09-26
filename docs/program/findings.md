@@ -119,6 +119,18 @@
     `review:create` but **not `review:read`**, so it cannot look up open items
     to dedupe on a finding's `key`. Add it when that job is built.
 
+- **Phase 2: the impact view (2026-09-26).**
+  - The acceptance test replays the whole story (`replayStory`) into the test
+    database, like `seed.test.ts`. One file, `governance-views.test.ts`, does it
+    once for Phases 2–4, so the reset cost is paid once.
+  - The pure-view fixtures (P1–P3 as snapshots) were local to
+    `subprocessors.test.ts`; they now live in `test/fixtures/story-snapshots.ts`.
+    Phases 3–4 should add C1–C4 there rather than build their own.
+  - The seeded record has two Standard DPA clients (Northwind, Fjord), not 399,
+    so no seeded group is large enough to omit its clients. That rule was
+    untested until it became `listsClients`, tested on its own; a check on
+    the seed alone would have passed with the rule broken.
+
 ## Issues encountered
 | Issue | Resolution |
 |---|---|

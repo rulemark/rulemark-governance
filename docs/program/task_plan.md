@@ -12,7 +12,7 @@ Build step 3 from `docs/ropa/ropa-api.md` §8. **Enough for Ch5–Ch7 and the
 Monitor and DSAR integrations.**
 
 ## Current Phase
-Phase 2 (not started)
+Phase 3 (not started)
 
 ## Definition of done for step 3
 - Review items can be opened, listed, read, resolved and dismissed through the
@@ -57,14 +57,15 @@ Reference: DM §3.11, DB §4.5, API §2 (workflow), §1.8, §1.9
 
 ### Phase 2: `GET /parties/{ref}/impact`
 Reference: API §5.3; DM §3.8, §7
-- [ ] One entry per engagement, with the activity's role, the engagement's role, subject and data categories, special flag and countries
-- [ ] For processor activities: the clients for whom the engagement is effective (the step 2 scoping functions), grouped by agreement terms, with `requiresApproval`, `noticeConflict` against the vendor's inbound terms, and `allowedRegions`
-- [ ] `expandClients=true`; small groups (≤ 10) list their clients by default; `summary`
-- [ ] The vendor's own inbound terms as a list, `vendorTerms: [...]`: every inbound agreement in force (`inForce` in `domain/agreements.ts` hard-codes `outbound`; take the direction as a parameter)
-- [ ] `noticeConflict` compares against the **shortest** vendor notice; with no inbound agreement it is `null`, not `false`
-- [ ] Update API §5.3 (the example's `vendorTerms` becomes a one-element list; the `noticeConflict` bullet) and DM §7's impact row
+- [x] One entry per engagement, with the activity's role, the engagement's role, subject and data categories, special flag and countries
+- [x] For processor activities: the clients for whom the engagement is effective (the step 2 scoping functions), grouped by agreement terms, with `requiresApproval`, `noticeConflict` against the vendor's inbound terms, and `allowedRegions`
+- [x] `expandClients=true`; small groups (≤ 10) list their clients by default; `summary`
+- [x] The vendor's own inbound terms as a list, `vendorTerms: [...]`: every inbound agreement in force (`inForce` in `domain/agreements.ts` hard-codes `outbound`; take the direction as a parameter)
+- [x] `noticeConflict` compares against the **shortest** vendor notice; with no inbound agreement it is `null`, not `false`
+- [x] Update API §5.3 (the example's `vendorTerms` becomes a one-element list; the `noticeConflict` bullet) and DM §7's impact row
+- **Decided while building (2026-09-26):** only live activities and engagements in force today; every entry names its `engagement`; `summary` counts distinct clients; larger groups first; one agreement per client and offering, the most recently signed; an unknown party is `404`, a party nothing depends on answers empty; transfers are not part of the response (§5.3 doesn't ask for them)
 - **Done when:** Mailcrest's impact on the seeded record matches the §5.3 example in substance
-- **Status:** pending
+- **Status:** complete
 
 ### Phase 3: `GET /data-map`
 Reference: API §5.4; DM §7

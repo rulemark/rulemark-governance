@@ -31,6 +31,19 @@
     `api/routes/review-items.ts`; `enqueueEvent` shared with the aggregate save
   - OpenAPI paths and schemas; `openapi.json` regenerated
   - DM §3.11, §3.13, DB §4.5, API §2 and §6 updated
+- Phase 1 committed (`0a78432`, docs `720f983`), pushed code-first, deployed
+- Phase 2 (`GET /parties/{ref}/impact`):
+  - Package: `ImpactQuery`, `ImpactResponse` (`vendorTerms` a list,
+    `noticeConflict` nullable)
+  - `domain/views/impact.ts`, a pure `partyImpact` over snapshots, reusing
+    `coversClient`/`isEffectiveFor`; `inForce` takes a direction;
+    `clientAgreementsFor`, `vendorTermsIdsOf`
+  - `api/views/impact.ts` loads and names; the route sits in `views.ts`
+  - The story snapshot builders moved to `test/fixtures/story-snapshots.ts`,
+    shared by the pure-view tests
+  - `test/db/governance-views.test.ts` replays the story once for Phases 2–4;
+    Mailcrest's impact matches §5.3 in substance
+  - API §5.3 and DM §7 updated; `openapi.json` regenerated
 
 ## Test Results
 | Test | Command | Expected | Actual | Status |
@@ -38,6 +51,7 @@
 | Inherited from step 2 | `npm run check` | 707 tests pass | 707 pass | ✅ |
 | Phase 1 | `npm run check` | all pass | 777 pass (553 API, 219 package, 5 dist) | ✅ |
 | Phase 1 | `npm run db:generate` | no drift | "No schema changes" | ✅ |
+| Phase 2 | `npm run check` | all pass | 815 pass (585 API, 225 package, 5 dist) | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -47,7 +61,7 @@
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Build step 3, Phase 2 (`/parties/{ref}/impact`), not started |
+| Where am I? | Build step 3, Phase 3 (`/data-map`), not started |
 | Where am I going? | Review items, then `/impact`, `/data-map`, `/coverage`, then deploy |
 | What's the goal? | Answer the questions the record exists for: the Monitor's, the DSAR tracker's and the Snapshot's (Ch5–Ch7) |
 | What have I learned? | See findings.md, and `plan-archive/3/findings.md` for step 2 |

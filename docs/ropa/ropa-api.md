@@ -468,14 +468,16 @@ Example: `GET /v1/parties/mailcrest/impact` when Mailcrest announces Helpdesk Pa
 {
   "generatedAt": "2026-06-03T08:00:00Z",
   "party": { "id": "…", "slug": "mailcrest", "name": "Mailcrest Inc." },
-  "vendorTerms": { "id": "…", "slug": "mailcrest-dpa-2025", "name": "Mailcrest DPA 2025",
-                   "authorizationType": "general", "noticeDays": 30 },
+  "vendorTerms": [ { "id": "…", "slug": "mailcrest-dpa-2025", "name": "Mailcrest DPA 2025",
+                     "authorizationType": "general", "noticeDays": 30 } ],
   "engagements": [
     { "activity": { "id": "…", "code": "C2", "name": "Customer accounts & billing" },
+      "engagement": { "id": "…", "serviceDescription": "Transactional email" },
       "activityRole": "controller", "engagementRole": "processor",
       "subjectCategories": ["…client-users"], "dataCategories": ["…identity"],
       "specialCategories": false, "processingCountries": ["US"], "clientGroups": [] },
     { "activity": { "id": "…", "code": "C3", "name": "Hireloop sales & marketing" },
+      "engagement": { "id": "…", "serviceDescription": "Newsletter and demo requests" },
       "activityRole": "controller", "engagementRole": "processor",
       "subjectCategories": ["…leads"], "dataCategories": ["…identity"],
       "specialCategories": false, "processingCountries": ["US"], "clientGroups": [] },
@@ -507,11 +509,15 @@ Example: `GET /v1/parties/mailcrest/impact` when Mailcrest announces Helpdesk Pa
 ```
 
 - `requiresApproval`: the client's terms need **specific** authorization (Art. 28(2)), so a notice isn't enough.
-- `noticeConflict`: the vendor's notice (30 days) is shorter than the notice owed to the client (60 days).
+- `vendorTerms`: every inbound agreement in force with the vendor, as a list. Nothing ties an engagement to one agreement, and two in force is ordinary (a renewal overlap, or one DPA per product), so all are shown rather than one chosen or the request refused.
+- `noticeConflict`: the vendor's notice (30 days) is shorter than the notice owed to the client (60 days). With several vendor DPAs it is judged on the **shortest** notice, the worst case. With none it is `null`: there is nothing to compare, and "no conflict" would be a claim the record can't back.
+- Only **live** activities count, and only engagements in force today. Every entry names its `engagement` (id and service description), so the Monitor can tell P1's two apart.
 - There is **one entry per engagement**, not per activity, so P1 appears twice: its US-region and EU-region Mailcrest engagements reach different clients.
 - Client groups contain only the clients for whom that engagement is **effective** (DM §3.8): opted-out and scoped-out clients aren't counted, and opt-in activities only count clients who opted in.
 - `allowedRegions` is included when the client's terms restrict regions, so the Monitor can see that an onward transfer to India (Helpdesk Partners) would break Aurelia's EU-only clause, even though Mailcrest stores Aurelia's data in Ireland.
-- Small groups (`clientCount` ≤ 10) list their clients by default.
+- Small groups (`clientCount` ≤ 10) list their clients by default; `?expandClients=true` lists them for every group. Larger groups come first.
+- `summary` counts **distinct clients**: `noticeConflicts: 399` would mean 399 clients are owed more notice than the vendor gives, not 399 groups.
+- `?asOf=` answers `422 not_yet_supported` until step 4. An unknown party is a `404`; a party nothing depends on (a client, say) answers with empty lists.
 
 ### 5.4 `GET /data-map`
 
