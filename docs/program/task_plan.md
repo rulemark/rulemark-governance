@@ -11,7 +11,7 @@ Build step 4 from `docs/ropa/ropa-api.md` §8. **Enough for Ch8, the audit log,
 and a finding reaching a person on its own.**
 
 ## Current Phase
-Phase 2 (`asOf` in the views), not started. Phase 1 complete
+Phase 3 (`GET /changes`), not started. Phases 1–2 complete
 
 ## Definition of done for step 4
 - `GET /report?view=all&asOf=2026-03-01` on the seeded record answers Chapter 8:
@@ -55,14 +55,15 @@ Reference: DB §6.2, §6.3; DM §6
 
 ### Phase 2: `asOf` in the views
 Reference: API §5, §5.1, §5.2, §5.3, §5.4
-- [ ] The view builders take a `RecordReader` instead of a transaction (Phase 1); the loaders it replaces (`liveActivities`, `termsRef`, the agreement queries in `domain/agreements.ts` the views use, `loadRefs` in the views) go, and the existing view tests hold the rewiring to its word
-- [ ] `/report` (JSON and Markdown), `/subprocessors`, `/parties/{ref}/impact` and `/data-map` take `asOf`; `422 not_yet_supported` goes away
-- [ ] The response's `asOf` echoes what was asked for, date or timestamp (the schemas widen from `IsoDate`); `generatedAt` stays now
-- [ ] API §5 says it plainly: a date means the end of that day, UTC
-- [ ] "Active" and "in force" judged on the `asOf` day, not today (the pure functions already take `day`)
-- [ ] `/coverage` keeps refusing `asOf` (`not_supported`)
+- [x] The view builders take a `RecordReader` instead of a transaction (Phase 1); the loaders it replaces (`liveActivities`, `termsRef`, the agreement queries in `domain/agreements.ts` the views use, `loadRefs` in the views) go, and the existing view tests hold the rewiring to its word
+- [x] `/report` (JSON and Markdown), `/subprocessors`, `/parties/{ref}/impact` and `/data-map` take `asOf`; `422 not_yet_supported` goes away
+- [x] The response's `asOf` echoes what was asked for, date or timestamp (the schemas widen from `IsoDate`); `generatedAt` stays now
+- [x] API §5 says it plainly: a date means the end of that day, UTC
+- [x] "Active" and "in force" judged on the `asOf` day, not today (the pure functions already take `day`)
+- [x] `/coverage` keeps refusing `asOf` (`not_supported`)
+- **Built:** a future `asOf` answers `422 in_the_future`; a record that did not exist yet on the date is `unknown_reference` (a `404` for the party in the impact path), with the date in the message. `buildCoverage` reads through `liveRecord` too, so every view has one way in
 - **Done when:** Ch8's two reports and §5.2's `asOf` example answer as the documents say
-- **Status:** pending
+- **Status:** complete
 
 ### Phase 3: `GET /changes`
 Reference: API §2 (history), §6 (reconciliation); step 3 open question 1

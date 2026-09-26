@@ -397,6 +397,8 @@ All follow §1.4 (full `PUT`, `If-Match`, revisions). Notes that go beyond the d
 
 All views are read-only, computed from current state or, with `asOf`, from revisions (DM §6). Every view response includes `generatedAt` and, where supported, `asOf`.
 
+**`asOf`** (step 4) is a date or an RFC 3339 timestamp. **A date means the end of that day, in UTC**: every change saved before the next midnight UTC counts, and agreements, scopes and engagements are judged on that day. A timestamp means that instant, and its UTC date for the business dates. A moment after now is refused (`422 in_the_future`): the record says how things stood, not how they will. Without `asOf`, or with today's date, the view reads the record today. Records are named as they were named then, and a slug in the query is matched as the record spelled it then, so a client that did not exist yet is `unknown_reference` (a party in the path, `404`), and one that existed with no agreement in force is `no_active_agreement`. The response's `asOf` echoes what was asked for, date or timestamp; `generatedAt` is always now. `/report`, `/subprocessors`, `/parties/{ref}/impact` and `/data-map` take it; `/coverage` does not (§5.5).
+
 ### 5.1 `GET /report`
 
 | Parameter | Values | Notes |
@@ -404,7 +406,7 @@ All views are read-only, computed from current state or, with `asOf`, from revis
 | `view` | `controller` \| `processor` \| `all` | Default `all` |
 | `offering` | ref | Processor view scoped to an offering's standard terms (pre-contract, Ch4) |
 | `client` | ref | Processor view scoped to one client's actual terms (post-contract, Ch4). Mutually exclusive with `offering` |
-| `asOf` | date | The record as it stood on that date (Ch8) |
+| `asOf` | date or timestamp | The record as it stood then (Ch8); see §5 |
 | `format` | `json` \| `markdown` \| `csv` | Default `json`. CSV flattens to one row per activity × engagement |
 
 **JSON structure:**
@@ -421,7 +423,9 @@ All views are read-only, computed from current state or, with `asOf`, from revis
 
 CSV (one row per activity × engagement) stays in the last build step.
 
-**As built (step 2):** `offering` or `client` implies the processor view, and `view=controller` or `all` with either is refused (`422 scope_needs_processor_view`), so a client's extract never carries Hireloop's own controller records. A scoped report closes with the list `GET /subprocessors` gives for the same scope, built by the same function. Processor activities name the controllers they serve: the one client; "all clients on the offering's standard terms" without names (a prospect reads it); or, unscoped, every client each activity covers today. Only active activities appear. `asOf` and `format=csv` answer `422 not_yet_supported` until steps 4 and 5.
+**As built (step 2):** `offering` or `client` implies the processor view, and `view=controller` or `all` with either is refused (`422 scope_needs_processor_view`), so a client's extract never carries Hireloop's own controller records. A scoped report closes with the list `GET /subprocessors` gives for the same scope, built by the same function. Processor activities name the controllers they serve: the one client; "all clients on the offering's standard terms" without names (a prospect reads it); or, unscoped, every client each activity covers today. Only active activities appear. `format=csv` answers `422 not_yet_supported` until step 5.
+
+**As built (step 4):** `asOf` answers Ch8: `?view=all&asOf=2026-03-01` holds C1–C4 and P1 as they stood (Mailcrest's single "Candidate notifications" engagement, Glitchlog for everyone), serving Northwind and Fjord; there is no P2, P3, Scribe AI or Aurelia. The Markdown header says "As of 2026-03-01.".
 
 ### 5.2 `GET /subprocessors`
 
@@ -456,7 +460,9 @@ The list is built from the client's **effective engagements** (DM §3.8) and gro
 
 With `?offering=ats` instead, the list shows the standard terms: engagements with an `include` scope are left out (they're client-specific), so Mailcrest appears with its US region, and Glitchlog and Scribe AI are included. Opt-in activities such as P2 appear under a separate `optionalModules` array with their own subprocessors.
 
-**As built (step 2):** by client, the scope names the offering and the **terms the client signed** (Aurelia's DPA, not the default), which the Monitor needs to tell who is notified and who must approve. A client with no agreement in force answers `422 no_active_agreement`. A client with agreements for **several offerings** answers `422 several_offerings`, because the response names one offering and one set of terms (§9, question 6). Neither or both of `offering`/`client` answers `422 exactly_one_scope`. `asOf` answers `422 not_yet_supported` until step 4.
+**As built (step 2):** by client, the scope names the offering and the **terms the client signed** (Aurelia's DPA, not the default), which the Monitor needs to tell who is notified and who must approve. A client with no agreement in force answers `422 no_active_agreement`. A client with agreements for **several offerings** answers `422 several_offerings`, because the response names one offering and one set of terms (§9, question 6). Neither or both of `offering`/`client` answers `422 exactly_one_scope`.
+
+**As built (step 4):** the example above is what the seeded record answers, and a test holds it to it. Asked on 1 March, Aurelia is `unknown_reference` (she became a party on 16 March); at 08:30 on 16 March she is a party but her agreement was recorded at 09:00, so it is `no_active_agreement`.
 
 ### 5.3 `GET /parties/{ref}/impact`
 
@@ -517,7 +523,7 @@ Example: `GET /v1/parties/mailcrest/impact` when Mailcrest announces Helpdesk Pa
 - `allowedRegions` is included when the client's terms restrict regions, so the Monitor can see that an onward transfer to India (Helpdesk Partners) would break Aurelia's EU-only clause, even though Mailcrest stores Aurelia's data in Ireland.
 - Small groups (`clientCount` ≤ 10) list their clients by default; `?expandClients=true` lists them for every group. Larger groups come first.
 - `summary` counts **distinct clients**: `noticeConflicts: 399` would mean 399 clients are owed more notice than the vendor gives, not 399 groups.
-- `?asOf=` answers `422 not_yet_supported` until step 4. An unknown party is a `404`; a party nothing depends on (a client, say) answers with empty lists.
+- `?asOf=` (§5) answers for the record then: as of 2026-03-01, Mailcrest has C2, C3 and one P1 engagement, reaching Northwind and Fjord. An unknown party is a `404`, and so is one that did not exist yet on that date; a party nothing depends on (a client, say) answers with empty lists.
 
 ### 5.4 `GET /data-map`
 
@@ -564,7 +570,7 @@ Example: `GET /v1/data-map?subjectCategory=candidates&client=northwind` (Lena's 
 - `vendors` lists every engagement used for the activity (for the client, when one is given), Render included, once per party and role, with the data categories **as recorded for the engagement**. That is an upper bound: an activity's subject and data categories are two unlinked sets, so the record can't narrow Glitchlog's `telemetry, identity` on C4 to what concerns candidates. For a DSAR that errs the right way: a search that finds nothing, rather than data left where nobody looked. Recipients are included, because erasure must be passed on to them too (Art. 19).
 - Activities are listed in code order. Only live activities and engagements in force count.
 - With `client`, a processor activity counts only if the client holds an agreement for its offering and the activity covers them (so P2, a module Northwind never enabled, is absent). A party with no agreement gets Hireloop's own (controller) activities only, not an error. Without `client`, every processor activity and engagement counts.
-- An unknown `subjectCategory` or `client` is `422 unknown_reference`; `?asOf=` answers `422 not_yet_supported` until step 4.
+- An unknown `subjectCategory` or `client` is `422 unknown_reference`, including one that did not exist yet on the `asOf` date (§5).
 
 ### 5.5 `GET /coverage`
 
@@ -635,7 +641,7 @@ Review items have no revisions, so `review_item.changed` is their history, and i
 
 **Decided during build step 2 (2026-09-26)**, for the steps that follow:
 - **Step 4 builds `subprocessors.changed` (§6) with the dispatcher**, not before: the events belong with what delivers them (DB §6.1 step 5). The save computes the list before and after for the offering and for each client the change affects, using the same functions `GET /subprocessors` uses (`domain/views/subprocessors.ts`), and writes `added[]`/`removed[]`.
-- **`asOf` arrives in step 4 without new view logic.** The views are pure functions over activity aggregates (DB §6.3); only the loading is SQL. `asOf` feeds them snapshots from revisions instead of live rows. Until then, `?asOf=` answers `422 not_yet_supported` rather than answering for today.
+- **`asOf` arrives in step 4 without new view logic.** The views are pure functions over activity aggregates (DB §6.3); only the loading is SQL. `asOf` feeds them snapshots from revisions instead of live rows. Until then, `?asOf=` answers `422 not_yet_supported` rather than answering for today. **Done in step 4:** the views read a `RecordReader`, live or as of a date (DB §6.3), and none of their logic changed.
 - **`/revisions` already exists** (step 1), and every save has written `record.changed` outbox rows since step 1. What step 4 adds is `asOf`, `/changes`, `subprocessors.changed` and delivery. Still open: how to test the dispatcher, which manages its own transactions (not one per test).
 - **Step 5:** `format=csv` answers `422 not_yet_supported` until then. The engagement sub-resource can build on `inputFromSnapshot` (`domain/activity/input.ts`), which turns a stored activity into the `PUT` body that saves it unchanged.
 - **Deploying:** Render judges a push by its newest commit, so code is pushed on its own and documentation separately (README, Deployment).

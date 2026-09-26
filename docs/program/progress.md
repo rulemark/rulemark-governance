@@ -37,12 +37,27 @@
     day's boundaries, agreements signed and ended, a rename, a retirement, a
     deletion, the upgrade path, and live = as of today for every question
   - DB §6.2 and §6.3 "As built"; Phase 2 gains the rewiring onto the reader
+- Phase 1 committed (`846e9be`, docs `2f2db99`), not pushed
+- Phase 2 (`asOf` in the views), test-first, 17 mutations, all caught:
+  - The five view builders take a `ViewRead` (reader, `generatedAt`,
+    `asOf`); the routes read live or `recordAsOf`; `refuseAsOf` gone;
+    coverage still refuses
+  - Loaders the reader replaced removed from `domain/agreements.ts`
+  - Package: response `asOf` widened to `AsOf`; `AsOf` described as the
+    end of the day, UTC; OpenAPI `asOf` parameters described;
+    `openapi.json` regenerated
+  - `test/db/history-views.test.ts`: Ch8's two reports (JSON and
+    Markdown), §5.2's example, impact and data map as of 1 March, unknown
+    records of the time, a timestamp echoed, and rolled-back tests for
+    business dates and the newest-terms grouping
+  - API §5 says what `asOf` means; §5.1–§5.4 and §8 "As built" updated
 
 ## Test Results
 | Test | Command | Expected | Actual | Status |
 |---|---|---|---|---|
 | Inherited from step 3 | `npm run check` | 891 tests pass | 891 pass | ✅ |
 | Phase 1 | `npm run check` | all pass | 931 pass (684 api, 242 schemas, 5 dist) | ✅ |
+| Phase 2 | `npm run check` | all pass | 956 pass (705 api, 246 schemas, 5 dist) | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -52,7 +67,7 @@
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Build step 4, Phase 1 complete (not yet committed); Phase 2 (`asOf` in the views) next |
+| Where am I? | Build step 4, Phases 1–2 complete; Phase 2 not yet committed; nothing pushed; Phase 3 (`/changes`) next |
 | Where am I going? | `asOf` loading, `asOf` in the views, `/changes`, `subprocessors.changed`, the dispatcher, the coverage cron job, then deploy |
 | What's the goal? | The record's past answerable (Ch8) and its changes heard: events delivered, findings carried to a person on a schedule |
 | What have I learned? | See findings.md, and `plan-archive/4/findings.md` for step 3 |

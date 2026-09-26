@@ -152,3 +152,33 @@
 - **`npm run check` took over ten minutes once** with the suite itself at
   18s: `tsc --build` ran at 9% CPU (77s wall for 6.6s of work), waiting on
   the disk. Not the code; worth knowing before blaming a change.
+- **Phase 2: the rewiring was a refactor, and the old tests said so
+  (2026-09-26).** The five builders moved from `(tx, …, now)` to
+  `(read: ViewRead, …)`, where `ViewRead` is the reader plus what the
+  response stamps (`generatedAt`, the `asOf` asked for). The view logic
+  didn't change; the whole suite passed on the first run except the four
+  tests that expected `asOf` to be refused. `activeAgreementsOf`,
+  `clientsByOffering`, `clientAgreementsFor` and `vendorTermsIdsOf` left
+  `domain/agreements.ts`; what they did is now a filter on
+  `agreementsInForce`, and "most recently signed per client" lives in
+  `api/views/scope.ts`.
+  - **Two parts of "as of": which revisions, and which day.** The reader's
+    cut-off decides what the record said; `record.day` decides what was in
+    force. The seeded story can't tell the second from today's date,
+    because it never records anything ahead of its day, so mutating the
+    builders to judge on today passed every test. Rolled-back tests now
+    record an agreement before it's signed and an engagement before it
+    starts, and ask each builder on either side of the date.
+  - **An old gap surfaced:** nothing tested that a client with two
+    agreements for one offering is grouped under the newer terms (§5.3),
+    before or after this phase. Now tested.
+  - **A record that didn't exist yet is unknown, not empty.** Aurelia on
+    1 March is `unknown_reference`; Scribe AI's impact on 1 March is a
+    `404`. The messages say "as of 2026-03-01", so the answer isn't read
+    as "no such party, ever".
+  - Response `asOf` is `AsOf` (date or timestamp) and echoes the query as
+    written, offset included; the shared `AsOf` description now says a
+    date is the end of the day, UTC.
+  - Test slip worth remembering: "subscribers" contains "scribe". Match
+    `scribe-ai`, not `scribe`.
+
