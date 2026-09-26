@@ -2553,6 +2553,1118 @@
         ],
         "additionalProperties": false
       },
+      "ReportResponse": {
+        "type": "object",
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+            "description": "An RFC 3339 timestamp.",
+            "examples": [
+              "2026-03-16T10:00:00Z"
+            ]
+          },
+          "asOf": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                "description": "A date, \"YYYY-MM-DD\".",
+                "examples": [
+                  "2026-03-16"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scope": {
+            "type": "object",
+            "properties": {
+              "view": {
+                "type": "string",
+                "enum": [
+                  "controller",
+                  "processor",
+                  "all"
+                ]
+              },
+              "offering": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/Ref"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "client": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/Ref"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "terms": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "description": "A UUID. Records are keyed by UUIDv7.",
+                        "examples": [
+                          "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                        ]
+                      },
+                      "slug": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100,
+                        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                        "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\".",
+                        "examples": [
+                          "mailcrest",
+                          "standard-dpa-v3"
+                        ]
+                      },
+                      "code": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 20,
+                        "pattern": "^[A-Z]+-?\\d+$",
+                        "description": "A stable, system-assigned code shown next to the name: \"P3\".",
+                        "examples": [
+                          "P3",
+                          "RI-42"
+                        ]
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "examples": [
+                          "Mailcrest Inc."
+                        ]
+                      },
+                      "authorizationType": {
+                        "type": "string",
+                        "enum": [
+                          "general",
+                          "specific"
+                        ]
+                      },
+                      "noticeDays": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "authorizationType",
+                      "noticeDays"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "view",
+              "offering",
+              "client",
+              "terms"
+            ],
+            "additionalProperties": false
+          },
+          "organisation": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "party": {
+                    "$ref": "#/components/schemas/Ref"
+                  },
+                  "legalName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "examples": [
+                      "Mailcrest Inc."
+                    ]
+                  },
+                  "country": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{2}$",
+                    "description": "An ISO 3166-1 alpha-2 country code.",
+                    "examples": [
+                      "NL",
+                      "US",
+                      "DE"
+                    ]
+                  },
+                  "contactName": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "examples": [
+                          "Mailcrest Inc."
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "contactEmail": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 254,
+                        "format": "email",
+                        "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                        "examples": [
+                          "dpo@hireloop.example"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "dpoName": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "examples": [
+                          "Mailcrest Inc."
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "dpoEmail": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 254,
+                        "format": "email",
+                        "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                        "examples": [
+                          "dpo@hireloop.example"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "party",
+                  "legalName",
+                  "country",
+                  "contactName",
+                  "contactEmail",
+                  "dpoName",
+                  "dpoEmail"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "controllerActivities": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "description": "A UUID. Records are keyed by UUIDv7.",
+                  "examples": [
+                    "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                  ]
+                },
+                "code": {
+                  "type": "string",
+                  "minLength": 2,
+                  "maxLength": 20,
+                  "pattern": "^[A-Z]+-?\\d+$",
+                  "description": "A stable, system-assigned code shown next to the name: \"P3\".",
+                  "examples": [
+                    "P3",
+                    "RI-42"
+                  ]
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "examples": [
+                    "Mailcrest Inc."
+                  ]
+                },
+                "description": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2000
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "owner": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "examples": [
+                    "Mailcrest Inc."
+                  ]
+                },
+                "startedAt": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                      "description": "A date, \"YYYY-MM-DD\".",
+                      "examples": [
+                        "2026-03-16"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "reviewDueAt": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                      "description": "A date, \"YYYY-MM-DD\".",
+                      "examples": [
+                        "2026-03-16"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "subjectCategories": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Ref"
+                  }
+                },
+                "dataCategories": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "description": "A UUID. Records are keyed by UUIDv7.",
+                        "examples": [
+                          "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                        ]
+                      },
+                      "slug": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100,
+                        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                        "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\".",
+                        "examples": [
+                          "mailcrest",
+                          "standard-dpa-v3"
+                        ]
+                      },
+                      "code": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 20,
+                        "pattern": "^[A-Z]+-?\\d+$",
+                        "description": "A stable, system-assigned code shown next to the name: \"P3\".",
+                        "examples": [
+                          "P3",
+                          "RI-42"
+                        ]
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "examples": [
+                          "Mailcrest Inc."
+                        ]
+                      },
+                      "special": {
+                        "type": "string",
+                        "enum": [
+                          "none",
+                          "art9",
+                          "art10"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "special"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "securityMeasures": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Ref"
+                  }
+                },
+                "purposes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  }
+                },
+                "lawfulBases": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "6(1)(a)",
+                      "6(1)(b)",
+                      "6(1)(c)",
+                      "6(1)(d)",
+                      "6(1)(e)",
+                      "6(1)(f)"
+                    ]
+                  }
+                },
+                "specialConditions": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "9(2)(a)",
+                      "9(2)(b)",
+                      "9(2)(c)",
+                      "9(2)(d)",
+                      "9(2)(e)",
+                      "9(2)(f)",
+                      "9(2)(g)",
+                      "9(2)(h)",
+                      "9(2)(i)",
+                      "9(2)(j)",
+                      "art10"
+                    ]
+                  }
+                },
+                "recipients": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "party": {
+                        "$ref": "#/components/schemas/Ref"
+                      },
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "processor",
+                          "subprocessor",
+                          "recipient",
+                          "joint_controller"
+                        ]
+                      },
+                      "service": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "examples": [
+                          "Mailcrest Inc."
+                        ]
+                      },
+                      "processingCountries": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^[A-Z]{2}$",
+                          "description": "An ISO 3166-1 alpha-2 country code.",
+                          "examples": [
+                            "NL",
+                            "US",
+                            "DE"
+                          ]
+                        }
+                      },
+                      "transfers": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "destinationCountry": {
+                              "type": "string",
+                              "pattern": "^[A-Z]{2}$",
+                              "description": "An ISO 3166-1 alpha-2 country code.",
+                              "examples": [
+                                "NL",
+                                "US",
+                                "DE"
+                              ]
+                            },
+                            "mechanism": {
+                              "type": "string",
+                              "enum": [
+                                "adequacy",
+                                "dpf",
+                                "sccs",
+                                "bcr",
+                                "derogation_49"
+                              ]
+                            },
+                            "onwardVia": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 200,
+                                  "examples": [
+                                    "Mailcrest Inc."
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "destinationCountry",
+                            "mechanism",
+                            "onwardVia"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "dataCategories": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/Ref"
+                        }
+                      }
+                    },
+                    "required": [
+                      "party",
+                      "role",
+                      "service",
+                      "processingCountries",
+                      "transfers",
+                      "dataCategories"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "retentionRules": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "dataCategory": {
+                        "anyOf": [
+                          {
+                            "$ref": "#/components/schemas/Ref"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "retentionPeriod": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 20,
+                        "pattern": "^P(?!$)([0-9]+Y)?([0-9]+M)?([0-9]+W)?([0-9]+D)?$",
+                        "description": "An ISO 8601 duration in years, months, weeks or days: \"P90D\", \"P7Y\", \"P1Y6M\".",
+                        "examples": [
+                          "P90D",
+                          "P7Y"
+                        ]
+                      },
+                      "triggerEvent": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "examples": [
+                          "Mailcrest Inc."
+                        ]
+                      },
+                      "legalRef": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "examples": [
+                              "Mailcrest Inc."
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "dataCategory",
+                      "retentionPeriod",
+                      "triggerEvent",
+                      "legalRef"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "dpiaRequired": {
+                  "type": "boolean"
+                },
+                "dpiaRef": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "examples": [
+                        "Mailcrest Inc."
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "code",
+                "name",
+                "description",
+                "owner",
+                "startedAt",
+                "reviewDueAt",
+                "subjectCategories",
+                "dataCategories",
+                "securityMeasures",
+                "purposes",
+                "lawfulBases",
+                "specialConditions",
+                "recipients",
+                "retentionRules",
+                "dpiaRequired",
+                "dpiaRef"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "processorActivities": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "description": "A UUID. Records are keyed by UUIDv7.",
+                  "examples": [
+                    "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                  ]
+                },
+                "code": {
+                  "type": "string",
+                  "minLength": 2,
+                  "maxLength": 20,
+                  "pattern": "^[A-Z]+-?\\d+$",
+                  "description": "A stable, system-assigned code shown next to the name: \"P3\".",
+                  "examples": [
+                    "P3",
+                    "RI-42"
+                  ]
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "examples": [
+                    "Mailcrest Inc."
+                  ]
+                },
+                "description": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2000
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "owner": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "examples": [
+                    "Mailcrest Inc."
+                  ]
+                },
+                "startedAt": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                      "description": "A date, \"YYYY-MM-DD\".",
+                      "examples": [
+                        "2026-03-16"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "reviewDueAt": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                      "description": "A date, \"YYYY-MM-DD\".",
+                      "examples": [
+                        "2026-03-16"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "subjectCategories": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Ref"
+                  }
+                },
+                "dataCategories": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "description": "A UUID. Records are keyed by UUIDv7.",
+                        "examples": [
+                          "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                        ]
+                      },
+                      "slug": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100,
+                        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                        "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\".",
+                        "examples": [
+                          "mailcrest",
+                          "standard-dpa-v3"
+                        ]
+                      },
+                      "code": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 20,
+                        "pattern": "^[A-Z]+-?\\d+$",
+                        "description": "A stable, system-assigned code shown next to the name: \"P3\".",
+                        "examples": [
+                          "P3",
+                          "RI-42"
+                        ]
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "examples": [
+                          "Mailcrest Inc."
+                        ]
+                      },
+                      "special": {
+                        "type": "string",
+                        "enum": [
+                          "none",
+                          "art9",
+                          "art10"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "special"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "securityMeasures": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Ref"
+                  }
+                },
+                "offering": {
+                  "$ref": "#/components/schemas/Ref"
+                },
+                "clientCoverage": {
+                  "type": "string",
+                  "enum": [
+                    "all_enrolled",
+                    "opt_in"
+                  ]
+                },
+                "optionalModule": {
+                  "type": "boolean"
+                },
+                "controllers": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "client"
+                        },
+                        "client": {
+                          "$ref": "#/components/schemas/Ref"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "client"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "standard"
+                        },
+                        "terms": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                              "description": "A UUID. Records are keyed by UUIDv7.",
+                              "examples": [
+                                "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                              ]
+                            },
+                            "slug": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 100,
+                              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                              "description": "A human-readable identifier, unique within its table: \"mailcrest\", \"standard-dpa-v3\".",
+                              "examples": [
+                                "mailcrest",
+                                "standard-dpa-v3"
+                              ]
+                            },
+                            "code": {
+                              "type": "string",
+                              "minLength": 2,
+                              "maxLength": 20,
+                              "pattern": "^[A-Z]+-?\\d+$",
+                              "description": "A stable, system-assigned code shown next to the name: \"P3\".",
+                              "examples": [
+                                "P3",
+                                "RI-42"
+                              ]
+                            },
+                            "name": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 200,
+                              "examples": [
+                                "Mailcrest Inc."
+                              ]
+                            },
+                            "authorizationType": {
+                              "type": "string",
+                              "enum": [
+                                "general",
+                                "specific"
+                              ]
+                            },
+                            "noticeDays": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name",
+                            "authorizationType",
+                            "noticeDays"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "terms"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "covered"
+                        },
+                        "clients": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Ref"
+                          }
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "clients"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                "processingCategories": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "examples": [
+                      "Mailcrest Inc."
+                    ]
+                  }
+                },
+                "subprocessors": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "party": {
+                        "$ref": "#/components/schemas/Ref"
+                      },
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "processor",
+                          "subprocessor",
+                          "recipient",
+                          "joint_controller"
+                        ]
+                      },
+                      "service": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "examples": [
+                          "Mailcrest Inc."
+                        ]
+                      },
+                      "processingCountries": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^[A-Z]{2}$",
+                          "description": "An ISO 3166-1 alpha-2 country code.",
+                          "examples": [
+                            "NL",
+                            "US",
+                            "DE"
+                          ]
+                        }
+                      },
+                      "transfers": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "destinationCountry": {
+                              "type": "string",
+                              "pattern": "^[A-Z]{2}$",
+                              "description": "An ISO 3166-1 alpha-2 country code.",
+                              "examples": [
+                                "NL",
+                                "US",
+                                "DE"
+                              ]
+                            },
+                            "mechanism": {
+                              "type": "string",
+                              "enum": [
+                                "adequacy",
+                                "dpf",
+                                "sccs",
+                                "bcr",
+                                "derogation_49"
+                              ]
+                            },
+                            "onwardVia": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 200,
+                                  "examples": [
+                                    "Mailcrest Inc."
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "destinationCountry",
+                            "mechanism",
+                            "onwardVia"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "dataCategories": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/Ref"
+                        }
+                      }
+                    },
+                    "required": [
+                      "party",
+                      "role",
+                      "service",
+                      "processingCountries",
+                      "transfers",
+                      "dataCategories"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "dpiaSupportRef": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "examples": [
+                        "Mailcrest Inc."
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "code",
+                "name",
+                "description",
+                "owner",
+                "startedAt",
+                "reviewDueAt",
+                "subjectCategories",
+                "dataCategories",
+                "securityMeasures",
+                "offering",
+                "clientCoverage",
+                "optionalModule",
+                "controllers",
+                "processingCategories",
+                "subprocessors",
+                "dpiaSupportRef"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "subprocessors": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SubprocessorsResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "generatedAt",
+          "asOf",
+          "scope",
+          "organisation",
+          "controllerActivities",
+          "processorActivities",
+          "subprocessors"
+        ],
+        "additionalProperties": false
+      },
       "TokenResponse": {
         "type": "object",
         "properties": {
@@ -10929,6 +12041,120 @@
           }
         },
         "x-required-permission": "activity:approve"
+      }
+    },
+    "/v1/report": {
+      "get": {
+        "tags": [
+          "views"
+        ],
+        "summary": "The Art. 30 record",
+        "description": "The record of processing activities (§5.1): the organisation and its DPO, controller activities (Art. 30(1)) and processor activities (Art. 30(2)), active ones only. `offering` or `client` scopes it to what one audience is owed, implies the processor view, and closes the report with the same list `GET /subprocessors` gives. `format=markdown` renders it for the architecture document, with a stable anchor per activity built from its code (`#p3`).\n\nRequires the `view:report` permission.",
+        "parameters": [
+          {
+            "name": "view",
+            "in": "query",
+            "required": false,
+            "description": "controller, processor or all. Default all; processor when scoped.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "controller",
+                "processor",
+                "all"
+              ]
+            }
+          },
+          {
+            "name": "offering",
+            "in": "query",
+            "required": false,
+            "description": "An offering, by id or slug: its standard terms.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "client",
+            "in": "query",
+            "required": false,
+            "description": "A client, by id or slug: the record as it applies to them.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "asOf",
+            "in": "query",
+            "required": false,
+            "description": "Not supported yet: answered with 422 not_yet_supported.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "json (default) or markdown. csv is not supported yet.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "json",
+                "markdown",
+                "csv"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The record, as JSON or Markdown",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportResponse"
+                }
+              },
+              "text/markdown": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No token, or the token is not valid",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Valid token without the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request failed validation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "view:report"
       }
     },
     "/v1/subprocessors": {

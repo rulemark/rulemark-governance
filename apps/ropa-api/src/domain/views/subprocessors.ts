@@ -32,30 +32,15 @@ export interface StandardSubprocessors {
   }[];
 }
 
-const inForce = (row: { startedAt: string | null; endedAt: string | null }, day: string) =>
+export const inForce = (row: { startedAt: string | null; endedAt: string | null }, day: string) =>
   (row.startedAt === null || row.startedAt <= day) && (row.endedAt === null || row.endedAt > day);
 
 /** P1 before P2 before P10: codes sort by prefix, then by number. */
-function byCode(a: ActivitySnapshot, b: ActivitySnapshot): number {
+export function byCode(a: ActivitySnapshot, b: ActivitySnapshot): number {
   const parse = (code: string) => /^([A-Z]+)-?(\d+)$/.exec(code) ?? [code, code, '0'];
   const [, prefixA, numberA] = parse(a.code);
   const [, prefixB, numberB] = parse(b.code);
   return prefixA!.localeCompare(prefixB!) || Number(numberA) - Number(numberB);
-}
-
-/** Live processor activities of the offering, in code order. */
-function liveActivities(
-  activities: readonly ActivitySnapshot[],
-  offeringId: string,
-): ActivitySnapshot[] {
-  return activities
-    .filter(
-      (activity) =>
-        activity.role === 'processor' &&
-        activity.status === 'active' &&
-        activity.offeringId === offeringId,
-    )
-    .sort(byCode);
 }
 
 /**
@@ -83,20 +68,6 @@ export function coversClient(activity: ActivitySnapshot, clientId: string, day: 
   return activity.clientCoverage === 'opt_in'
     ? exceptions.some((entry) => entry.mode === 'include')
     : !exceptions.some((entry) => entry.mode === 'exclude');
-}
-
-/** Subprocessor engagements in force on the day that pass `accept`. */
-function subprocessorsOf(
-  activity: ActivitySnapshot,
-  day: string,
-  accept: (engagement: Engagement) => boolean,
-): { activity: ActivitySnapshot; engagement: Engagement }[] {
-  return activity.engagements
-    .filter(
-      (engagement) =>
-        engagement.role === 'subprocessor' && inForce(engagement, day) && accept(engagement),
-    )
-    .map((engagement) => ({ activity, engagement }));
 }
 
 /** One entry per party, in the order parties first appear. */
@@ -143,30 +114,91 @@ function groupByParty(
 }
 
 /**
- * The standard terms of an offering (DM §7): its `all_enrolled` activities,
- * with per-client opt-outs ignored because they are exceptions to the
- * standard, and engagements scoped to `include` clients left out because
- * they exist only for those clients. Opt-in modules are listed on their own.
+ * Who a processor view is for: an offering's standard terms, one client, or
+ * the whole record (every client).
+ */
+export type ProcessorScope =
+  | { readonly kind: 'standard'; readonly offeringId: string }
+  | { readonly kind: 'client'; readonly offeringId: string; readonly clientId: string }
+  | { readonly kind: 'all' };
+
+export interface ScopedActivity {
+  readonly activity: ActivitySnapshot;
+  /** The engagements that apply in this scope, in force on the day. */
+  readonly engagements: Engagement[];
+  /** An opt-in module: performed only for the clients who enable it. */
+  readonly optionalModule: boolean;
+}
+
+/**
+ * The live processor activities a scope sees, each with the engagements that
+ * apply in it (DM §3.8, §7). The subprocessor lists and the report both read
+ * from here, so they cannot disagree about who is used for whom.
+ *
+ * - **standard:** per-client opt-outs are ignored, because they are
+ *   exceptions to the standard terms, and engagements scoped to `include`
+ *   particular clients are left out, because they exist only for them.
+ * - **client:** the activities that cover the client (the caller has
+ *   established the client's agreement), with their effective engagements.
+ * - **all:** every live processor activity, with every engagement in force.
+ */
+export function scopeProcessorActivities(
+  activities: readonly ActivitySnapshot[],
+  scope: ProcessorScope,
+  day: string,
+): ScopedActivity[] {
+  const live = activities
+    .filter(
+      (activity) =>
+        activity.role === 'processor' &&
+        activity.status === 'active' &&
+        (scope.kind === 'all' || activity.offeringId === scope.offeringId),
+    )
+    .sort(byCode);
+
+  const accept =
+    scope.kind === 'standard'
+      ? (engagement: Engagement) => engagement.clientScope[0]?.mode !== 'include'
+      : scope.kind === 'client'
+        ? (engagement: Engagement) => isEffectiveFor(engagement, scope.clientId)
+        : () => true;
+
+  return live
+    .filter((activity) => scope.kind !== 'client' || coversClient(activity, scope.clientId, day))
+    .map((activity) => ({
+      activity,
+      engagements: activity.engagements.filter(
+        (engagement) => inForce(engagement, day) && accept(engagement),
+      ),
+      optionalModule: activity.clientCoverage === 'opt_in',
+    }));
+}
+
+/** The subprocessor engagements of scoped activities, as pairs to group. */
+function subprocessorPairs(scoped: readonly ScopedActivity[]) {
+  return scoped.flatMap(({ activity, engagements }) =>
+    engagements
+      .filter((engagement) => engagement.role === 'subprocessor')
+      .map((engagement) => ({ activity, engagement })),
+  );
+}
+
+/**
+ * The standard terms of an offering (DM §7), with opt-in modules on their own.
  */
 export function standardSubprocessors(
   activities: readonly ActivitySnapshot[],
   offeringId: string,
   day: string,
 ): StandardSubprocessors {
-  const live = liveActivities(activities, offeringId);
-  const isStandard = (engagement: Engagement) => engagement.clientScope[0]?.mode !== 'include';
-
+  const scoped = scopeProcessorActivities(activities, { kind: 'standard', offeringId }, day);
   return {
-    subprocessors: groupByParty(
-      live
-        .filter((activity) => activity.clientCoverage === 'all_enrolled')
-        .flatMap((activity) => subprocessorsOf(activity, day, isStandard)),
-    ),
-    optionalModules: live
-      .filter((activity) => activity.clientCoverage === 'opt_in')
-      .map((activity) => ({
-        activityId: activity.id,
-        subprocessors: groupByParty(subprocessorsOf(activity, day, isStandard)),
+    subprocessors: groupByParty(subprocessorPairs(scoped.filter((entry) => !entry.optionalModule))),
+    optionalModules: scoped
+      .filter((entry) => entry.optionalModule)
+      .map((entry) => ({
+        activityId: entry.activity.id,
+        subprocessors: groupByParty(subprocessorPairs([entry])),
       })),
   };
 }
@@ -183,10 +215,8 @@ export function clientSubprocessors(
   day: string,
 ): SubprocessorGroup[] {
   return groupByParty(
-    liveActivities(activities, offeringId)
-      .filter((activity) => coversClient(activity, clientId, day))
-      .flatMap((activity) =>
-        subprocessorsOf(activity, day, (engagement) => isEffectiveFor(engagement, clientId)),
-      ),
+    subprocessorPairs(
+      scopeProcessorActivities(activities, { kind: 'client', offeringId, clientId }, day),
+    ),
   );
 }

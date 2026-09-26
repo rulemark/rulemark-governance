@@ -18,6 +18,7 @@ import {
   PartyInput,
   ProblemDetails,
   Ref,
+  ReportResponse,
   RetireInput,
   SecurityMeasure,
   SecurityMeasureInput,
@@ -96,6 +97,7 @@ const OUTPUT_SCHEMAS: readonly [string, z.ZodType][] = [
   ['SecurityMeasure', SecurityMeasure],
   ['Activity', Activity],
   ['SubprocessorsResponse', SubprocessorsResponse],
+  ['ReportResponse', ReportResponse],
   ['TokenResponse', TokenResponse],
   ['MeResponse', MeResponse],
   ['ProblemDetails', ProblemDetails],
@@ -486,6 +488,53 @@ export function buildOpenApiDocument(): JsonObject {
   for (const resource of RESOURCES) {
     Object.assign(paths, pathsForResource(resource as ResourceDefinition<never, never, never>));
   }
+
+  const queryParam = (
+    name: string,
+    description: string,
+    schema: JsonObject = { type: 'string' },
+  ) => ({
+    name,
+    in: 'query',
+    required: false,
+    description,
+    schema,
+  });
+
+  paths[`/${API_VERSION}/report`] = {
+    get: guarded(
+      {
+        tags: ['views'],
+        summary: 'The Art. 30 record',
+        description:
+          'The record of processing activities (§5.1): the organisation and its DPO, controller activities (Art. 30(1)) and processor activities (Art. 30(2)), active ones only. `offering` or `client` scopes it to what one audience is owed, implies the processor view, and closes the report with the same list `GET /subprocessors` gives. `format=markdown` renders it for the architecture document, with a stable anchor per activity built from its code (`#p3`).',
+        parameters: [
+          queryParam('view', 'controller, processor or all. Default all; processor when scoped.', {
+            type: 'string',
+            enum: ['controller', 'processor', 'all'],
+          }),
+          queryParam('offering', 'An offering, by id or slug: its standard terms.'),
+          queryParam('client', 'A client, by id or slug: the record as it applies to them.'),
+          queryParam('asOf', 'Not supported yet: answered with 422 not_yet_supported.'),
+          queryParam('format', 'json (default) or markdown. csv is not supported yet.', {
+            type: 'string',
+            enum: ['json', 'markdown', 'csv'],
+          }),
+        ],
+        responses: {
+          '200': {
+            description: 'The record, as JSON or Markdown',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/ReportResponse' } },
+              'text/markdown': { schema: { type: 'string' } },
+            },
+          },
+          ...COMMON_ERRORS,
+        },
+      },
+      'view:report',
+    ),
+  };
 
   paths[`/${API_VERSION}/subprocessors`] = {
     get: guarded(

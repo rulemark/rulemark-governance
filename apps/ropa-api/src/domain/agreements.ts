@@ -73,3 +73,25 @@ export async function clientsWithActiveAgreement(
     );
   return new Set(rows.map((row) => row.partyId));
 }
+
+/** Every client with an agreement in force on `asOf`, for each of these offerings. */
+export async function clientsByOffering(
+  tx: Transaction,
+  offeringIds: readonly string[],
+  asOf: Date,
+): Promise<Map<string, string[]>> {
+  const byOffering = new Map<string, string[]>();
+  if (offeringIds.length === 0) return byOffering;
+  const rows = await tx
+    .select({ partyId: agreement.partyId, offeringId: agreement.offeringId })
+    .from(agreement)
+    .innerJoin(agreementTerms, eq(agreementTerms.id, agreement.termsId))
+    .where(and(inArray(agreement.offeringId, [...new Set(offeringIds)]), inForce(isoDate(asOf))));
+  for (const row of rows) {
+    if (row.offeringId === null) continue;
+    const clients = byOffering.get(row.offeringId) ?? [];
+    if (!clients.includes(row.partyId)) clients.push(row.partyId);
+    byOffering.set(row.offeringId, clients);
+  }
+  return byOffering;
+}
