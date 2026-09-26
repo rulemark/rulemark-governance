@@ -196,7 +196,9 @@ Two deliberate splits:
 |---|---|
 | `GET /{resource}/{ref}/revisions` | Revision list for one record: version, validFrom, actor, changeNote |
 | `GET /{resource}/{ref}/revisions/{version}` | The full snapshot for that version |
-| `GET /changes?from=&to=&entityType=` | All revisions in a time range across the record: the "what changed since March" list (Ch8) |
+| `GET /changes?from=&to=&entityType=` | All revisions in a time range across the record, and review items opened and closed: the "what changed since March" list (Ch8) |
+
+**As built (step 4):** `/changes` lists revisions and review-item events as one list, **oldest first**, ordered by when each took effect (`valid_from` for revisions, which the seed backdates; `occurredAt` for review items), ties broken by id. Each change is `{ id, entityType, entity, version, changeType, occurredAt, actor, changeNote }`: `entity` is a Ref named from the change's own snapshot, so a renamed party reads under the name it had then; review items have `entityType: review_item`, `version: null`, `changeType` `opened`, `resolved` or `dismissed`, the resolution note as `changeNote`, and a name made from the reason and target ("Region violation on P1"). `from` and `to` take a date or a timestamp: a date `from` starts at that day's midnight UTC, a date `to` runs to the end of that day, a timestamp is included at either end; `to` before `from` is `422 from_after_to`. `entityType` takes every revision entity type and `review_item`. Paged like every list (§1.3), with a cursor that carries the time to the microsecond as well as the id. Needs `history:read`.
 
 **Workflow**
 
@@ -598,7 +600,7 @@ RoPA **pushes** events to its consumers (Q3). Delivery is HTTP `POST` to configu
 | `subprocessors.changed` | A save changes the derived subprocessor list of an offering or a client | `offering` or `client` (Ref), `added[]`, `removed[]` (party Refs) | Monitor (#5): outbound notices (Ch5) |
 | `review_item.changed` | A review item is opened, resolved or dismissed | `changeType` (`opened` \| `resolved` \| `dismissed`), `actor`, `reviewItem` (the whole item after the change, as `GET /review-items/{ref}` returns it) | Audit log (#1) |
 
-Review items have no revisions, so `review_item.changed` is their history, and it carries the whole item rather than pointing at a snapshot. Its outbox row has no `revision_id`. `occurredAt` is when the item was opened or closed. Built in step 3; delivered with the rest in step 4.
+Review items have no revisions, so `review_item.changed` carries the whole item rather than pointing at a snapshot. Its outbox row has no `revision_id`. `occurredAt` is when the item was opened or closed. Built in step 3; delivered with the rest in step 4. Their history is kept apart from delivery, in `review_item_event` (step 4), which `/changes` reads.
 
 **Envelope.** Every event has the same wrapper:
 

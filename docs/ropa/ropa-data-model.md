@@ -328,7 +328,7 @@ Shared vocabularies. DSAR and Monitor reference them by `slug`.
 | closed_by | text | if `status` is `resolved` or `dismissed` | Who closed it, from the token |
 | closed_at | timestamptz | if `status` is `resolved` or `dismissed` | When it was closed |
 
-Review items have no revisions: their history is the `review_item.changed` event (§3.13, API §6), which carries the whole item after each change. `opened_by`, `closed_by` and `closed_at` were added in build step 3 so the item itself answers "who dismissed RI-7, and when" without the audit log. There is no `opened_at`: `created_at` is when the item was opened.
+Review items have no revisions. Their history is `review_item_event` (build step 4): one append-only row per open, resolve or dismiss, holding the whole item after the change, written in the same transaction as the change and its `review_item.changed` event (§3.13, API §6). `GET /changes` reads it; the outbox is only a delivery queue. `opened_by`, `closed_by` and `closed_at` were added in build step 3 so the item itself answers "who dismissed RI-7, and when" without the audit log. There is no `opened_at`: `created_at` is when the item was opened.
 
 ### 3.12 `revision`: history for `asOf` reports
 
@@ -361,7 +361,7 @@ Events are written here **in the same transaction** as the revision they describ
 | last_error | text | no | Error from the most recent failed attempt |
 | delivered_at | timestamptz | no | Set on a `2xx` response. Empty = still pending |
 
-- Delivered rows can be deleted after a retention period (e.g. 30 days). The revision table remains the permanent history, and `/changes` can rebuild anything.
+- Delivered rows can be deleted after a retention period (e.g. 30 days). `revision` and `review_item_event` remain the permanent history, and `/changes` can rebuild anything.
 - The dispatcher picks pending rows with `FOR UPDATE SKIP LOCKED`, so more than one dispatcher can run safely.
 - Events for one record are delivered in version order: the dispatcher doesn't send a record's later event while an earlier one is still pending.
 

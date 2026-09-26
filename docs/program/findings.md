@@ -181,4 +181,43 @@
     date is the end of the day, UTC.
   - Test slip worth remembering: "subscribers" contains "scribe". Match
     `scribe-ai`, not `scribe`.
+- **Phase 3: `/changes` and review items' own history (2026-09-26).**
+  - **One list, one shape.** Revisions and review-item events share
+    `{ id, entityType, entity, version, changeType, occurredAt, actor,
+    changeNote }`; a review item has `version: null`, `opened`/`resolved`/
+    `dismissed`, and its resolution note as the note. `occurredAt` rather
+    than `validFrom`: it's the envelope's word for both kinds. The schema is
+    a union, so each kind keeps its own change types.
+  - **Ordered by when a change took effect, not when it was written.** The
+    seed backdates revisions, so id order is not time order, and the cursor
+    carries `(time, id)`. The story hid this: it's replayed in time order,
+    so ids ascend with `valid_from` and ordering by id passed every test.
+    A backdated save recorded last now proves it.
+  - **The cursor keeps microseconds.** Postgres stores them; a JavaScript
+    `Date` rounds to the millisecond, and a page boundary between two
+    changes in one millisecond would repeat one. The app itself writes whole
+    milliseconds today, so only rows written in SQL show it; the test does
+    that.
+  - **Names from the change's own snapshot**, through each aggregate's
+    `toRef`, so the naming rules stay in one place. A review item has no
+    name: it's named by reason and target ("Region violation on P1").
+  - **`review_item_event` has no foreign key**, like `revision.entity_id`,
+    and reuses `revision_append_only`, rewritten to name its table
+    (`TG_TABLE_NAME`), so revision's message is unchanged. History is
+    written whatever the destinations: tests that route events nowhere
+    still get it.
+  - **The backfill is tested as the migration runs it:** the test reads the
+    `INSERT` out of `0009` and runs it against outbox rows, twice. One row
+    per `event_id` from any destination, not only `audit-log` rows as the
+    plan said: every destination's row carries the same payload, and a
+    review item queued only for another consumer is still history.
+  - **Accepted:** migrations run before the new code goes live (DB §8.2).
+    A review item opened or closed in the minute between the backfill and
+    the switch-over would be in the outbox but not the history. Nobody
+    touches review items during a demo deploy; noted rather than handled.
+  - **An empty custom migration is a trap.** `drizzle-kit generate --custom`
+    writes an empty file; the next test run applied it, recorded it as
+    done, and never ran the SQL written into it afterwards. Dropping the
+    test database fixed it; DB §8.1 now says so.
+  - Raw SQL through Drizzle returns timestamps as strings, not `Date`s.
 

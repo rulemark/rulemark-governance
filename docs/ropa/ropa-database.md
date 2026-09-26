@@ -337,6 +337,21 @@ CREATE TABLE revision (
 CREATE INDEX revision_as_of ON revision (entity_type, entity_id, valid_from DESC);   -- asOf
 CREATE INDEX revision_changes ON revision (valid_from);                             -- /changes
 
+-- Review items' history (step 4): one row per open, resolve or dismiss, in the
+-- same transaction as the change and its outbox rows. The outbox is only a
+-- delivery queue; this is what /changes reads.
+CREATE TABLE review_item_event (
+  id             uuid PRIMARY KEY DEFAULT uuidv7(),
+  event_id       uuid NOT NULL CONSTRAINT review_item_event_once UNIQUE,  -- shared with the outbox rows
+  review_item_id uuid NOT NULL,       -- no foreign key, like revision.entity_id
+  change_type    text NOT NULL CHECK (change_type IN ('opened','resolved','dismissed')),
+  occurred_at    timestamptz NOT NULL,
+  actor          text NOT NULL,
+  review_item    jsonb NOT NULL       -- the whole item after the change
+);
+CREATE INDEX review_item_event_changes ON review_item_event (occurred_at);             -- /changes
+CREATE INDEX review_item_event_item ON review_item_event (review_item_id, occurred_at);
+
 CREATE TABLE event_outbox (
   id              uuid PRIMARY KEY DEFAULT uuidv7(),
   event_id        uuid NOT NULL,
@@ -367,7 +382,7 @@ CREATE TABLE code_counter (
 |---|---|---|
 | `set_updated_at` | `BEFORE UPDATE` on every table with `updated_at` | `NEW.updated_at = now()` |
 | `forbid_immutable_change` | `BEFORE UPDATE` on `processing_activity` (`code`, `role`) and `review_item` (`code`) | Raises an error if the column changes |
-| `revision_append_only` | `BEFORE UPDATE OR DELETE` on `revision` | Raises an error: history can only be appended |
+| `revision_append_only` | `BEFORE UPDATE OR DELETE` on `revision` and `review_item_event` | Raises an error naming the table: history can only be appended |
 
 Protecting history in the database means even an application bug, or someone with a SQL console using the app's credentials, can't rewrite what the record said.
 
@@ -499,7 +514,7 @@ FOR UPDATE OF o SKIP LOCKED;
 | Change | How |
 |---|---|
 | Tables, columns, indexes, checks | Edit the Drizzle schema → `drizzle-kit generate` → review the SQL → commit |
-| Triggers, functions, reference rows (`code_counter`) | `drizzle-kit generate --custom --name=<name>` → write the SQL by hand → commit |
+| Triggers, functions, reference rows (`code_counter`), backfills | `drizzle-kit generate --custom --name=<name>` → write the SQL by hand → commit. Write it before any test runs: a test run applies the empty file and never runs it again (drop `<database>_test` to recover) |
 
 **Rules**
 - **Forward-only.** No down migrations. A mistake is fixed by a new migration, which is also how production actually recovers.

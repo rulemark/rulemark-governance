@@ -11,7 +11,7 @@ Build step 4 from `docs/ropa/ropa-api.md` §8. **Enough for Ch8, the audit log,
 and a finding reaching a person on its own.**
 
 ## Current Phase
-Phase 3 (`GET /changes`), not started. Phases 1–2 complete
+Phase 4 (`subprocessors.changed`), not started. Phases 1–3 complete
 
 ## Definition of done for step 4
 - `GET /report?view=all&asOf=2026-03-01` on the seeded record answers Chapter 8:
@@ -67,12 +67,13 @@ Reference: API §5, §5.1, §5.2, §5.3, §5.4
 
 ### Phase 3: `GET /changes`
 Reference: API §2 (history), §6 (reconciliation); step 3 open question 1
-- [ ] `from`, `to`, `entityType`; every revision in the range across the record, with `actor`, `changeNote`, `changeType`, `version`, `validFrom`
-- [ ] `review_item_event`: one row per open, resolve or dismiss, written in the same transaction as the change and the outbox row; append-only under the same trigger as `revision`; backfilled from the outbox's `audit-log` rows by the migration
-- [ ] Review-item events read from `review_item_event`, ordered by `occurredAt` (they have no revision)
-- [ ] Paged like every list (§1.3)
+- [x] `from`, `to`, `entityType`; every revision in the range across the record, with `actor`, `changeNote`, `changeType`, `version`, `validFrom`
+- [x] `review_item_event`: one row per open, resolve or dismiss, written in the same transaction as the change and the outbox row; append-only under the same trigger as `revision`; backfilled from the outbox's `audit-log` rows by the migration
+- [x] Review-item events read from `review_item_event`, ordered by `occurredAt` (they have no revision)
+- [x] Paged like every list (§1.3)
+- **Built:** one list, oldest first, by when each change took effect, ties on id; each change `{ id, entityType, entity, version, changeType, occurredAt, actor, changeNote }`, named from its own snapshot; review items with `version: null` and the resolution note; `from`/`to` dates as whole UTC days; a cursor to the microsecond. `revision_append_only` now names its table and guards both history tables. Migrations `0008` (generated) and `0009` (trigger and backfill)
 - **Done when:** "what changed since March" (Ch8) lists the story's changes in order, review items included
-- **Status:** pending
+- **Status:** complete
 
 ### Phase 4: `subprocessors.changed`
 Reference: API §6; DB §6.1 step 5; step 2's decision in API §8
