@@ -53,29 +53,61 @@ Hireloop demo record.
      — each activity carries an anchor built from its code, so a link to `#p3`
      survives any rename
 
-4. **Try to write something.** `POST /v1/parties` without a token answers `401`
+4. **Ask the questions the record exists for.** Each view answers one of the
+   services built around the record:
+
+   - [`/v1/parties/mailcrest/impact`](https://ropa-api.onrender.com/v1/parties/mailcrest/impact)
+     — the Monitor's question when Mailcrest adds a subcontractor (Ch6): every
+     engagement that depends on Mailcrest, P1 twice, and for each the clients
+     it reaches, grouped by the terms they signed. Aurelia needs to approve,
+     not just be told, and Mailcrest's 30 days' notice is shorter than the 60
+     she is owed (`noticeConflict`)
+   - [`/v1/data-map?subjectCategory=candidates&client=northwind`](https://ropa-api.onrender.com/v1/data-map?subjectCategory=candidates&client=northwind)
+     — the DSAR tracker's question when Lena, who applied to Northwind, asks to
+     be erased (Ch7): Hireloop `forward`s P1 and P3 to Northwind, and `act`s on
+     C4, its own error tracking, with its own retention rules
+   - [`/v1/data-map?subjectCategory=employees`](https://ropa-api.onrender.com/v1/data-map?subjectCategory=employees)
+     — Kees, a former employee: only C1, in Peoplehub, where sick-leave records
+     go after two years and payroll stays for seven (Dutch tax law)
+   - [`/v1/coverage`](https://ropa-api.onrender.com/v1/coverage) — the
+     Snapshot's question: where do the record and the architecture disagree?
+     Exactly one finding: Helpdesk Partners in India can reach Mailcrest's EU
+     region, which breaks Aurelia's EEA-only clause. C1 has no Render system,
+     and that is correctly not a finding
+   - [`/v1/review-items`](https://ropa-api.onrender.com/v1/review-items) — the
+     findings carried to a person, until resolved or dismissed
+
+5. **Try to write something.** `POST /v1/parties` without a token answers `401`
    — not `403`, because we do not know who you are. Authorization runs before
    validation, so you cannot learn whether your body was well-formed either.
 
-5. **Get a token.** `POST /v1/tokens` with a known subject and the mint secret,
+6. **Get a token.** `POST /v1/tokens` with a known subject and the mint secret,
    then **Authorize**. `GET /v1/me` now lists the permissions your roles add up
    to. A viewer attempting a write gets `403` naming the exact permission it
    needed.
 
-6. **Create a party**, leaving out `slug` — it is derived from the name. Then
+7. **Create a party**, leaving out `slug` — it is derived from the name. Then
    read `/v1/parties/{slug}/revisions`: the change is recorded against the
    subject in your token, not against anything the request could assert. Send
    `X-Actor` and watch it be ignored.
 
-7. **Edit it.** A `PUT` without `If-Match` answers `428`; with a stale version,
+8. **Edit it.** A `PUT` without `If-Match` answers `428`; with a stale version,
    `412`. The `ETag` on every response is the version to send back.
 
-8. **Draft and approve an activity.** An editor can save an incomplete draft,
+9. **Draft and approve an activity.** An editor can save an incomplete draft,
    but cannot activate it: `POST /v1/activities/{ref}/activate` needs the
    `activity:approve` permission, and `If-Match` naming the version the approver
    reviewed. Activating a draft that is missing what its role requires answers
    `422`, naming each missing field. An approver holding an older version gets
    `412`.
+
+10. **Carry a finding to a person.** Open a review item from the coverage
+    finding: `POST /v1/review-items` with its `targetType`, `target` and
+    `type` as the `reason`, and its `key` in `details`. It gets an `RI-n` code
+    and records who opened it from your token. An editor closes it with
+    `POST /v1/review-items/{code}/resolve` and a `resolutionNote`; a second
+    close answers `409`, because only an open item can be closed. Review items
+    are not versioned, so there is no `If-Match` here.
 
 > Demo project. All data is synthetic; no real personal data is used, and the
 > mint secret is not published — the write steps need one.

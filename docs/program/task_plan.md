@@ -12,7 +12,7 @@ Build step 3 from `docs/ropa/ropa-api.md` §8. **Enough for Ch5–Ch7 and the
 Monitor and DSAR integrations.**
 
 ## Current Phase
-Phase 5 (not started)
+All phases complete: build step 3 is done, pending closing and archiving the plan
 
 ## Definition of done for step 3
 - Review items can be opened, listed, read, resolved and dismissed through the
@@ -94,9 +94,11 @@ Reference: API §5.5; DM §5, §7
 - **Status:** complete
 
 ### Phase 5: Deploy and verify
-- [ ] Push code commits on their own, docs separately (the build filter judges a push by its newest commit)
-- [ ] The three views and review items answer on the live, seeded service
-- [ ] README tour: the Monitor's, the DSAR tracker's and the Snapshot's questions
+- [x] Push code commits on their own, docs separately (the build filter judges a push by its newest commit)
+- [x] The three views and review items answer on the live, seeded service
+- [x] README tour: the Monitor's, the DSAR tracker's and the Snapshot's questions
+- **Verified live (2026-09-26):** Mailcrest's impact, Lena's and Kees's data maps and coverage (exactly Aurelia's region violation) answered on `ropa-api.onrender.com` as the tests expect; `/review-items` answers, empty; `?asOf=` on coverage is `422`
+- **Status:** complete
 
 ## Open questions
 1. ~~**Review items and the audit log.**~~ **Resolved (2026-09-26):** an event type of their own, `review_item.changed`, not `record.changed` and not revisions. See "Decisions carried forward" and `findings.md`. *Phase 1.*

@@ -477,7 +477,7 @@ Example: `GET /v1/parties/mailcrest/impact` when Mailcrest announces Helpdesk Pa
       "subjectCategories": ["…client-users"], "dataCategories": ["…identity"],
       "specialCategories": false, "processingCountries": ["US"], "clientGroups": [] },
     { "activity": { "id": "…", "code": "C3", "name": "Hireloop sales & marketing" },
-      "engagement": { "id": "…", "serviceDescription": "Newsletter and demo requests" },
+      "engagement": { "id": "…", "serviceDescription": "Newsletter and demo emails" },
       "activityRole": "controller", "engagementRole": "processor",
       "subjectCategories": ["…leads"], "dataCategories": ["…identity"],
       "specialCategories": false, "processingCountries": ["US"], "clientGroups": [] },

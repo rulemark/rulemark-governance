@@ -66,6 +66,14 @@
   - The seeded record yields exactly Aurelia's region violation, and the
     Snapshot can open a review item from it carrying its `key`
   - API §5.5, DM §3.11, §7, DB §4.5 updated; `openapi.json` regenerated
+- Phase 4 committed (`ecad580`, docs `3817abc`)
+- Phase 5 (deploy and verify):
+  - Pushed through `ecad580` alone, so the push ended on code; CI passed and
+    the deploy (migration `0007` included) was live about a minute later
+  - Every step 3 view checked on the live seeded service; all as expected
+  - The §5.3 example's C3 service description corrected from the live answer
+  - README tour: step 4 asks the Monitor's, the DSAR tracker's and the
+    Snapshot's questions; step 10 carries a finding to a review item
 
 ## Test Results
 | Test | Command | Expected | Actual | Status |
@@ -76,6 +84,7 @@
 | Phase 2 | `npm run check` | all pass | 815 pass (585 API, 225 package, 5 dist) | ✅ |
 | Phase 3 | `npm run check` | all pass | 845 pass (611 API, 229 package, 5 dist) | ✅ |
 | Phase 4 | `npm run check` | all pass | 891 pass (644 API, 242 package, 5 dist) | ✅ |
+| Phase 5 | live `GET` of impact, data map ×2, coverage, review items | as the tests expect | as expected | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -85,7 +94,7 @@
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Build step 3, Phase 5 (deploy and verify), not started; Phases 2–4 committed, not pushed |
+| Where am I? | Build step 3 complete and deployed; the plan is ready to close and archive |
 | Where am I going? | Review items, then `/impact`, `/data-map`, `/coverage`, then deploy |
 | What's the goal? | Answer the questions the record exists for: the Monitor's, the DSAR tracker's and the Snapshot's (Ch5–Ch7) |
 | What have I learned? | See findings.md, and `plan-archive/3/findings.md` for step 2 |
