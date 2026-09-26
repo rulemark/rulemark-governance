@@ -28,8 +28,10 @@ Phase 6
 
 ## Scope note
 `asOf`, `/changes` and the outbox **dispatcher** stay in step 4, so the views
-here read current state only. The rows the dispatcher will deliver are already
-being written. `/parties/{ref}/impact`, `/data-map`, `/coverage` and review
+here read current state only. The `record.changed` rows the dispatcher will
+deliver are already being written; **`subprocessors.changed` rows** (DB §6.1
+step 5) are folded into step 4 too, decided 2026-09-26, because they belong
+with the dispatcher that delivers them. `/parties/{ref}/impact`, `/data-map`, `/coverage` and review
 items are step 3; CSV and the engagement sub-resource are step 5.
 
 ## Phases
@@ -116,7 +118,7 @@ Reference: `ropa-database.md` §9; `ropa-story.md`
 
 ## Open questions
 1. ~~Zod discriminated unions and the Input/Output split: `z.discriminatedUnion` on `role`, or one object with a `superRefine` that branches?~~ **Resolved 2026-09-26: a discriminated union**, with forbidden fields checked on the field itself. It gives `oneOf` *and* the better field errors; see findings.md. *Phase 1.*
-2. Markdown generation: hand-rolled template strings, or a builder? It has to be diffable and stable, because it feeds the architecture document. *Phase 6.*
+2. ~~Markdown generation: hand-rolled template strings, or a builder?~~ **Resolved 2026-09-26: template strings**, rendered by a pure function from the JSON report, so the two cannot disagree. Stability comes from ordering by code and escaping table cells, and a golden test fixes the output. *Phase 6.*
 3. ~~The children diff is the first place two writers can conflict *within* one aggregate. `If-Match` covers the root; is that enough?~~ **Resolved 2026-09-26: yes.** Every save locks the root row with its version check before touching a nested row, and nothing writes a nested row any other way, so a second writer on the same version always gets 412, even when editing a different engagement. Tested. *Phase 3.*
 4. ~~Do the views read through the domain layer over aggregates, or as SQL?~~ **Resolved 2026-09-26: over aggregates.** SQL only chooses which live processor activities of the offering to load; who counts is decided by pure functions over `ActivitySnapshot`s (`domain/views/subprocessors.ts`), which step 4 can feed from revisions. *Phase 5.*
 5. Test isolation for the dispatcher, still open from step 1: it manages its own transactions, so transaction-per-test will not do. *Step 4.*
@@ -137,6 +139,8 @@ Reference: `ropa-database.md` §9; `ropa-story.md`
 | Lifecycle actions check `If-Match` before judging content, so a stale approver hears 412, not 422 | Step 2, Phase 4 (API §1.8) |
 | `joint_controller` is refused as a validation problem whose field error has code `not_yet_supported`, not as its own problem type | Step 2, Phase 4 |
 | Views are pure functions over aggregates; SQL only selects what to load | Step 2, open question 4 |
+| `subprocessors.changed` events are built in step 4, with the dispatcher | Step 2, after Phase 5 |
+| The Markdown report is template strings over the JSON report | Step 2, open question 2 |
 | `/subprocessors?client=` uses the client's own terms; a client on several offerings is refused (422 `several_offerings`) until the response can name more than one | Step 2, Phase 5 |
 
 ## Errors encountered

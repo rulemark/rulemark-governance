@@ -227,12 +227,10 @@
     says" one.
   - `openapi.json` compared as JSON: one path, one schema and two tags
     (`activities`, `views`) added; nothing else changed.
-- **Not built, and not in the plan: `subprocessors.changed` events.** DB
-  §6.1 step 5 says a save that alters a derived subprocessor list writes a
-  `subprocessors.changed` outbox row, with the list before and after for the
-  affected offering and clients. The list exists now, so this is buildable,
-  but no phase lists it and the scope note leaves the dispatcher to step 4.
-  Decide where it belongs.
+- **`subprocessors.changed` events go to step 4** (decided 2026-09-26). DB
+  §6.1 step 5: a save that alters a derived subprocessor list writes an
+  outbox row with the list before and after, for the affected offering and
+  clients. `domain/views/subprocessors.ts` already computes both lists.
 
 ## Issues encountered
 | Issue | Resolution |
