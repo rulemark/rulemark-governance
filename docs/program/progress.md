@@ -44,6 +44,17 @@
   - `test/db/governance-views.test.ts` replays the story once for Phases 2–4;
     Mailcrest's impact matches §5.3 in substance
   - API §5.3 and DM §7 updated; `openapi.json` regenerated
+- Phase 2 committed (`9e93efc`, docs `1706218`), **not pushed**: held until
+  more phases land; push code-first when we do
+- Phase 3 (`GET /data-map`):
+  - Package: `DataMapQuery`, `DataMapResponse`; `RetentionRule` exported
+  - `domain/views/data-map.ts`, a pure `dataMap`; `api/views/data-map.ts`
+    loads and names; route in `views.ts`
+  - C1, C4 and subject categories added to `test/fixtures/story-snapshots.ts`
+  - Lena's and Kees's requests checked on the seeded story in
+    `governance-views.test.ts`
+  - API §5.4 example rewritten from the seed, with notes; `openapi.json`
+    regenerated
 
 ## Test Results
 | Test | Command | Expected | Actual | Status |
@@ -52,6 +63,7 @@
 | Phase 1 | `npm run check` | all pass | 777 pass (553 API, 219 package, 5 dist) | ✅ |
 | Phase 1 | `npm run db:generate` | no drift | "No schema changes" | ✅ |
 | Phase 2 | `npm run check` | all pass | 815 pass (585 API, 225 package, 5 dist) | ✅ |
+| Phase 3 | `npm run check` | all pass | 845 pass (611 API, 229 package, 5 dist) | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -61,7 +73,7 @@
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Build step 3, Phase 3 (`/data-map`), not started |
+| Where am I? | Build step 3, Phase 4 (`/coverage`), not started |
 | Where am I going? | Review items, then `/impact`, `/data-map`, `/coverage`, then deploy |
 | What's the goal? | Answer the questions the record exists for: the Monitor's, the DSAR tracker's and the Snapshot's (Ch5–Ch7) |
 | What have I learned? | See findings.md, and `plan-archive/3/findings.md` for step 2 |

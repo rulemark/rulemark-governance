@@ -131,6 +131,15 @@
     untested until it became `listsClients`, tested on its own; a check on
     the seed alone would have passed with the rule broken.
 
+- **Phase 3: the data map (2026-09-26).**
+  - Grouping vendors by party hides per-engagement scoping for a client whose
+    engagements are all with parties already listed (Northwind: Mailcrest US
+    and EU merge into one "Mailcrest"). Only the Aurelia case (Glitchlog
+    absent) catches a missing `isEffectiveFor`; keep that test.
+  - The §5.4 example predated the seed in more ways than Q6 found: Scribe AI
+    receives only `cv`, and P1 runs on four systems. It is now written from
+    the seed.
+
 ## Issues encountered
 | Issue | Resolution |
 |---|---|

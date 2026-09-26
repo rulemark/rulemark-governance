@@ -526,25 +526,34 @@ Example: `GET /v1/parties/mailcrest/impact` when Mailcrest announces Helpdesk Pa
 | `subjectCategory` | Required |
 | `client` | Optional. Scopes **processor** activities to that client's effective engagements (DM §3.8: coverage and client scopes). Controller activities that concern the category are always included |
 
-Example: `GET /v1/data-map?subjectCategory=candidates&client=northwind` (Lena's erasure request, Ch7):
+Example: `GET /v1/data-map?subjectCategory=candidates&client=northwind` (Lena's erasure request, Ch7), as the seeded record answers it:
 
 ```json
 {
+  "generatedAt": "2026-07-10T09:00:00Z",
+  "asOf": null,
   "subjectCategory": { "id": "…", "slug": "candidates", "name": "Candidates" },
   "client": { "id": "…", "slug": "northwind", "name": "Northwind Logistics B.V." },
   "entries": [
-    { "activity": { "code": "P1", "…": "…" }, "role": "processor", "action": "forward",
-      "systems": ["…hireloop-db", "…hireloop-app", "…hireloop-api"],
-      "vendors": [{ "party": "…mailcrest", "dataCategories": ["…identity"] }],
-      "retention": null },
-    { "activity": { "code": "P3", "…": "…" }, "role": "processor", "action": "forward",
-      "systems": ["…cv-parser"],
-      "vendors": [{ "party": "…scribe-ai", "dataCategories": ["…cv", "…identity"] }],
-      "retention": null },
-    { "activity": { "code": "C4", "…": "…" }, "role": "controller", "action": "act",
+    { "activity": { "id": "…", "code": "C4", "name": "Service reliability monitoring" },
+      "role": "controller", "action": "act",
       "systems": ["…hireloop-app", "…hireloop-api"],
-      "vendors": [{ "party": "…glitchlog", "dataCategories": ["…identity"] }],
-      "retention": [{ "dataCategory": null, "retentionPeriod": "P90D", "triggerEvent": "after event", "legalRef": null }] }
+      "vendors": [{ "party": "…render", "role": "processor", "dataCategories": ["…telemetry", "…identity"] },
+                  { "party": "…glitchlog", "role": "processor", "dataCategories": ["…telemetry", "…identity"] }],
+      "retention": [{ "id": "…", "dataCategory": null, "retentionPeriod": "P90D", "triggerEvent": "after collection", "legalRef": null }] },
+    { "activity": { "id": "…", "code": "P1", "name": "Candidate application management" },
+      "role": "processor", "action": "forward",
+      "systems": ["…hireloop-app", "…hireloop-api", "…hireloop-db", "…retention-sweep"],
+      "vendors": [{ "party": "…render", "role": "subprocessor", "dataCategories": ["…identity", "…cv", "…assessment"] },
+                  { "party": "…mailcrest", "role": "subprocessor", "dataCategories": ["…identity"] },
+                  { "party": "…glitchlog", "role": "subprocessor", "dataCategories": ["…identity"] }],
+      "retention": null },
+    { "activity": { "id": "…", "code": "P3", "name": "CV parsing" },
+      "role": "processor", "action": "forward",
+      "systems": ["…cv-parser"],
+      "vendors": [{ "party": "…render", "role": "subprocessor", "dataCategories": ["…cv", "…identity"] },
+                  { "party": "…scribe-ai", "role": "subprocessor", "dataCategories": ["…cv"] }],
+      "retention": null }
   ]
 }
 ```
@@ -552,6 +561,10 @@ Example: `GET /v1/data-map?subjectCategory=candidates&client=northwind` (Lena's 
 - `action: forward`: Hireloop is the processor. It passes the request to the client (the controller) and assists.
 - `action: act`: Hireloop is the controller and decides, using the retention rules (for example, whether a legal obligation overrides erasure).
 - `retention` is `null` for processor activities, because retention is the client's decision.
+- `vendors` lists every engagement used for the activity (for the client, when one is given), Render included, once per party and role, with the data categories **as recorded for the engagement**. That is an upper bound: an activity's subject and data categories are two unlinked sets, so the record can't narrow Glitchlog's `telemetry, identity` on C4 to what concerns candidates. For a DSAR that errs the right way: a search that finds nothing, rather than data left where nobody looked. Recipients are included, because erasure must be passed on to them too (Art. 19).
+- Activities are listed in code order. Only live activities and engagements in force count.
+- With `client`, a processor activity counts only if the client holds an agreement for its offering and the activity covers them (so P2, a module Northwind never enabled, is absent). A party with no agreement gets Hireloop's own (controller) activities only, not an error. Without `client`, every processor activity and engagement counts.
+- An unknown `subjectCategory` or `client` is `422 unknown_reference`; `?asOf=` answers `422 not_yet_supported` until step 4.
 
 ### 5.5 `GET /coverage`
 

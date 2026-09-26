@@ -12,7 +12,7 @@ Build step 3 from `docs/ropa/ropa-api.md` §8. **Enough for Ch5–Ch7 and the
 Monitor and DSAR integrations.**
 
 ## Current Phase
-Phase 3 (not started)
+Phase 4 (not started)
 
 ## Definition of done for step 3
 - Review items can be opened, listed, read, resolved and dismissed through the
@@ -69,12 +69,13 @@ Reference: API §5.3; DM §3.8, §7
 
 ### Phase 3: `GET /data-map`
 Reference: API §5.4; DM §7
-- [ ] `subjectCategory` required; `client` optional, scoping processor activities to that client's effective engagements
-- [ ] Per activity: `role`, `action` (`act` for controller, `forward` for processor), systems, vendors with their data categories, retention (controller only)
-- [ ] `vendors` lists **every** effective engagement's party, Render included, with the engagement's own data categories, not narrowed by subject category (C4's Glitchlog shows `telemetry, identity` for candidates)
-- [ ] Correct the API §5.4 example to what the seed produces, with a line that categories are what the vendor receives *for the activity* (DM §7's row is already reworded)
+- [x] `subjectCategory` required; `client` optional, scoping processor activities to that client's effective engagements
+- [x] Per activity: `role`, `action` (`act` for controller, `forward` for processor), systems, vendors with their data categories, retention (controller only)
+- [x] `vendors` lists **every** effective engagement's party, Render included, with the engagement's own data categories, not narrowed by subject category (C4's Glitchlog shows `telemetry, identity` for candidates)
+- [x] Correct the API §5.4 example to what the seed produces, with a line that categories are what the vendor receives *for the activity* (DM §7's row is already reworded)
+- **Decided while building (2026-09-26):** a party with no agreement gets the controller entries only, not an error (the controller side still answers); vendors are grouped once per party and role, merging categories; recipients are included (Art. 19); code order, live activities and engagements in force only
 - **Done when:** Lena's request (candidates, Northwind) and Kees's (employees) answer as Chapter 7 tells them
-- **Status:** pending
+- **Status:** complete
 
 ### Phase 4: `GET /coverage`
 Reference: API §5.5; DM §5, §7
