@@ -30,7 +30,79 @@
 
 ## Build findings
 <!-- Add as we go: surprises, library behaviour, decisions with rationale -->
--
+- **Review items get events, not revisions (open question 1, 2026-09-26).** A
+  revision is a snapshot for rebuilding state "as of" a date; nothing asks that
+  of a review item. What matters about it is its lifecycle (opened, then
+  resolved or dismissed), which is a sequence of events. Forcing it into
+  `record.changed` would leave `version` and `validFrom` empty and stretch
+  `changeType` over values that don't fit. So: `review_item.changed`, carrying
+  the full item, because with no revision behind it the event is the only
+  history the audit log gets.
+  - Ordering needs no work: the `WHERE status = 'open'` guard means an item has
+    at most two events, `opened` then one close, so `occurredAt` suffices.
+  - The Monitor opens items but acts on resolution through `PUT /activities`,
+    so it is not a destination. Adding it later is configuration.
+  - `/changes` reads `revision` and won't replay these. Outbox rows are kept
+    after delivery, so step 4 can use the outbox as their replay source
+    (noted in `ropa-api.md` §8).
+- **The EEA lives in the package; adequacy is not an exemption (open question 2,
+  2026-09-26).** Nothing expanded `'EEA'` yet, though `RegionCode`'s comment
+  says it does. The package owns that literal, so it owns the list, and other
+  consumers (the Monitor) can reuse it. Membership changes about once a decade,
+  so a released constant is proportionate; a table would be over-built.
+  - An adequacy decision (Art. 45) is a lawful basis for a third-country
+    transfer, not EEA membership, and Art. 30 still expects the transfer
+    recorded. The model already says so: `transfer.mechanism` includes
+    `adequacy`. So the code needs no adequacy list at all.
+  - `region_violation` follows the contract, not the law: Aurelia agreed on
+    the EEA, and adequacy doesn't widen that.
+  - Coverage reads current state only, so the list needs no dates, even once
+    step 4 gives the report `asOf`.
+- **Coverage severity is fixed per type (open question 3, 2026-09-26).** Coverage
+  never blocks, so severity only orders attention for the Snapshot and the job
+  that opens review items. Judging each finding (e.g. raising it for special
+  categories) would make severity hard to predict and to test, and the story
+  doesn't need it. `unmapped_system` stays `medium`, not `high`: Ch5's
+  `cv-parser` is serious, but most unmapped systems will be a cron job or a
+  cache, not a new vendor.
+- **Findings get a `key`; the cron job waits (open question 4, 2026-09-26).**
+  §5.5 leaves opening review items to "a scheduled job or the Snapshot", and
+  `review_item.source` already has both `schedule` and `snapshot`. They divide
+  naturally: the Snapshot knows systems (`unmapped_system`); only a schedule
+  notices time (`review_overdue`). Either needs to know whether a finding is
+  new, and nothing enforces that: "one per target" in DB §4.5 means one index
+  per target column, not uniqueness. `(reason, target)` isn't an identity
+  either, because one activity can have a `transfer_missing` per engagement or
+  country. So `/coverage` gives each finding a stable `key` now, while its
+  response shape is being built. The cron job (new resource, principal, token,
+  private-network route) is planned in `ropa-api.md` §8 for after step 3.
+- **`vendorTerms` is a list (open question 5, 2026-09-26).** Inbound agreements
+  have no `offering_id` and engagements don't point at an agreement, so with
+  two in force the record can't say which governs. Two in force is ordinary: a
+  renewal overlap (often at the same moment as a Ch6-style vendor change), or a
+  DPA per product. A `422` would fail the Monitor's key call when it matters
+  most, with nothing the caller could change; "most recently signed" would hide
+  a per-product DPA. So: list them all, and judge `noticeConflict` on the
+  shortest notice. No vendor DPA at all (itself an Art. 28(3) gap) gives
+  `noticeConflict: null`, which is more honest than `false`.
+  - `inForce` in `domain/agreements.ts` hard-codes `direction = 'outbound'`;
+    Phase 2 parameterises it.
+- **Data map vendor categories are an upper bound (open question 6,
+  2026-09-26).** "∩ the activity's categories" is a no-op (the save rules
+  guarantee the subset), and "∩ the subject category" is impossible: an
+  activity's subject and data categories are two unlinked sets. It shows in
+  Ch7 on one row: C4 concerns recruiters and candidates and sends `telemetry`
+  and `identity` to Glitchlog, but only identity (emails in stack traces) is
+  really about Lena. Listing both costs her handler a search that finds
+  nothing; listing too little would leave her data where nobody looked. Same
+  for an Art. 15 access request: too broad is caught by a person, too narrow
+  is an incomplete answer. The story already says "possibly".
+  - The record gets precise through what's recorded: when the Redaction
+    service ships (Ch2's backlog), Priya drops `identity` from C4's Glitchlog
+    engagement, and the data map stops pointing at Glitchlog for candidates.
+  - The §5.4 example predates the seed: it narrows Glitchlog to `identity` and
+    omits Render (P1, P3, C4) and Glitchlog on P1. Render is listed anyway: the
+    story reaches it through `hireloop-db`, but it is a recorded engagement.
 
 ## Issues encountered
 | Issue | Resolution |

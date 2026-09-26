@@ -8,6 +8,18 @@
   (`ropa-api.md` §5.1, §5.2, §8, §9; DM §3.8), so they outlive the plan files
 - Archived step 2's planning files to `docs/program/plan-archive/3/`
 - Wrote the build step 3 plan (5 phases) in `task_plan.md`
+- Resolved open question 1: review items emit their own `review_item.changed`
+  event; Phase 1 gained the event and its documentation; step 4's backfill
+  note added to `ropa-api.md` §8
+- Resolved open question 2: the EEA list goes in the package; adequacy
+  countries need a transfer row (`mechanism: adequacy`); DM §5 clarified
+- Resolved open question 3: coverage severity is fixed per finding type
+- Resolved open question 4: findings carry a stable `key`; the cron job that
+  opens review items is planned in `ropa-api.md` §8 for after step 3
+- Resolved open question 5: `vendorTerms` is a list; `noticeConflict` uses the
+  shortest notice, `null` with no vendor DPA
+- Resolved open question 6: the data map lists each engagement's categories as
+  recorded, an upper bound; all six open questions now resolved
 
 ## Test Results
 | Test | Command | Expected | Actual | Status |

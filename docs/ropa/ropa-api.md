@@ -616,6 +616,10 @@ RoPA **pushes** events to its consumers (Q3). Delivery is HTTP `POST` to configu
 - **Step 5:** `format=csv` answers `422 not_yet_supported` until then. The engagement sub-resource can build on `inputFromSnapshot` (`domain/activity/input.ts`), which turns a stored activity into the `PUT` body that saves it unchanged.
 - **Deploying:** Render judges a push by its newest commit, so code is pushed on its own and documentation separately (README, Deployment).
 
+**Decided during build step 3 (2026-09-26)**, for the steps that follow:
+- **Review items emit `review_item.changed`, not revisions** (§6). `/changes` reads revisions, so it won't replay them. Step 4 should take them from the outbox, which keeps rows after delivery, and order them by `occurredAt`, since they have no `version`. The dispatcher's ordering query must allow for outbox rows with no `revision_id`.
+- **A Render cron job opens review items from coverage findings**, in step 4 or a small step of its own (to be settled when step 3 closes). It calls `GET /coverage`, opens a review item with `source: schedule` for each finding whose `key` has no open item (§5.5; the key goes in `details`), and is the only way `review_overdue` will ever be acted on, since nothing else notices time passing. It needs a new `render.yaml` resource, its own principal and token (`review:read`, `review:create`), and a route to the API over the private network. The Snapshot takes `unmapped_system` with `source: snapshot` when it exists; the shared `key` keeps the two from opening duplicates.
+
 ## 9. Open questions
 
 1. ~~**Concurrency**~~ **Resolved (2026-09-19):** `If-Match` required on `PUT`, `DELETE`, `activate` and `retire`. Review-item transitions are protected by a status check. See §1.8.

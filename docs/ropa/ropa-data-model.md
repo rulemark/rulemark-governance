@@ -400,7 +400,7 @@ Events are written here **in the same transaction** as the revision they describ
 - A client scope's client (activity or engagement level) must hold an active outbound agreement for the activity's offering.
 - An activity client scope's `mode` must match `client_coverage` (§3.8).
 - Client scope rows are only allowed on engagements of processor activities, and all rows on one engagement share one `mode`.
-- Any `processing_countries` entry outside the EEA needs a matching `transfer` row. Missing ones are reported by `/coverage` (as `transfer_missing`) rather than blocked, so drafts can be saved.
+- Any `processing_countries` entry outside the EEA needs a matching `transfer` row. Missing ones are reported by `/coverage` (as `transfer_missing`) rather than blocked, so drafts can be saved. A country with an adequacy decision (e.g. `GB`, `CH`) is still outside the EEA: its transfer is recorded with `mechanism = adequacy`, not skipped.
 - Exactly one party of kind `self`.
 - `role` cannot be changed on a saved activity. Changing role = retire the activity and create a new one with `supersedes_id` (§3.0).
 - `supersedes_id` must point to a `retired` activity.
@@ -423,7 +423,7 @@ Events are written here **in the same transaction** as the revision they describ
 | **Subprocessors (client)** | The client's **effective engagements** (§3.8) with role `subprocessor`, grouped by party. Aurelia sees Mailcrest in `IE`; Northwind sees Mailcrest in `US` | Ch4 (post-contract) |
 | **Report** | Controller view: `self` party + controller activities with all Art. 30(1) fields. Processor view: offering/client scoping + Art. 30(2) fields. `asOf` via revisions | Ch4, Ch8 |
 | **Impact (party)** | The party's engagements → activities (role, data categories, special flag, countries). For processor activities: affected clients = clients for whom the engagement is effective (§3.8), grouped by agreement terms (authorization type, notice days). Plus the vendor's inbound terms. Flags **notice conflict** when vendor notice < client notice | Ch6 |
-| **Data map** | Subject category (+ optional client) → activities → systems + engagements (data categories ∩), retention rules, and `action: act \| forward` from the activity role | Ch7 |
+| **Data map** | Subject category (+ optional client) → activities → systems + engagements (each with the data categories it receives for the activity: an upper bound, since data categories aren't linked to subject categories), retention rules, and `action: act \| forward` from the activity role | Ch7 |
 | **Coverage** | Render systems with no activity; non-EEA countries with no transfer; `region_violation`: an engagement effective for a client whose agreement has `allowed_regions`, with a processing country or transfer destination outside them (Ch6: Helpdesk Partners in India on Mailcrest's EU region); `external_saas` systems on an activity with no matching engagement with their hosting party, and vice versa (an engagement with a party that hosts an `external_saas` system the activity doesn't list); review dates passed. Activities with no Render system are **not** flagged | Ch5 |
 
 ## 8. Cross-service references
