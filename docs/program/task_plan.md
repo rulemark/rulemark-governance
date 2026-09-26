@@ -9,7 +9,7 @@ turn the stored record into something a person reads.
 Build step 2 from `docs/ropa/ropa-api.md` §8. **Enough for story chapters 2–4.**
 
 ## Current Phase
-Phase 6
+Phase 7
 
 ## Definition of done for step 2
 - A controller activity and a processor activity can be created, edited,
@@ -89,12 +89,12 @@ Reference: `ropa-api.md` §5.2; `ropa-data-model.md` §3.8, §7
 
 ### Phase 6: `GET /report`
 Reference: `ropa-api.md` §5.1
-- [ ] JSON: organisation, controller activities, processor activities
-- [ ] `view`, `offering` and `client` parameters, `offering` and `client` mutually exclusive
-- [ ] Markdown, `Content-Type: text/markdown`, with anchors built from codes so a link survives a rename
-- [ ] The closing subprocessor list, identical to `GET /subprocessors`
+- [x] JSON: organisation, controller activities, processor activities
+- [x] `view`, `offering` and `client` parameters, `offering` and `client` mutually exclusive
+- [x] Markdown, `Content-Type: text/markdown`, with anchors built from codes so a link survives a rename
+- [x] The closing subprocessor list, identical to `GET /subprocessors`
 - **Done when:** the Markdown for the `ats` offering reads as an Art. 30 record, and `…#p3` still resolves after P3 is renamed
-- **Status:** pending
+- **Status:** complete
 
 ### Phase 7: The Hireloop seed
 Reference: `ropa-database.md` §9; `ropa-story.md`
@@ -141,6 +141,7 @@ Reference: `ropa-database.md` §9; `ropa-story.md`
 | Views are pure functions over aggregates; SQL only selects what to load | Step 2, open question 4 |
 | `subprocessors.changed` events are built in step 4, with the dispatcher | Step 2, after Phase 5 |
 | The Markdown report is template strings over the JSON report | Step 2, open question 2 |
+| `offering`/`client` on `/report` imply the processor view; asking for `controller` or `all` with a scope is refused, so a client's extract never carries Hireloop's own records | Step 2, Phase 6 |
 | `/subprocessors?client=` uses the client's own terms; a client on several offerings is refused (422 `several_offerings`) until the response can name more than one | Step 2, Phase 5 |
 
 ## Errors encountered

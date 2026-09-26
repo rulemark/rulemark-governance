@@ -232,6 +232,34 @@
   outbox row with the list before and after, for the affected offering and
   clients. `domain/views/subprocessors.ts` already computes both lists.
 
+- **How Phase 6 built it.**
+  - **One scoping function** (`scopeProcessorActivities`) decides, for the
+    standard terms, one client, or the whole record, which live processor
+    activities count and which of their engagements apply. The subprocessor
+    lists were moved onto it without a test changing, and the report reads
+    from it, so the two cannot disagree about who is used for whom.
+  - **The report's closing list is `buildSubprocessors`**, the function
+    behind `GET /subprocessors`, so "identical" holds by construction. A
+    test compares the two anyway.
+  - **Whom a processor activity serves** (Art. 30(2)(a)) takes three forms:
+    one client; the offering's clients on its standard terms, never named,
+    because a prospect reads it (Ch4); or, for the whole record, the clients
+    each activity covers today, opt-outs and opt-ins honoured.
+  - **Scope implies the processor view.** `?client=aurelia&view=all` is
+    refused (`scope_needs_processor_view`), so a client's extract can never
+    include Hireloop's own controller records by default.
+  - **Markdown** is `renderReportMarkdown(report)`, a pure function with a
+    golden test. Anchors come from codes; every name is escaped, and table
+    cells escape `|` too; retention periods read as words ("7 years").
+    Checked by building anchors from names instead: four tests failed,
+    including both rename tests.
+  - `format=csv` and `asOf` answer 422 `not_yet_supported`.
+  - The views code now lives in `api/views/` (scope, subprocessors, report,
+    markdown), and `api/routes/views.ts` is only the router. Each answer is
+    read in one repeatable-read, read-only transaction.
+  - `openapi.json` compared as JSON: `/v1/report` and `ReportResponse`
+    added, nothing else changed.
+
 ## Issues encountered
 | Issue | Resolution |
 |---|---|
