@@ -5,8 +5,10 @@ import {
   ConfigError,
   loadConfig,
   loadDatabaseConfig,
+  loadDemoClientConfig,
   type Config,
   type DatabaseConfig,
+  type DemoClientConfig,
 } from './config.js';
 
 /**
@@ -31,10 +33,10 @@ function loadEnvFile(): void {
  * stack trace through Zod tells an operator nothing about which variable to
  * fix, and the logger cannot start because its level is part of what failed.
  */
-export function loadConfigOrExit(): Config {
+function orExit<T>(load: () => T): T {
   loadEnvFile();
   try {
-    return loadConfig();
+    return load();
   } catch (error) {
     if (error instanceof ConfigError) {
       process.stderr.write(`${error.message}\n`);
@@ -44,16 +46,17 @@ export function loadConfigOrExit(): Config {
   }
 }
 
-/** For tools that only touch the database: see `loadDatabaseConfig`. */
+/** The service: everything it needs to run. */
+export function loadConfigOrExit(): Config {
+  return orExit(() => loadConfig());
+}
+
+/** The migrator and the seed: the database, and nothing else. */
 export function loadDatabaseConfigOrExit(): DatabaseConfig {
-  loadEnvFile();
-  try {
-    return loadDatabaseConfig();
-  } catch (error) {
-    if (error instanceof ConfigError) {
-      process.stderr.write(`${error.message}\n`);
-      process.exit(1);
-    }
-    throw error;
-  }
+  return orExit(() => loadDatabaseConfig());
+}
+
+/** `demo:data`: a service to talk to, and the secret to mint a token with. */
+export function loadDemoClientConfigOrExit(): DemoClientConfig {
+  return orExit(() => loadDemoClientConfig());
 }

@@ -9,6 +9,7 @@ import {
   ROLE_FIELDS,
   RetireInput,
   describeRoleRules,
+  inputFromActivity,
   validateActivityShape,
   type RoleField,
 } from './index.js';
@@ -559,6 +560,130 @@ describe('Activity (output)', () => {
 
   it('has no joint_controller branch: none can be stored', () => {
     expect(Activity.safeParse({ ...c2, role: 'joint_controller' }).success).toBe(false);
+  });
+});
+
+describe('inputFromActivity: what the API returns, as the PUT body that saves it unchanged', () => {
+  const UUID2 = '0199c3a1-8f2e-7c4d-b8e1-000000000002';
+  const ref = (slug: string) => ({ id: UUID2, slug, name: slug });
+  const meta = {
+    id: UUID,
+    version: 2,
+    createdAt: '2026-02-12T10:00:00Z',
+    updatedAt: '2026-03-16T10:00:00Z',
+    description: null,
+    owner: 'Priya Raman',
+    roleRationale: null,
+    supersedes: null,
+    subjectCategories: [ref('candidates')],
+    dataCategories: [ref('identity')],
+    systems: [],
+    securityMeasures: [],
+    reviewDueAt: null,
+    startedAt: '2026-02-12',
+    endedAt: null,
+  };
+
+  it('keeps every nested id and turns every Ref into its id, for a processor', () => {
+    const activity = Activity.parse({
+      ...meta,
+      code: 'P1',
+      name: 'Candidate application management',
+      role: 'processor',
+      status: 'active',
+      offering: ref('ats'),
+      clientCoverage: 'all_enrolled',
+      processingCategories: ['hosting'],
+      clientScope: {
+        mode: 'exclude',
+        clients: [
+          {
+            id: UUID,
+            client: ref('aurelia'),
+            reason: null,
+            agreement: null,
+            startedAt: '2026-04-14',
+            endedAt: null,
+          },
+        ],
+      },
+      dpiaSupportRef: null,
+      engagements: [
+        {
+          id: UUID,
+          party: ref('mailcrest'),
+          role: 'subprocessor',
+          serviceDescription: 'Candidate notifications (US region)',
+          processingCountries: ['US'],
+          dataCategories: [ref('identity')],
+          transfers: [
+            {
+              id: UUID,
+              destinationCountry: 'US',
+              mechanism: 'dpf',
+              onwardVia: null,
+              documentRef: null,
+            },
+          ],
+          startedAt: null,
+          endedAt: null,
+          clientScope: {
+            mode: 'exclude',
+            clients: [
+              { id: UUID, client: ref('aurelia'), reason: 'EU only', agreement: ref('dpa') },
+            ],
+          },
+        },
+      ],
+    });
+
+    const body = inputFromActivity(activity);
+    expect(validateActivityShape(body)).toEqual([]);
+    expect(body).toMatchObject({
+      offering: UUID2,
+      clientScope: { mode: 'exclude', clients: [{ id: UUID, client: UUID2 }] },
+      engagements: [
+        {
+          id: UUID,
+          party: UUID2,
+          transfers: [{ id: UUID, destinationCountry: 'US' }],
+          clientScope: { clients: [{ id: UUID, agreement: UUID2 }] },
+        },
+      ],
+    });
+    expect(body).not.toHaveProperty('code');
+    expect(body).not.toHaveProperty('version');
+  });
+
+  it('keeps a controller’s retention rules by id, and the default rule without a category', () => {
+    const body = inputFromActivity(
+      Activity.parse({
+        ...meta,
+        code: 'C2',
+        name: 'Customer accounts & billing',
+        role: 'controller',
+        status: 'active',
+        purposes: ['Invoice'],
+        lawfulBases: ['6(1)(b)'],
+        specialConditions: [],
+        retentionRules: [
+          {
+            id: UUID,
+            dataCategory: null,
+            retentionPeriod: 'P90D',
+            triggerEvent: 'after end',
+            legalRef: null,
+          },
+        ],
+        dpiaRequired: false,
+        dpiaRef: null,
+        engagements: [],
+      }),
+    );
+    expect(validateActivityShape(body)).toEqual([]);
+    expect(body['retentionRules']).toEqual([
+      { id: UUID, retentionPeriod: 'P90D', triggerEvent: 'after end' },
+    ]);
   });
 });
 

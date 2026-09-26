@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { ConfigError, loadConfig, loadDatabaseConfig } from './config.js';
+import { ConfigError, loadConfig, loadDatabaseConfig, loadDemoClientConfig } from './config.js';
 
 /** The variables with no sensible default: everything else may be omitted. */
 const REQUIRED = {
@@ -239,5 +239,37 @@ describe('loadDatabaseConfig: for tools that only touch the database', () => {
     expect(() => loadDatabaseConfig({})).toThrow(ConfigError);
     expect(() => loadDatabaseConfig({ DATABASE_URL: 'mysql://x' })).toThrow(/DATABASE_URL/);
     expect(() => loadDatabaseConfig({ DATABASE_URL, LOG_LEVEL: 'loud' })).toThrow(/LOG_LEVEL/);
+  });
+});
+
+describe('loadDemoClientConfig: demo:data talks HTTP and needs no database', () => {
+  const TOKEN_MINT_SECRET = 'the-mint-secret-nobody-should-guess';
+
+  it('needs the mint secret and nothing else, and defaults to the local service', () => {
+    expect(loadDemoClientConfig({ TOKEN_MINT_SECRET })).toEqual({
+      baseUrl: 'http://127.0.0.1:3000',
+      subject: 'svc:seed',
+      tokenMintSecret: TOKEN_MINT_SECRET,
+    });
+  });
+
+  it('follows PORT locally, and DEMO_API_URL for a deployed service', () => {
+    expect(loadDemoClientConfig({ TOKEN_MINT_SECRET, PORT: '4000' }).baseUrl).toBe(
+      'http://127.0.0.1:4000',
+    );
+    expect(
+      loadDemoClientConfig({
+        TOKEN_MINT_SECRET,
+        DEMO_API_URL: 'https://ropa-api.onrender.com/',
+        DEMO_SUBJECT: 'priya.raman',
+      }),
+    ).toMatchObject({ baseUrl: 'https://ropa-api.onrender.com', subject: 'priya.raman' });
+  });
+
+  it('refuses a missing secret or a URL that is not one', () => {
+    expect(() => loadDemoClientConfig({})).toThrow(/TOKEN_MINT_SECRET/);
+    expect(() => loadDemoClientConfig({ TOKEN_MINT_SECRET, DEMO_API_URL: 'ropa' })).toThrow(
+      /DEMO_API_URL/,
+    );
   });
 });

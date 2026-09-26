@@ -7,6 +7,7 @@ export * from './offering.js';
 export * from './system.js';
 export * from './taxonomy.js';
 export * from './activity.js';
+export { inputFromActivity } from './activity-input.js';
 export {
   ROLE_FIELDS,
   canActivate,

@@ -181,3 +181,33 @@ export function loadDatabaseConfig(
   const data = parseEnv(DatabaseEnvSchema, env);
   return { nodeEnv: data.NODE_ENV, logLevel: data.LOG_LEVEL, databaseUrl: data.DATABASE_URL };
 }
+
+/**
+ * What `demo:data` needs: it talks HTTP to a running service, so it needs the
+ * secret to mint a token and where to send requests, and no database at all.
+ */
+export interface DemoClientConfig {
+  readonly baseUrl: string;
+  readonly subject: string;
+  readonly tokenMintSecret: string;
+}
+
+const DemoClientEnvSchema = z.object({
+  TOKEN_MINT_SECRET: Secret,
+  PORT: z.coerce.number().int().min(1).max(65535).default(3000),
+  /** A deployed service, or a Render preview environment. */
+  DEMO_API_URL: z.url().optional(),
+  /** Taxonomy writes and activation need an admin (§1.9). */
+  DEMO_SUBJECT: z.string().min(1).default('svc:seed'),
+});
+
+export function loadDemoClientConfig(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): DemoClientConfig {
+  const data = parseEnv(DemoClientEnvSchema, env);
+  return {
+    baseUrl: (data.DEMO_API_URL ?? `http://127.0.0.1:${data.PORT}`).replace(/\/$/, ''),
+    subject: data.DEMO_SUBJECT,
+    tokenMintSecret: data.TOKEN_MINT_SECRET,
+  };
+}
