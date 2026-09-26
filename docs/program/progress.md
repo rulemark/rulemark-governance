@@ -9,10 +9,21 @@
   `/subprocessors` and `/report` — enough for story chapters 2–4. `asOf`,
   `/changes` and the dispatcher stay in step 4; the other views in step 3
 
+## Session: 2026-09-26
+- Resolved open question 1: the activity is a discriminated union on `role`,
+  with forbidden-by-role as field-level checks. Tested against Zod 4.6.5
+  first; the evidence is in findings.md. Phase 1's checklist now spells out
+  the shape
+- Renamed permission roles to `PRINCIPAL_ROLES` / `PrincipalRole` /
+  `PRINCIPAL_ROLE_PERMISSIONS` (`9406ac5`), so a bare "role" means the GDPR
+  sense. No database or wire change; the OpenAPI document regenerates
+  identically
+
 ## Test Results
 | Test | Command | Expected | Actual | Status |
 |---|---|---|---|---|
 | Inherited from step 1 | `npm run check` | 422 tests pass | 422 pass | ✅ |
+| Principal role rename | `npm run typecheck && npm run lint && npm test` | Clean, all pass | Clean; 314 + 104 pass | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |

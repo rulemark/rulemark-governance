@@ -36,11 +36,16 @@ items are step 3; CSV and the engagement sub-resource are step 5.
 
 ### Phase 1: The activity shape
 Reference: `ropa-data-model.md` §3.1–§3.4, §5; `ropa-packages.md` §4.1, §4.3
-- [ ] `ActivityInput` / `Activity` in `@rulemark/ropa-schemas`: a discriminated union on `role`
+- [ ] `ActivityInput` / `Activity` in `@rulemark/ropa-schemas`: a `z.discriminatedUnion` on `role` (Q1, resolved), with `.meta({ discriminator: { propertyName: 'role' } })` so OpenAPI carries it
+- [ ] A field-level `forbidden(message)` helper: a refinement on the field itself with `params.code = 'forbidden_for_role'`, documented as `{ "not": {} }`. Never a member-level `superRefine`, which is skipped while any structural error remains
+- [ ] Required-by-role fields stay optional in the schema (drafts may be incomplete) and are checked by `canActivate`
+- [ ] Allowed engagement roles as a per-member enum (`processor | recipient` / `subprocessor`), reporting `role_not_allowed`; engagement `clientScope` on the processor member only
 - [ ] Nested shapes: engagement, transfer, retention rule, and both client scopes
 - [ ] The pure rule helpers (§4.3): `validateActivityShape`, `canActivate`, `describeRoleRules`
-- [ ] `joint_controller` accepted by the type and rejected as `not_yet_supported` (DM §10, Q5)
-- **Done when:** a processor activity with `purposes` fails the shape check with a field error naming `/purposes`
+- [ ] `joint_controller` as a third member that always fails with `not_yet_supported` at `/role` (DM §10, Q5)
+- [ ] Refinements that compare fields on one record (scope `mode` ↔ `clientCoverage`) go last, on the processor member; derive `pick`/`omit`/`partial` from the unrefined members, because Zod 4 throws on refined ones
+- [ ] `fieldErrorsFromZod` reports `issue.params.code` when present, so custom codes reach the caller instead of `custom`
+- **Done when:** a processor activity with `purposes` and an invalid `name` fails the shape check with both errors in one response, `/purposes` carrying `forbidden_for_role`
 - **Status:** pending
 
 ### Phase 2: The activity tables
@@ -109,7 +114,7 @@ Reference: `ropa-database.md` §9; `ropa-story.md`
 - [ ] `demo:data` gains the activities once they exist
 
 ## Open questions
-1. Zod discriminated unions and the Input/Output split: `z.discriminatedUnion` on `role`, with the per-role rules as refinements on each member, or one object with a `superRefine` that branches? The first gives better OpenAPI (`oneOf`); the second may give better field errors. *Phase 1.*
+1. ~~Zod discriminated unions and the Input/Output split: `z.discriminatedUnion` on `role`, or one object with a `superRefine` that branches?~~ **Resolved 2026-09-26: a discriminated union**, with forbidden fields checked on the field itself. It gives `oneOf` *and* the better field errors; see findings.md. *Phase 1.*
 2. Markdown generation: hand-rolled template strings, or a builder? It has to be diffable and stable, because it feeds the architecture document. *Phase 6.*
 3. The children diff is the first place two writers can conflict *within* one aggregate. `If-Match` covers the root; is that enough, or does a nested row need its own guard? *Phase 3.*
 4. Do the views read through the domain layer over aggregates, or as SQL? DB §6.3 says the former, so `asOf` can reuse them in step 4 — confirm that holds once the queries are real. *Phase 5.*
@@ -124,6 +129,8 @@ Reference: `ropa-database.md` §9; `ropa-story.md`
 | Database tests run against `<database>_test`, beside the development one | Globally unique constraints make a shared database untenable |
 | Vitest runs test files one at a time, and each file starts one HTTP server | Step 1 findings; both were real sources of flakiness |
 | The dashboard is not where infrastructure changes are made | Both Render resources are Blueprint-managed; `render.yaml` is the source of truth |
+| The activity is a Zod discriminated union on `role`; forbidden-by-role is a field-level check | Step 2, open question 1; tested against Zod 4.6.5 |
+| A bare "role" means the GDPR sense; permission bundles are `PrincipalRole` | Step 2, before Phase 1 (`9406ac5`) |
 
 ## Errors encountered
 | Error | Attempt | Resolution |
