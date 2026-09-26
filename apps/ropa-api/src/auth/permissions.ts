@@ -1,4 +1,4 @@
-import { PERMISSIONS, type Permission, type Role } from '@rulemark/ropa-schemas';
+import { PERMISSIONS, type Permission, type PrincipalRole } from '@rulemark/ropa-schemas';
 
 /**
  * Which permissions each role carries (`ropa-api.md` §1.9). The server is
@@ -20,7 +20,7 @@ const VIEWS = PERMISSIONS.filter((permission) => permission.startsWith('view:'))
 
 const VIEWER: readonly Permission[] = ['record:read', 'history:read', 'review:read', ...VIEWS];
 
-export const ROLE_PERMISSIONS: Readonly<Record<Role, readonly Permission[]>> = {
+export const PRINCIPAL_ROLE_PERMISSIONS: Readonly<Record<PrincipalRole, readonly Permission[]>> = {
   viewer: VIEWER,
   editor: [...VIEWER, 'record:write', 'review:create', 'review:resolve'],
   approver: [...VIEWER, 'activity:approve'],
@@ -31,10 +31,10 @@ export const ROLE_PERMISSIONS: Readonly<Record<Role, readonly Permission[]>> = {
 };
 
 /** What a token's roles add up to. Roles combine; nothing subtracts. */
-export function permissionsFor(roles: readonly Role[]): Permission[] {
+export function permissionsFor(roles: readonly PrincipalRole[]): Permission[] {
   const granted = new Set<Permission>();
   for (const role of roles) {
-    for (const permission of ROLE_PERMISSIONS[role] ?? []) granted.add(permission);
+    for (const permission of PRINCIPAL_ROLE_PERMISSIONS[role] ?? []) granted.add(permission);
   }
   return [...granted];
 }

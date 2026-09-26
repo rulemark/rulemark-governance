@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { PERMISSIONS, ROLES } from '../enums.js';
+import { PERMISSIONS, PRINCIPAL_ROLES } from '../enums.js';
 import { MAX_TEXT, Name } from '../primitives.js';
 
 /**
@@ -8,14 +8,14 @@ import { MAX_TEXT, Name } from '../primitives.js';
  * role-based permissions. No sessions, no SSO, no user table.
  */
 
-export const Role = z.enum(ROLES);
+export const PrincipalRole = z.enum(PRINCIPAL_ROLES);
 export const Permission = z.enum(PERMISSIONS);
 
 /** One entry of the `PRINCIPALS` environment variable. */
 export const Principal = z.object({
   sub: Name.describe('The subject: "priya.raman", "svc:monitor".'),
   name: Name,
-  roles: z.array(Role).min(1),
+  roles: z.array(PrincipalRole).min(1),
 });
 
 export const TokenRequest = z.object({
@@ -30,7 +30,7 @@ export const TokenResponse = z.object({
   expiresIn: z.number().int().positive(),
   subject: Name,
   name: Name,
-  roles: z.array(Role),
+  roles: z.array(PrincipalRole),
   /** What those roles add up to, so a caller need not know the mapping. */
   permissions: z.array(Permission),
 });
@@ -41,11 +41,11 @@ export const MeResponse = z.object({
   authenticated: z.boolean(),
   subject: Name.nullable(),
   name: Name.nullable(),
-  roles: z.array(Role),
+  roles: z.array(PrincipalRole),
   permissions: z.array(Permission),
 });
 
-export type Role = z.infer<typeof Role>;
+export type PrincipalRole = z.infer<typeof PrincipalRole>;
 export type Permission = z.infer<typeof Permission>;
 export type Principal = z.infer<typeof Principal>;
 export type TokenRequest = z.infer<typeof TokenRequest>;

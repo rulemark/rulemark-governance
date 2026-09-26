@@ -108,7 +108,12 @@ export const PERMISSIONS = list(
   'history:read',
 );
 
-export const ROLES = list(
+/**
+ * Roles a principal holds, which bundle permissions. Qualified on purpose: a
+ * bare "role" in this codebase means the GDPR sense (`ACTIVITY_ROLES`,
+ * `ENGAGEMENT_ROLES`).
+ */
+export const PRINCIPAL_ROLES = list(
   'viewer',
   'editor',
   'approver',
@@ -164,7 +169,7 @@ export type SystemKind = (typeof SYSTEM_KINDS)[number];
 export type RenderSystemKind = Extract<SystemKind, `render_${string}`>;
 export type DataCategorySpecial = (typeof DATA_CATEGORY_SPECIALS)[number];
 export type TaxonomyType = (typeof TAXONOMY_TYPES)[number];
-// `Permission` and `Role` types come from `resources/auth.ts`, which owns the
+// `Permission` and `PrincipalRole` types come from `resources/auth.ts`, which owns the
 // Zod schemas built on these lists, so the name means one thing.
 export type ReviewSource = (typeof REVIEW_SOURCES)[number];
 export type ReviewReason = (typeof REVIEW_REASONS)[number];

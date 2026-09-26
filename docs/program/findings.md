@@ -28,7 +28,12 @@
 
 ## Build findings
 <!-- Add as we go: surprises, library behaviour, decisions with rationale -->
--
+- **A bare "role" means the GDPR sense.** Permission roles were renamed to
+  `PRINCIPAL_ROLES` / `PrincipalRole` / `PRINCIPAL_ROLE_PERMISSIONS` before
+  Phase 1, so `role` on activities and engagements (Hireloop's or a vendor's
+  role in the processing, Art. 4(7)–(8)) never shares a name with
+  authorization. TypeScript names only: the JWT `roles` claim, the response
+  fields and the OpenAPI document are unchanged, and no table was involved.
 
 ## Issues encountered
 | Issue | Resolution |

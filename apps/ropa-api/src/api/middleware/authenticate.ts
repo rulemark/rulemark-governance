@@ -1,4 +1,4 @@
-import type { Permission, Role } from '@rulemark/ropa-schemas';
+import type { Permission, PrincipalRole } from '@rulemark/ropa-schemas';
 import type { RequestHandler } from 'express';
 
 import { permissionsFor } from '../../auth/permissions.js';
@@ -17,7 +17,7 @@ export interface Caller {
   readonly authenticated: boolean;
   readonly subject: string | null;
   readonly name: string | null;
-  readonly roles: readonly Role[];
+  readonly roles: readonly PrincipalRole[];
   readonly permissions: readonly Permission[];
 }
 
@@ -34,7 +34,7 @@ declare module 'express-serve-static-core' {
  * the switch here keeps `requires()` free of configuration.
  */
 function anonymous(config: Config): Caller {
-  const roles: readonly Role[] = config.requireAuthForReads ? [] : ['viewer'];
+  const roles: readonly PrincipalRole[] = config.requireAuthForReads ? [] : ['viewer'];
   return {
     authenticated: false,
     subject: null,

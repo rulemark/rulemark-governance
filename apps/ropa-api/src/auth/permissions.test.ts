@@ -1,12 +1,12 @@
-import { PERMISSIONS, ROLES } from '@rulemark/ropa-schemas';
+import { PERMISSIONS, PRINCIPAL_ROLES } from '@rulemark/ropa-schemas';
 import { describe, expect, it } from 'vitest';
 
-import { ROLE_PERMISSIONS, permissionsFor } from './permissions.js';
+import { PRINCIPAL_ROLE_PERMISSIONS, permissionsFor } from './permissions.js';
 
 describe('the permission map (§1.9)', () => {
   it('defines every role, and only real permissions', () => {
-    expect(Object.keys(ROLE_PERMISSIONS).sort()).toEqual([...ROLES].sort());
-    for (const [role, permissions] of Object.entries(ROLE_PERMISSIONS)) {
+    expect(Object.keys(PRINCIPAL_ROLE_PERMISSIONS).sort()).toEqual([...PRINCIPAL_ROLES].sort());
+    for (const [role, permissions] of Object.entries(PRINCIPAL_ROLE_PERMISSIONS)) {
       for (const permission of permissions) {
         expect(PERMISSIONS, `${role} grants ${permission}`).toContain(permission);
       }
@@ -44,7 +44,7 @@ describe('the permission map (§1.9)', () => {
   });
 
   it('keeps deleting away from everyone else', () => {
-    for (const role of ROLES) {
+    for (const role of PRINCIPAL_ROLES) {
       if (role === 'admin') continue;
       expect(permissionsFor([role]), role).not.toContain('record:delete');
     }
