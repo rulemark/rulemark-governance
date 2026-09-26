@@ -11,3 +11,4 @@ export * from './enums.js';
 export * from './primitives.js';
 export * from './errors.js';
 export * from './resources/index.js';
+export * from './views/index.js';

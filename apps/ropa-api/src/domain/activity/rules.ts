@@ -1,12 +1,8 @@
 import { canActivate, type FieldError } from '@rulemark/ropa-schemas';
-import { and, eq, gt, inArray, isNull, lte, or } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 
-import {
-  agreement,
-  agreementTerms,
-  dataCategory,
-  processingActivity,
-} from '../../db/schema/index.js';
+import { agreement, dataCategory, processingActivity } from '../../db/schema/index.js';
+import { clientsWithActiveAgreement } from '../agreements.js';
 import type { Transaction } from '../transaction.js';
 import type { ResolvedActivity } from './resolve.js';
 
@@ -19,40 +15,6 @@ import type { ResolvedActivity } from './resolve.js';
  * Every rule reports at the path of the value that breaks it, and all of them
  * run, so a caller sees everything wrong at once.
  */
-
-/** YYYY-MM-DD, the form a `date` column compares against. */
-export function isoDate(moment: Date): string {
-  return moment.toISOString().slice(0, 10);
-}
-
-/**
- * The clients holding an outbound agreement for `offeringId` that is in force
- * on `asOf`: signed on or before it, and not ended by it. This is the first
- * half of DM §3.8's "covers"; `/subprocessors` reuses it.
- */
-export async function clientsWithActiveAgreement(
-  tx: Transaction,
-  offeringId: string,
-  clientIds: readonly string[],
-  asOf: Date,
-): Promise<Set<string>> {
-  if (clientIds.length === 0) return new Set();
-  const day = isoDate(asOf);
-  const rows = await tx
-    .select({ partyId: agreement.partyId })
-    .from(agreement)
-    .innerJoin(agreementTerms, eq(agreementTerms.id, agreement.termsId))
-    .where(
-      and(
-        eq(agreement.offeringId, offeringId),
-        eq(agreementTerms.direction, 'outbound'),
-        inArray(agreement.partyId, [...new Set(clientIds)]),
-        lte(agreement.signedAt, day),
-        or(isNull(agreement.endedAt), gt(agreement.endedAt, day)),
-      ),
-    );
-  return new Set(rows.map((row) => row.partyId));
-}
 
 /** One client-scope entry, wherever it sits, with the path it came from. */
 interface ScopeEntry {

@@ -23,6 +23,7 @@ import {
   SecurityMeasureInput,
   SubjectCategory,
   SubjectCategoryInput,
+  SubprocessorsResponse,
   System,
   SystemInput,
   TokenRequest,
@@ -94,6 +95,7 @@ const OUTPUT_SCHEMAS: readonly [string, z.ZodType][] = [
   ['DataCategory', DataCategory],
   ['SecurityMeasure', SecurityMeasure],
   ['Activity', Activity],
+  ['SubprocessorsResponse', SubprocessorsResponse],
   ['TokenResponse', TokenResponse],
   ['MeResponse', MeResponse],
   ['ProblemDetails', ProblemDetails],
@@ -485,6 +487,45 @@ export function buildOpenApiDocument(): JsonObject {
     Object.assign(paths, pathsForResource(resource as ResourceDefinition<never, never, never>));
   }
 
+  paths[`/${API_VERSION}/subprocessors`] = {
+    get: guarded(
+      {
+        tags: ['views'],
+        summary: 'The subprocessor list, for an offering or a client',
+        description:
+          'Derived from the record (§5.2). By `offering`: the standard terms, which is also the public subprocessor page; opt-in modules are listed separately. By `client`: the effective engagements of every activity that covers that client, under the terms they signed. Exactly one of the two.',
+        parameters: [
+          {
+            name: 'offering',
+            in: 'query',
+            required: false,
+            description: 'An offering, by id or slug: its standard terms.',
+            schema: { type: 'string' },
+          },
+          {
+            name: 'client',
+            in: 'query',
+            required: false,
+            description: 'A client, by id or slug: what that client actually gets.',
+            schema: { type: 'string' },
+          },
+          {
+            name: 'asOf',
+            in: 'query',
+            required: false,
+            description: 'Not supported yet: answered with 422 not_yet_supported.',
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          '200': json('SubprocessorsResponse', 'The list'),
+          ...COMMON_ERRORS,
+        },
+      },
+      'view:subprocessors',
+    ),
+  };
+
   return {
     openapi: '3.1.0',
     info: {
@@ -507,6 +548,8 @@ export function buildOpenApiDocument(): JsonObject {
       { name: 'subject-categories', description: 'Shared vocabulary: whose data' },
       { name: 'data-categories', description: 'Shared vocabulary: what data' },
       { name: 'security-measures', description: 'Shared vocabulary: how it is protected' },
+      { name: 'activities', description: 'The record itself: processing activities' },
+      { name: 'views', description: 'Read models derived from the record' },
       { name: 'service', description: 'Health and documentation' },
     ],
     // Applies to every operation unless it says otherwise, which is what gives

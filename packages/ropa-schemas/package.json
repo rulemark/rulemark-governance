@@ -37,6 +37,11 @@
       "development": "./src/resources/index.ts",
       "types": "./dist/resources/index.d.ts",
       "default": "./dist/resources/index.js"
+    },
+    "./views": {
+      "development": "./src/views/index.ts",
+      "types": "./dist/views/index.d.ts",
+      "default": "./dist/views/index.js"
     }
   },
   "scripts": {

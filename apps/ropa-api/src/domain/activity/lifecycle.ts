@@ -4,10 +4,11 @@ import { eq } from 'drizzle-orm';
 import { processingActivity } from '../../db/schema/index.js';
 import { conflict, notFound, validationFailed } from '../../shared/problems.js';
 import { staleVersion, updateAggregate, type SaveContext } from '../aggregate.js';
+import { isoDate } from '../agreements.js';
 import type { Transaction } from '../transaction.js';
 import { activityAggregate, loadActivitySnapshot, type ActivityRow } from './load.js';
 import { resolvedFromSnapshot } from './resolve.js';
-import { crossEntityErrors, isoDate, roleRuleErrors } from './rules.js';
+import { crossEntityErrors, roleRuleErrors } from './rules.js';
 
 /**
  * The lifecycle (`ropa-api.md` §3.4): draft → active → retired, one way only.
