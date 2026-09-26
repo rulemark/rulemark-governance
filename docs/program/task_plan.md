@@ -55,6 +55,7 @@ Reference: `ropa-database.md` §4.4, §4.6
 - [ ] The four link tables, with the indexes the views will need
 - [ ] Attach `forbid_immutable_change` to `code` and `role` — the function has been waiting since step 1
 - [ ] Migration reviewed against §4.4, and a test per named constraint
+- [ ] `retention_period` check tested with the same accepted and rejected values as `IsoDuration` in `primitives.test.ts`, so the two stay identical
 - **Done when:** Postgres refuses a processor activity with `purposes`, and refuses to change a saved `role`
 - **Status:** pending
 

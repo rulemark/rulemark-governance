@@ -80,10 +80,12 @@
     forbidden messages from it, and `canActivate` takes its required fields.
     Tests check every field of both roles against the schema.
 - **For Phase 2.**
-  - `IsoDuration` accepts a time part (`PT12H`), but the retention check in
-    DB §4.4 (`^P([0-9]+Y)?([0-9]+M)?([0-9]+W)?([0-9]+D)?$`) does not. Choose
-    one before writing the migration, or a valid request will fail at
-    Postgres.
+  - **Resolved:** `IsoDuration` now accepts exactly what the
+    `retention_period` check allows: whole years, months, weeks and days, in
+    that order, with no time part (`PT12H` is refused). `P0D` and weeks mixed
+    with other components (`P1Y2W`) are allowed on both sides. The Zod regex
+    uses the database's own spelling, and a lookahead stands in for its
+    `<> 'P'`.
   - `dpiaRequired` defaults to `false` in the controller input, which
     satisfies `processing_activity_active_controller`.
 - **For Phase 4.** `joint_controller` surfaces as a field error with code

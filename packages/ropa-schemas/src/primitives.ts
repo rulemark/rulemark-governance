@@ -92,16 +92,24 @@ export const RegionCode = z
   .describe('"EEA", or an ISO 3166-1 alpha-2 country code.')
   .meta({ examples: ['EEA', 'IE'] });
 
-/** ISO 8601 duration: `P90D`, `P7Y`, `P1Y6M` (retention periods). */
+/**
+ * ISO 8601 duration in whole years, months, weeks and days: `P90D`, `P7Y`,
+ * `P1Y6M` (retention periods). No time components, which also means `M` can
+ * only be months, never minutes.
+ *
+ * Exactly the `retention_period` check in `ropa-database.md` §4.4, spelled the
+ * same way, so a request that passes here cannot fail at Postgres. The
+ * lookahead is the database's `<> 'P'`.
+ */
 export const IsoDuration = z
   .string()
   .min(2)
   .max(MAX_CODE)
   .regex(
-    /^P(?!$)(\d+Y)?(\d+M)?(\d+W)?(\d+D)?(T(?!$)(\d+H)?(\d+M)?(\d+S)?)?$/,
-    'Must be an ISO 8601 duration, e.g. "P90D" or "P7Y"',
+    /^P(?!$)([0-9]+Y)?([0-9]+M)?([0-9]+W)?([0-9]+D)?$/,
+    'Must be an ISO 8601 duration in years, months, weeks or days, e.g. "P90D" or "P7Y"',
   )
-  .describe('An ISO 8601 duration: "P90D", "P7Y".')
+  .describe('An ISO 8601 duration in years, months, weeks or days: "P90D", "P7Y", "P1Y6M".')
   .meta({ examples: ['P90D', 'P7Y'] });
 
 /** A business date, `YYYY-MM-DD` (§1.1). Rejects a calendar date that does not exist. */

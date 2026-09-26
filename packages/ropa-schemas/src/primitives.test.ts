@@ -60,14 +60,29 @@ describe('RegionCode', () => {
   });
 });
 
+/**
+ * Exactly what the database's `retention_period` check accepts (DB §4.4), so a
+ * request that passes here cannot fail there. Zero and weeks mixed with other
+ * components are allowed on both sides.
+ */
 describe('IsoDuration', () => {
-  it.each(['P90D', 'P7Y', 'P1Y6M', 'PT12H'])('accepts %s', (value) => {
-    expect(IsoDuration.safeParse(value).success).toBe(true);
-  });
+  it.each(['P90D', 'P7Y', 'P6M', 'P2W', 'P1Y6M', 'P1Y2M3W4D', 'P1Y2W', 'P0D'])(
+    'accepts %s',
+    (value) => {
+      expect(IsoDuration.safeParse(value).success).toBe(true);
+    },
+  );
 
-  it.each(['P', '90D', '7 years', ''])('rejects %s', (value) => {
+  it.each(['PT12H', 'PT30M', 'P1DT12H'])('rejects %s: no time components', (value) => {
     expect(IsoDuration.safeParse(value).success).toBe(false);
   });
+
+  it.each(['P', 'P1.5Y', 'P6M1Y', 'P1D1D', 'p90d', '-P1D', '90D', '7 years', ''])(
+    'rejects %s',
+    (value) => {
+      expect(IsoDuration.safeParse(value).success).toBe(false);
+    },
+  );
 });
 
 describe('IsoDate and IsoDateTime', () => {
