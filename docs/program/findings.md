@@ -59,6 +59,37 @@
     not.
   - An unknown or missing `role` yields `invalid_union` at `/role`, "Invalid
     discriminator value". The path is right; the wording is Zod's.
+- **How Phase 1 built it.**
+  - `forbiddenField()` is `z.unknown().refine(() => false).pipe(z.undefined())
+    .optional()`, so a processor's `purposes` is typed `undefined`. The pipe
+    makes an input schema throw if rendered with `io: 'output'`. The OpenAPI
+    document renders inputs as `input` only, and a test holds that.
+  - `z.custom()` could carry the error code but cannot be written as JSON
+    Schema at all, so it was not used.
+  - Engagement roles parse against every known role first, then narrow with
+    `.pipe(z.enum(allowed))`. So `processor` on a processor activity gets
+    `role_not_allowed`, and `owner` gets Zod's `invalid_value`.
+  - `joint_controller` is a union member whose `role` always fails. Because
+    the member has no other fields, code that reads `ActivityInput` must
+    narrow on `role` first. That is intended.
+  - Forbidden means absent: an empty list or `null` is still refused.
+  - `fieldErrorsFromZod` moved into `@rulemark/ropa-schemas/errors`, so
+    `validateActivityShape` in a form and the server report identical errors.
+    It reads `params.code`, so older refinements still report `custom`.
+  - `describeRoleRules` is the DM §5 table as data. The schemas take their
+    forbidden messages from it, and `canActivate` takes its required fields.
+    Tests check every field of both roles against the schema.
+- **For Phase 2.**
+  - `IsoDuration` accepts a time part (`PT12H`), but the retention check in
+    DB §4.4 (`^P([0-9]+Y)?([0-9]+M)?([0-9]+W)?([0-9]+D)?$`) does not. Choose
+    one before writing the migration, or a valid request will fail at
+    Postgres.
+  - `dpiaRequired` defaults to `false` in the controller input, which
+    satisfies `processing_activity_active_controller`.
+- **For Phase 4.** `joint_controller` surfaces as a field error with code
+  `not_yet_supported` inside a validation problem. The app also has a
+  `notYetSupported()` problem type (`problems.ts`). Decide whether the route
+  maps one onto the other.
 
 ## Issues encountered
 | Issue | Resolution |

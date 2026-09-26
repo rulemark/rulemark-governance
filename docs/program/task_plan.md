@@ -9,7 +9,7 @@ turn the stored record into something a person reads.
 Build step 2 from `docs/ropa/ropa-api.md` §8. **Enough for story chapters 2–4.**
 
 ## Current Phase
-Phase 1
+Phase 2
 
 ## Definition of done for step 2
 - A controller activity and a processor activity can be created, edited,
@@ -36,17 +36,17 @@ items are step 3; CSV and the engagement sub-resource are step 5.
 
 ### Phase 1: The activity shape
 Reference: `ropa-data-model.md` §3.1–§3.4, §5; `ropa-packages.md` §4.1, §4.3
-- [ ] `ActivityInput` / `Activity` in `@rulemark/ropa-schemas`: a `z.discriminatedUnion` on `role` (Q1, resolved), with `.meta({ discriminator: { propertyName: 'role' } })` so OpenAPI carries it
-- [ ] A field-level `forbidden(message)` helper: a refinement on the field itself with `params.code = 'forbidden_for_role'`, documented as `{ "not": {} }`. Never a member-level `superRefine`, which is skipped while any structural error remains
-- [ ] Required-by-role fields stay optional in the schema (drafts may be incomplete) and are checked by `canActivate`
-- [ ] Allowed engagement roles as a per-member enum (`processor | recipient` / `subprocessor`), reporting `role_not_allowed`; engagement `clientScope` on the processor member only
-- [ ] Nested shapes: engagement, transfer, retention rule, and both client scopes
-- [ ] The pure rule helpers (§4.3): `validateActivityShape`, `canActivate`, `describeRoleRules`
-- [ ] `joint_controller` as a third member that always fails with `not_yet_supported` at `/role` (DM §10, Q5)
-- [ ] Refinements that compare fields on one record (scope `mode` ↔ `clientCoverage`) go last, on the processor member; derive `pick`/`omit`/`partial` from the unrefined members, because Zod 4 throws on refined ones
-- [ ] `fieldErrorsFromZod` reports `issue.params.code` when present, so custom codes reach the caller instead of `custom`
+- [x] `ActivityInput` / `Activity` in `@rulemark/ropa-schemas`: a `z.discriminatedUnion` on `role` (Q1, resolved), with `.meta({ discriminator: { propertyName: 'role' } })` so OpenAPI carries it
+- [x] A field-level `forbidden(message)` helper: a refinement on the field itself with `params.code = 'forbidden_for_role'`, documented as `{ "not": {} }`. Never a member-level `superRefine`, which is skipped while any structural error remains
+- [x] Required-by-role fields stay optional in the schema (drafts may be incomplete) and are checked by `canActivate`
+- [x] Allowed engagement roles as a per-member enum (`processor | recipient` / `subprocessor`), reporting `role_not_allowed`; engagement `clientScope` on the processor member only
+- [x] Nested shapes: engagement, transfer, retention rule, and both client scopes
+- [x] The pure rule helpers (§4.3): `validateActivityShape`, `canActivate`, `describeRoleRules`
+- [x] `joint_controller` as a third member that always fails with `not_yet_supported` at `/role` (DM §10, Q5)
+- [x] Refinements that compare fields on one record (scope `mode` ↔ `clientCoverage`) go last, on the processor member; derive `pick`/`omit`/`partial` from the unrefined members, because Zod 4 throws on refined ones
+- [x] `fieldErrorsFromZod` reports `issue.params.code` when present, so custom codes reach the caller instead of `custom`
 - **Done when:** a processor activity with `purposes` and an invalid `name` fails the shape check with both errors in one response, `/purposes` carrying `forbidden_for_role`
-- **Status:** pending
+- **Status:** complete
 
 ### Phase 2: The activity tables
 Reference: `ropa-database.md` §4.4, §4.6
