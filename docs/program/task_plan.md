@@ -12,7 +12,7 @@ Build step 3 from `docs/ropa/ropa-api.md` §8. **Enough for Ch5–Ch7 and the
 Monitor and DSAR integrations.**
 
 ## Current Phase
-Phase 4 (not started)
+Phase 5 (not started)
 
 ## Definition of done for step 3
 - Review items can be opened, listed, read, resolved and dismissed through the
@@ -79,17 +79,19 @@ Reference: API §5.4; DM §7
 
 ### Phase 4: `GET /coverage`
 Reference: API §5.5; DM §5, §7
-- [ ] `EEA_COUNTRIES` (EU 27 + IS, LI, NO; Greece is `GR`) and `expandRegions(regions): Set<CountryCode>` in `@rulemark/ropa-schemas`, beside `RegionCode`; a test pins the full list
-- [ ] `unmapped_system`: a Render system no active activity uses; an activity without a Render system is **not** a finding (C1)
-- [ ] `transfer_missing`: a processing country outside the EEA with no matching transfer. Adequacy countries (GB, CH) are not exempt: they need a transfer row with `mechanism: adequacy`
-- [ ] `external_saas_mismatch`, both directions
-- [ ] `region_violation`: an engagement effective for a client whose terms have `allowedRegions`, processing or transferring outside them, onward transfers included
-- [ ] `review_overdue`
-- [ ] `{ generatedAt, findings: [{ type, severity, target, details }] }`
-- [ ] Each finding carries a stable `key` from its type, target and specific cause (`transfer_missing:<engagementId>:US`, `region_violation:<engagementId>:<clientId>:IN`): the same cause gives the same key on every run, and two causes on one target give two keys. Documented in API §5.5 as what a caller stores in a review item's `details` to dedupe
-- [ ] `FINDING_SEVERITIES` (`high` | `medium` | `low`) in the package; severity fixed per finding type in the coverage view; a severity column in API §5.5's table
+- [x] `EEA_COUNTRIES` (EU 27 + IS, LI, NO; Greece is `GR`) and `expandRegions(regions): Set<CountryCode>` in `@rulemark/ropa-schemas`, beside `RegionCode`; a test pins the full list
+- [x] `unmapped_system`: a Render system no active activity uses; an activity without a Render system is **not** a finding (C1)
+- [x] `transfer_missing`: a processing country outside the EEA with no matching transfer. Adequacy countries (GB, CH) are not exempt: they need a transfer row with `mechanism: adequacy`
+- [x] `external_saas_mismatch`, both directions
+- [x] `region_violation`: an engagement effective for a client whose terms have `allowedRegions`, processing or transferring outside them, onward transfers included
+- [x] `review_overdue`
+- [x] `{ generatedAt, findings: [{ type, severity, target, details }] }`
+- [x] Each finding carries a stable `key` from its type, target and specific cause (`transfer_missing:<engagementId>:US`, `region_violation:<engagementId>:<clientId>:IN`): the same cause gives the same key on every run, and two causes on one target give two keys. Documented in API §5.5 as what a caller stores in a review item's `details` to dedupe
+- [x] `FINDING_SEVERITIES` (`high` | `medium` | `low`) in the package; severity fixed per finding type in the coverage view; a severity column in API §5.5's table
+- [x] `external_saas_mismatch` added to `REVIEW_REASONS` (migration `0007`), so every finding type can become a review item
+- **Decided while building (2026-09-26):** findings carry `targetType` + `target` as a review item would; `details` typed per finding type, and the schema holds each type to its severity; "engagement without system" means the activity lists **none** of the host's SaaS systems (a literal reading would flag a host with two tools, one used); only live activities and engagements in force; `review_overdue` means before today, not on it; a country is reported once per engagement and client, as processing if it is both; `?asOf=` is refused with `not_supported`
 - **Done when:** the seeded record yields Aurelia's region violation and no false findings, and a test per finding type proves each fires and each legitimate case does not
-- **Status:** pending
+- **Status:** complete
 
 ### Phase 5: Deploy and verify
 - [ ] Push code commits on their own, docs separately (the build filter judges a push by its newest commit)

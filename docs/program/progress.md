@@ -55,6 +55,17 @@
     `governance-views.test.ts`
   - API §5.4 example rewritten from the seed, with notes; `openapi.json`
     regenerated
+- Phase 3 committed (`0868545`, docs `6df89e8`), not pushed
+- Phase 4 (`GET /coverage`):
+  - Package: `EEA_COUNTRIES`, `expandRegions` (beside `RegionCode`);
+    `FINDING_TYPES`, `FINDING_SEVERITIES`, `FINDING_SEVERITY`; `Finding`
+    (a union typed per finding type) and `CoverageResponse`
+  - `external_saas_mismatch` added to `REVIEW_REASONS`; migration `0007`
+  - `domain/views/coverage.ts`, a pure `coverage`, one rule per finding type,
+    each checked by breaking it; `api/views/coverage.ts` loads and names
+  - The seeded record yields exactly Aurelia's region violation, and the
+    Snapshot can open a review item from it carrying its `key`
+  - API §5.5, DM §3.11, §7, DB §4.5 updated; `openapi.json` regenerated
 
 ## Test Results
 | Test | Command | Expected | Actual | Status |
@@ -64,6 +75,7 @@
 | Phase 1 | `npm run db:generate` | no drift | "No schema changes" | ✅ |
 | Phase 2 | `npm run check` | all pass | 815 pass (585 API, 225 package, 5 dist) | ✅ |
 | Phase 3 | `npm run check` | all pass | 845 pass (611 API, 229 package, 5 dist) | ✅ |
+| Phase 4 | `npm run check` | all pass | 891 pass (644 API, 242 package, 5 dist) | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -73,7 +85,7 @@
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Build step 3, Phase 4 (`/coverage`), not started |
+| Where am I? | Build step 3, Phase 5 (deploy and verify), not started; Phases 2–4 committed, not pushed |
 | Where am I going? | Review items, then `/impact`, `/data-map`, `/coverage`, then deploy |
 | What's the goal? | Answer the questions the record exists for: the Monitor's, the DSAR tracker's and the Snapshot's (Ch5–Ch7) |
 | What have I learned? | See findings.md, and `plan-archive/3/findings.md` for step 2 |

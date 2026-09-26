@@ -570,15 +570,17 @@ Example: `GET /v1/data-map?subjectCategory=candidates&client=northwind` (Lena's 
 
 Advisory findings, never blocking (§1.5):
 
-| Finding type | Meaning |
-|---|---|
-| `unmapped_system` | A Render system no active activity uses (Ch5: `cv-parser`) |
-| `transfer_missing` | An engagement processes data outside the EEA with no matching transfer |
-| `external_saas_mismatch` | An `external_saas` system without a matching engagement with its host, or the reverse (DM §5) |
-| `region_violation` | An engagement effective for a client whose terms have `allowedRegions` processes or transfers data outside them (Ch6: Helpdesk Partners in India reaching Mailcrest's EU region for Aurelia) |
-| `review_overdue` | `reviewDueAt` has passed |
+| Finding type | Severity | Target | Meaning |
+|---|---|---|---|
+| `region_violation` | high | activity | An engagement effective for a client whose terms have `allowedRegions` processes or transfers data outside them, onward transfers included (Ch6: Helpdesk Partners in India reaching Mailcrest's EU region for Aurelia). `EEA` expands to its 30 members |
+| `transfer_missing` | medium | activity | An engagement processes data in a country outside the EEA with no transfer to that country. An adequacy country (UK, Switzerland) is no exception: its transfer is recorded with `mechanism: adequacy` |
+| `unmapped_system` | medium | system | A Render system no active activity uses (Ch5: `cv-parser`). An activity without a Render system is **not** a finding (C1 lives in Peoplehub) |
+| `external_saas_mismatch` | low | activity | An `external_saas` system on an activity with no engagement with its host, or an engagement with a SaaS host whose systems the activity lists none of (DM §5) |
+| `review_overdue` | low | activity | `reviewDueAt` is before today |
 
-Response: `{ "generatedAt", "findings": [ { "type", "severity", "target": Ref, "details" } ] }`. Coverage doesn't open review items itself. A scheduled job (a natural fit for a **Render cron job**) or the Snapshot calls it and opens review items for new findings.
+Response: `{ "generatedAt", "findings": [ { "key", "type", "severity", "targetType", "target": Ref, "details" } ] }`, most severe first. Severity is fixed per type, and the schema holds each type to its own. `details` is typed per finding (the engagement, party, country, client and terms involved). Only live activities and engagements in force count. `?asOf=` is refused (`422 not_supported`): coverage is a question about today.
+
+**`key`** is built from the finding's cause (`region_violation:<engagementId>:<clientId>:IN`), so the same cause gives the same key on every run and two causes on one activity give two keys. `targetType` and `target` are what a review item for the finding points at. Coverage doesn't open review items itself. A scheduled job (a natural fit for a **Render cron job**) or the Snapshot calls it and opens review items for new findings: it stores the finding's `key` in the item's `details` and opens one only for a key with no open item. Every finding type is also a review-item `reason`.
 
 ## 6. Events
 

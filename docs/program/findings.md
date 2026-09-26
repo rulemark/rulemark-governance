@@ -140,6 +140,18 @@
     receives only `cv`, and P1 runs on four systems. It is now written from
     the seed.
 
+- **Phase 4: coverage (2026-09-26).**
+  - `external_saas_mismatch` was a finding type but not a review-item reason,
+    so a caller could never have opened an item for it. Now it is, and a test
+    holds every `FINDING_TYPES` value to be in `REVIEW_REASONS`.
+  - A per-type test that passes one activity leaves the rest of the record's
+    Render systems unused, so `unmapped_system` fires on them. Per-type tests
+    filter to their own type; exact whole-list checks use the whole record.
+  - The shared fixture's C4 lacked its Glitchlog transfer to the US, which the
+    seed has: coverage would have reported a false `transfer_missing`.
+  - DM §7's reverse SaaS rule, read literally, flags a host with two tools of
+    which the activity uses one. Implemented and documented as "lists none".
+
 ## Issues encountered
 | Issue | Resolution |
 |---|---|

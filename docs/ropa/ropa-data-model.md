@@ -318,7 +318,7 @@ Shared vocabularies. DSAR and Monitor reference them by `slug`.
 | target_party_id | FK → party | exactly one target | |
 | target_system_id | FK → system | exactly one target | |
 | source | enum `monitor` \| `snapshot` \| `manual` \| `schedule` | yes | Who opened it |
-| reason | enum `vendor_subprocessor_added` \| `vendor_subprocessor_removed` \| `unmapped_system` \| `transfer_missing` \| `region_violation` \| `review_overdue` | yes | |
+| reason | enum `vendor_subprocessor_added` \| `vendor_subprocessor_removed` \| `unmapped_system` \| `transfer_missing` \| `region_violation` \| `review_overdue` \| `external_saas_mismatch` | yes | Every coverage finding type is a reason (`external_saas_mismatch` added in build step 3) |
 | details | jsonb | no | e.g. the diff from the Monitor |
 | deadlines | jsonb | no | e.g. `{vendorEffective: 2026-07-03, clientNotice: [{client: aurelia, type: specific, due: …}]}` for the Ch6 collision |
 | due_at | date | no | Earliest deadline |
@@ -429,7 +429,7 @@ Events are written here **in the same transaction** as the revision they describ
 | **Report** | Controller view: `self` party + controller activities with all Art. 30(1) fields. Processor view: offering/client scoping + Art. 30(2) fields. `asOf` via revisions | Ch4, Ch8 |
 | **Impact (party)** | The party's engagements → activities (role, data categories, special flag, countries). For processor activities: affected clients = clients for whom the engagement is effective (§3.8), grouped by agreement terms (authorization type, notice days). Plus the vendor's inbound terms, every one in force. Flags **notice conflict** when the vendor's shortest notice < client notice (unknown without a vendor DPA) | Ch6 |
 | **Data map** | Subject category (+ optional client) → activities → systems + engagements (each with the data categories it receives for the activity: an upper bound, since data categories aren't linked to subject categories), retention rules, and `action: act \| forward` from the activity role | Ch7 |
-| **Coverage** | Render systems with no activity; non-EEA countries with no transfer; `region_violation`: an engagement effective for a client whose agreement has `allowed_regions`, with a processing country or transfer destination outside them (Ch6: Helpdesk Partners in India on Mailcrest's EU region); `external_saas` systems on an activity with no matching engagement with their hosting party, and vice versa (an engagement with a party that hosts an `external_saas` system the activity doesn't list); review dates passed. Activities with no Render system are **not** flagged | Ch5 |
+| **Coverage** | Render systems with no activity; non-EEA countries with no transfer; `region_violation`: an engagement effective for a client whose agreement has `allowed_regions`, with a processing country or transfer destination outside them (Ch6: Helpdesk Partners in India on Mailcrest's EU region); `external_saas` systems on an activity with no matching engagement with their hosting party, and vice versa (an engagement with a party that hosts `external_saas` systems, none of which the activity lists; a host with two tools, one used, is fine); review dates passed. Activities with no Render system are **not** flagged | Ch5 |
 
 ## 8. Cross-service references
 
