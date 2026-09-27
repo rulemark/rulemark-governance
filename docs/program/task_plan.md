@@ -11,7 +11,7 @@ Build step 4 from `docs/ropa/ropa-api.md` §8. **Enough for Ch8, the audit log,
 and a finding reaching a person on its own.**
 
 ## Current Phase
-Phase 4 (`subprocessors.changed`), not started. Phases 1–3 complete
+Phase 5 (the dispatcher), not started. Phases 1–4 complete
 
 ## Definition of done for step 4
 - `GET /report?view=all&asOf=2026-03-01` on the seeded record answers Chapter 8:
@@ -77,13 +77,14 @@ Reference: API §2 (history), §6 (reconciliation); step 3 open question 1
 
 ### Phase 4: `subprocessors.changed`
 Reference: API §6; DB §6.1 step 5; step 2's decision in API §8
-- [ ] Only activity saves emit, and only when a list changes: never a draft save (drafts are on no list), never an agreement signed or ended (onboarding, not a change)
-- [ ] Lists compared **as planned**: future-dated engagements and scope rows count, so a change is heard when it is recorded, not when it takes effect; nothing fires when a date arrives
-- [ ] The save computes the offering's and each affected client's list before and after, with the functions `GET /subprocessors` uses, and writes `added[]`, `removed[]` and `changed[]` (a subprocessor still listed whose countries or transfers changed), each entry with its `effectiveFrom`
-- [ ] API §6's payload updated to match
-- [ ] In the same transaction as the save; destination `monitor`
+- [x] Only activity saves emit, and only when a list changes: never a draft save (drafts are on no list), never an agreement signed or ended (onboarding, not a change)
+- [x] Lists compared **as planned**: future-dated engagements and scope rows count, so a change is heard when it is recorded, not when it takes effect; nothing fires when a date arrives
+- [x] The save computes the offering's and each affected client's list before and after, with the functions `GET /subprocessors` uses, and writes `added[]`, `removed[]` and `changed[]` (a subprocessor still listed whose countries or transfers changed), each entry with its `effectiveFrom`
+- [x] API §6's payload updated to match
+- [x] In the same transaction as the save; destination `monitor`
+- **Built:** an aggregate's `afterRevision` hook in the generic save; the activity's reads its previous revision and the offering's other live activities, and writes one event per list that changed (`domain/subprocessor-events.ts`), from a pure diff (`domain/subprocessor-changes.ts`). Events carry `terms` and `cause`, and are routed by `EVENT_ROUTES` (`monitor`). The story's replay writes twelve, each checked
 - **Done when:** saving P3 writes Scribe AI added; excluding Aurelia from P3 writes it removed for her alone; the Ch6 edit to P1 writes Mailcrest `changed` (India, via Helpdesk Partners) for the offering and each client
-- **Status:** pending
+- **Status:** complete
 
 ### Phase 5: The dispatcher
 Reference: DB §7; API §6 (delivery guarantees)
@@ -153,6 +154,7 @@ Reference: API §8 ("Decided during build step 3"), §5.5
 | **`subprocessors.changed` is for changes clients have agreed to hear about** (Art. 28(2): before they take effect). Only activity saves emit, and only when a list changes; agreements signed or ended don't (the client got the list before signing). Lists are compared as planned, future-dated rows included, and each entry carries `effectiveFrom`. The payload gains `changed[]`: a subprocessor still listed whose countries or transfers changed (Ch6: Mailcrest's onward transfer to India) | Step 4, open question 5 |
 | **The coverage cron job opens, never decides.** `svc:schedule`, role `service:schedule` (`view:coverage`, `review:read`, `review:create`; no `review:resolve`), a token minted per run with the secret passed by the Blueprint, the API reached over the private network, nightly at 02:00 UTC. A key with an open or dismissed item is skipped: a dismissal stands. It never closes an item: the person who fixes a finding says why | Step 4, open question 6 |
 | **The dispatcher is tested against real Postgres and real HTTP.** A unique destination per test isolates its rows from every other file's committed events (unconfigured destinations are ignored); `now` is a parameter, so the retry schedule is tested by advancing a clock, not by sleeping; a local receiver is scripted to succeed, fail or time out; real transactions on the test's own connections make double sends, ordering and at-least-once observable. The runner's loop and shutdown are tested without a database | Step 4, open question 7 |
+| **`subprocessors.changed`, as built (Phase 4 questions, 2026-09-27):** (1) the planned list is the list once every start and end date recorded has arrived; each entry's `effectiveFrom` is the first day, from the save's own day, on which the saved record shows it as planned. (2) The offering event mirrors `GET /subprocessors?offering=`: standard entries and opt-in module entries, each marked with its `module` (null, or the activity). (3) Client events go to every client holding an agreement for the offering that has not ended, a future-signed one included, and carry the terms that client signed | Step 4, Phase 4 |
 | The seeded-story acceptance tests share one replay per file (`governance-views.test.ts`); pure-view tests share `test/fixtures/story-snapshots.ts` | Step 3 |
 | **The views read a `RecordReader`**, live or as of a date, and get snapshots either way; a slug is matched as the record spelled it at *T*; an `asOf` read loads the whole record at *T* once | Step 4, Phase 1 |
 

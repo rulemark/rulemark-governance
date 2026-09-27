@@ -221,3 +221,54 @@
     test database fixed it; DB §8.1 now says so.
   - Raw SQL through Drizzle returns timestamps as strings, not `Date`s.
 
+
+- **Phase 4's three questions (2026-09-27),** raised when building, not in
+  planning: the plan said "compared as planned" and "with `effectiveFrom`"
+  without saying how.
+  - **Planned means every recorded date applied.** A future start is heard
+    as added, a future end as removed, when recorded. `effectiveFrom` is the
+    first day, from the save's day, on which the saved record shows the entry
+    as planned, found by asking the same list functions on each date the
+    record holds. Rejected: comparing on the save's day (Scribe AI from 15 May
+    would never be heard) and counting only future starts (ends would behave
+    differently from beginnings for no reason a client would see).
+  - **The offering event includes opt-in modules, marked.** It mirrors
+    `GET /subprocessors?offering=`, so a list published from events can't
+    disagree with the one the API serves. Rejected: standard list only
+    (module changes lost to prospects), and an event per module (a third
+    scope no chapter needs).
+  - **Client events for every client whose agreement hasn't ended**, a
+    future-signed one included, **with the terms they signed**
+    (`authorizationType`, `noticeDays`): whether a change needs a notice or
+    an approval is the Monitor's first question, and `/subprocessors?client=`
+    already answers with the terms. Rejected: today's clients only (a client
+    starting next month misses changes to the list they signed up to), and
+    Refs only (one more call per event).
+- **Phase 4: `subprocessors.changed` (2026-09-27).**
+  - **The story is the acceptance test.** Replaying it writes twelve events,
+    and the test lists all twelve: P1 live (offering, Northwind, Fjord);
+    Aurelia's own P1 edit (Glitchlog removed, Mailcrest moved to Ireland, for
+    her alone); P2 live (the offering, Render as a module; Aurelia had Render
+    already); P3 live (Scribe AI for everyone but Aurelia); Ch6 (Mailcrest
+    changed for the offering and all three clients). It passed on the first
+    run, which is also why every guard was then broken by hand.
+  - **"Before" is the previous revision**, read in the save's transaction;
+    "after" is the live record, which already sees the save's writes. The
+    other activities of the offering are the same on both sides. The hook
+    is `afterRevision` on the aggregate spec, so create, `PUT`, activate,
+    retire and delete all go through it without each call site knowing.
+  - **"Planned" is a day, not a mode.** The list as planned is the list
+    judged on `9999-12-31`; `effectiveFrom` asks the same functions on each
+    date the saved record holds from the save's day on. So is "clients as
+    planned": the live reader judged on that day, joined with today's.
+  - **Routing arrived early.** `EVENT_ROUTES` (per event type) replaced the
+    single default destination, because this is the first event with a
+    different consumer. Phase 5 adds the addresses.
+  - **A guard the API can't reach, tested anyway.** Only drafts can be
+    deleted through the API, and a draft is on no list, so treating a
+    deletion as "still listed" passed every test. The domain allows any
+    deletion, so a test deletes P3 there, in a rolled-back transaction.
+  - **Countries and transfers, not services.** A service renamed is not a
+    change (the Ch4 edit renames Mailcrest's service to "(US region)"
+    without an event for Northwind); only where data goes is.
+

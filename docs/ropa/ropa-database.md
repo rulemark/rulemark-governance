@@ -441,7 +441,7 @@ All in **one transaction** (`READ COMMITTED` is enough, because step 1 locks the
 2. **Domain validation** of the new state: structural always, role rules if the result is `active` (API §1.5). Cross-table rules (§2) are checked here, inside the transaction, so they see a consistent state.
 3. **Nested rows.** Compare what was sent with what's stored, by `id` (API §1.4): update rows with a known `id`, insert rows without one, delete rows that were left out. Link tables are replaced (delete + insert).
 4. **Snapshot.** Load the whole aggregate from within the transaction and write it to `revision` with the new `version`, the `change_type`, `actor` and `change_note`.
-5. **Events.** Insert one `event_outbox` row per destination for `record.changed`. If the change alters a derived subprocessor list (API §6), compute the list before and after for the affected offering and clients, and insert `subprocessors.changed` rows too.
+5. **Events.** Insert one `event_outbox` row per destination for `record.changed`. If the change alters a derived subprocessor list (API §6), compute the list before and after for the affected offering and clients, and insert `subprocessors.changed` rows too. *As built (step 4):* an aggregate declares `afterRevision`, which the save calls after the revision; the activity's compares the planned lists from its previous revision and the offering's other live activities (`domain/subprocessor-events.ts`), with the pure diff in `domain/subprocessor-changes.ts`.
 6. **Commit.** The record, its history and its events become visible together, or not at all.
 
 In Drizzle this is `db.transaction(async (tx) => { … })`, with every step using `tx`.

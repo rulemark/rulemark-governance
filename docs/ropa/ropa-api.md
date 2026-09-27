@@ -597,10 +597,20 @@ RoPA **pushes** events to its consumers (Q3). Delivery is HTTP `POST` to configu
 | Event | When | Payload | Consumer |
 |---|---|---|---|
 | `record.changed` | Any revision | `entityType`, `entity` (Ref), `version`, `changeType` (`created` \| `updated` \| `activated` \| `retired` \| `deleted`), `actor`, `changeNote`, `validFrom` | Audit log (#1) |
-| `subprocessors.changed` | A save changes the derived subprocessor list of an offering or a client | `offering` or `client` (Ref), `added[]`, `removed[]` (party Refs) | Monitor (#5): outbound notices (Ch5) |
+| `subprocessors.changed` | An activity's save changes the subprocessor list of an offering or a client, compared as planned | `offering`, `client` (Ref, or null for the offering's list), `terms`, `cause`, `added[]`, `removed[]`, `changed[]`: see below | Monitor (#5): outbound notices (Ch5) |
 | `review_item.changed` | A review item is opened, resolved or dismissed | `changeType` (`opened` \| `resolved` \| `dismissed`), `actor`, `reviewItem` (the whole item after the change, as `GET /review-items/{ref}` returns it) | Audit log (#1) |
 
 Review items have no revisions, so `review_item.changed` carries the whole item rather than pointing at a snapshot. Its outbox row has no `revision_id`. `occurredAt` is when the item was opened or closed. Built in step 3; delivered with the rest in step 4. Their history is kept apart from delivery, in `review_item_event` (step 4), which `/changes` reads.
+
+**`subprocessors.changed`, as built (step 4).** Art. 28(2) asks for notice *before* a change takes effect, so the event is about the lists as planned and says when each change lands:
+- **Only activity saves emit**, and only when a list changes: never a draft save (drafts are on no list), never an agreement signed or ended (onboarding: the client saw the list before signing). Activating, editing, retiring and deleting an activity can all emit.
+- **Compared as planned.** The list before and after the save is the list once every start and end date the record holds has arrived, from the same functions `GET /subprocessors` uses. A future-dated engagement or scope row is heard when it is recorded; nothing fires on the day it lands. Each entry's `effectiveFrom` is the first day, from the save's own day, on which the saved record shows it as planned.
+- **One event per list that changed:** the offering's (`client: null`), mirroring `GET /subprocessors?offering=`, and each client's whose agreement for the offering has not ended, a future-signed one included. `terms` is the offering's default terms or the terms the client signed (`authorizationType`, `noticeDays`), so the Monitor knows whether it owes a notice or needs an approval.
+- **Entries:** `added[]` and `removed[]` carry `party`, `module`, `services`, `processingCountries`, `transfers` and `effectiveFrom`; `changed[]` is a subprocessor still listed whose countries or transfers are not what they were, with `before` and `after` (Ch6: Mailcrest, now reaching India through Helpdesk Partners). A change of service description alone is not a change. `module` is the opt-in activity an entry is listed under on the offering's list (P2), otherwise null.
+- **`cause`** is the save: the activity (Ref), `version`, `changeType`, `actor` and `changeNote`. The outbox row carries that revision's id, and `occurredAt` is its `validFrom`.
+- Routed to `monitor` (open question 1), in the save's transaction.
+
+Replaying the story writes twelve: P1 going live (the offering, Northwind, Fjord); Aurelia's EU region and her Glitchlog exclusion (Aurelia alone); P2 going live (the offering, Render as a module); P3 going live (the offering, Northwind, Fjord: Scribe AI); Ch6 (the offering and all three clients: Mailcrest changed).
 
 **Envelope.** Every event has the same wrapper:
 
@@ -642,7 +652,7 @@ Review items have no revisions, so `review_item.changed` carries the whole item 
 5. **Conveniences:** CSV report format; engagement sub-resource (§3.5).
 
 **Decided during build step 2 (2026-09-26)**, for the steps that follow:
-- **Step 4 builds `subprocessors.changed` (§6) with the dispatcher**, not before: the events belong with what delivers them (DB §6.1 step 5). The save computes the list before and after for the offering and for each client the change affects, using the same functions `GET /subprocessors` uses (`domain/views/subprocessors.ts`), and writes `added[]`/`removed[]`.
+- **Step 4 builds `subprocessors.changed` (§6) with the dispatcher**, not before: the events belong with what delivers them (DB §6.1 step 5). The save computes the list before and after for the offering and for each client the change affects, using the same functions `GET /subprocessors` uses (`domain/views/subprocessors.ts`), and writes `added[]`/`removed[]`. **Done in step 4:** compared as planned, with `changed[]`, `effectiveFrom`, modules and the client's terms (§6, "as built").
 - **`asOf` arrives in step 4 without new view logic.** The views are pure functions over activity aggregates (DB §6.3); only the loading is SQL. `asOf` feeds them snapshots from revisions instead of live rows. Until then, `?asOf=` answers `422 not_yet_supported` rather than answering for today. **Done in step 4:** the views read a `RecordReader`, live or as of a date (DB §6.3), and none of their logic changed.
 - **`/revisions` already exists** (step 1), and every save has written `record.changed` outbox rows since step 1. What step 4 adds is `asOf`, `/changes`, `subprocessors.changed` and delivery. Still open: how to test the dispatcher, which manages its own transactions (not one per test).
 - **Step 5:** `format=csv` answers `422 not_yet_supported` until then. The engagement sub-resource can build on `inputFromSnapshot` (`domain/activity/input.ts`), which turns a stored activity into the `PUT` body that saves it unchanged.
