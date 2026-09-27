@@ -11,7 +11,7 @@ Build step 4 from `docs/ropa/ropa-api.md` §8. **Enough for Ch8, the audit log,
 and a finding reaching a person on its own.**
 
 ## Current Phase
-Phase 6 (the coverage cron job) built; Phase 5 built and committed. Both live checks wait for the push (Phase 7). Phases 1–4 complete
+Step 4 complete (2026-09-27): Phases 1–7 done, deployed and verified on the live service
 
 ## Definition of done for step 4
 - `GET /report?view=all&asOf=2026-03-01` on the seeded record answers Chapter 8:
@@ -101,7 +101,7 @@ Reference: DB §7; API §6 (delivery guarantees); Phase 5 questions in "Decision
 - [x] A `pserv` (private service) in `render.yaml`, smallest paid instance; `ropa-api`'s `EVENT_DESTINATION_AUDIT_LOG` wired to its `hostport` by `fromService`
 - **Built:** `src/delivery/` in `ropa-api`: `claimBatch` (DB §7's query, leased), `dispatchOnce`, `cleanupDelivered`, `startRunner`; started by `index.ts` when a destination is configured, stopped before the pool on `SIGTERM`. `EventEnvelope` in the package's new `events` entry point. `apps/audit-log` (`node:http`, pino). Batch 10, timeout 5 s, lease 2 min, idle 5 s, cleanup hourly. Locally, the development database's backlog (2,045 events, 1,694 records) went out in 2.4 s, each once, none out of order
 - **Done when:** events reach a destination, a failing one is retried on schedule, and none is delivered twice; on Render, the receiver's logs show the backlog since the first deploy arriving in order
-- **Status:** built; to commit, then the live check (the receiver's logs on Render) after the push
+- **Status:** complete: deployed, and on Render the backlog of 72 events delivered in order, each once
 
 ### Phase 6: The coverage cron job
 Reference: API §8 ("Decided during build step 3"), §5.5
@@ -116,14 +116,18 @@ Reference: API §8 ("Decided during build step 3"), §5.5
 - [x] `service:snapshot` gains `review:read`, so the Snapshot can dedupe the same way
 - **Built:** `src/jobs/coverage-job.ts` (`runCoverageJob`) and `src/jobs/coverage.ts` (`npm run job:coverage`); `loadCoverageJobConfig` (`ROPA_API_URL`: `host:port` or a URL, the same parsing as event destinations; `COVERAGE_JOB_SUBJECT`, default `svc:schedule`). Items carry `details: { key, severity, …the finding's }` and no `dueAt`. A `coverage-job` cron resource in `render.yaml`. Locally, against the development database: three `unmapped_system` findings opened, then skipped on the second run
 - **Done when:** on Render, the job opens Aurelia's region violation once, and a second run opens nothing
-- **Status:** built; to commit, then the live check (Trigger run, twice) after the push and the `PRINCIPALS` edit
+- **Status:** complete: deployed, and two triggered runs on Render opened RI-1 once
 
 ### Phase 7: Deploy and verify
 *Phases 1–4 are already deployed, code first, each verified (see `progress.md`); Ch8's `asOf` and `/changes` answer on the live service.*
-- [ ] Before the cron job's first run: add `svc:schedule` (`service:schedule`) to `PRINCIPALS` in `ropa-api`'s dashboard
-- [ ] Push code commits on their own, docs separately
-- [ ] Ch8 answered on the live, seeded service; the cron job's run visible in Render
-- [ ] README tour: the regulator's question, `/changes`, and the cron job
+- [x] Before the cron job's first run: add `svc:schedule` (`service:schedule`) to `PRINCIPALS` in `ropa-api`'s dashboard
+- [x] Push code commits on their own, docs separately
+- [x] Ch8 answered on the live, seeded service; the cron job's run visible in Render
+- [x] README tour: the regulator's question, `/changes`, and the cron job
+- [x] On Render, the backlog since the first deploy delivered to `audit-log` (Phase 5's live check): checked in the outbox from `ropa-api`'s Shell, since the receiver's logs had restarted
+- **Verified (2026-09-27):** code pushed through `85753d0` on its own; CI passed and `ropa-api` restarted about 90 s later; docs pushed after. Live: `/report?view=all&asOf=2026-03-01` holds C1–C4 and P1, no P3, Scribe AI or Aurelia; `/changes?from=2026-03-01` lists the story's 15 changes in order; `?key=` answers. With `svc:schedule` in `PRINCIPALS`, two triggered runs left exactly one item: RI-1, Aurelia's `region_violation` on P1, opened by `svc:schedule`, `severity: high`, no `dueAt`
+- **Delivery, once the sync finished (2026-09-27):** the Blueprint sync that created `coverage-job` and `audit-log` ran its steps in order and stalled on creating `audit-log` for about 30 minutes; a Manual Sync completed it, adding `EVENT_DESTINATION_AUDIT_LOG` to `ropa-api`, which redeployed. The outbox then showed all 72 events delivered to `audit-log` in 0.46 s (02:57:37 UTC), one attempt each, no errors, nothing pending
+- **Status:** complete
 
 ## Open questions
 1. ~~**Where do events go?**~~ **Resolved (2026-09-26):** who hears what is routing, in code; where each destination lives is configuration (`EVENT_DESTINATIONS`, name → URL), and an unconfigured destination's events wait. A minimal audit-log receiver runs as a Render private service. See "Decisions carried forward" and `findings.md`. *Phase 5.*

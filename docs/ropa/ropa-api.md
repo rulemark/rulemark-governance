@@ -659,7 +659,7 @@ Replaying the story writes twelve: P1 going live (the offering, Northwind, Fjord
 1. **Foundation:** conventions (§1), auth (§1.9: minting, verification, the permission map), taxonomies, parties, agreement terms, agreements, offerings, systems. Revisions are **written** from day one, because they can't be recreated later. Auth comes first too: retrofitting the actor into existing revisions isn't possible.
 2. **Activities:** CRUD, role rules, activate/retire. `GET /subprocessors` and `GET /report` in **JSON and Markdown** (current state). Markdown comes this early because it feeds the architecture document (Q5). This is enough for Ch2–Ch4.
 3. **Governance views:** `/parties/{ref}/impact`, `/data-map`, `/coverage`, review items. Enough for Ch5–Ch7 and the Monitor/DSAR integrations. **Done 2026-09-26.**
-4. **History:** `asOf`, `/revisions`, `/changes`, event outbox and push delivery, and the Render cron job that opens review items from coverage findings. Enough for Ch8, the audit log, and a finding reaching a person without anyone asking.
+4. **History:** `asOf`, `/revisions`, `/changes`, event outbox and push delivery, and the Render cron job that opens review items from coverage findings. Enough for Ch8, the audit log, and a finding reaching a person without anyone asking. **Done 2026-09-27.**
 5. **Conveniences:** CSV report format; engagement sub-resource (§3.5).
 
 **Decided during build step 2 (2026-09-26)**, for the steps that follow:

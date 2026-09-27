@@ -384,3 +384,21 @@
     helpers that build requests stay synchronous.
   - **`svc:schedule` is in `.env.example`'s `PRINCIPALS`,** so a clone can
     run the job locally; Render's is edited by hand (question 2).
+- **Phase 7: a Blueprint sync that creates services takes a while, in
+  order (2026-09-27).** The push deployed `ropa-api` about 90 s after CI,
+  while the sync that creates `coverage-job` and `audit-log` was still
+  running its steps one at a time: the cron job, then the private service
+  (its first build and deploy), then the variable on `ropa-api` that points
+  at it. Until that last step, `ropa-api` had no destination, so the 72
+  events waited in the outbox (0 attempts, no error), as designed. Two
+  things this taught:
+  - `fromService` values are resolved at sync time (Render's spec), so a
+    variable that points at a new service arrives after that service, not
+    with the deploy that first needs it.
+  - The sync stalled on creating `audit-log` (about 30 minutes "running",
+    the variable queued behind it). A Manual Sync, though the dashboard
+    said one was already running, completed it; `ropa-api` redeployed with
+    the variable and delivered the 72 events in 0.46 s.
+  - The outbox query from `ropa-api`'s Shell (pending, delivered, attempts,
+    last error per destination) answers "is delivery working?" when the
+    receiver's logs have rolled over or restarted; logs can't.

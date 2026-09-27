@@ -138,6 +138,28 @@
     caught, one after a new fixture
   - Run locally from `dist/`: three findings opened, then skipped
   - API §1.9, §2, §5.5 and §8; `ropa-packages.md`; README; `.env.example`
+- Phase 6 committed (`85753d0`, docs `70ee304`)
+- Phase 7:
+  - Pushed through `85753d0` on its own (Phases 5 and 6 code, and Phase 5's
+    docs); CI passed; `ropa-api` restarted about 90 s after. The Blueprint
+    creates `audit-log` and `coverage-job`. Docs (`70ee304`) pushed after
+  - Live: Ch8's report as of 1 March and `/changes` since March as
+    expected; `GET /review-items?key=` answers
+  - The user added `svc:schedule` to `PRINCIPALS` and triggered the job
+    twice: one item, RI-1 (Aurelia's region violation on P1, opened by
+    `svc:schedule`, `severity: high`, no due date)
+  - README tour: a step for the regulator's questions (`asOf`, Aurelia's
+    list on 1 May against today's, `/changes`) and events; the review-item
+    steps tell of the nightly job
+  - The first check found 72 events pending with 0 attempts: the sync
+    creating `audit-log` was still running, and `ropa-api` had no address
+    yet. It stalled for about 30 minutes on creating `audit-log`; a Manual
+    Sync finished it, adding `EVENT_DESTINATION_AUDIT_LOG`, and `ropa-api`
+    redeployed (live at 02:58:05 UTC)
+  - Checked in the outbox from `ropa-api`'s Shell (the receiver's logs had
+    restarted): 72 delivered to `audit-log` between 02:57:37.26 and
+    02:57:37.72 UTC, one attempt each, no errors, none pending
+  - Step 4 complete
 
 ## Test Results
 | Test | Command | Expected | Actual | Status |
@@ -161,8 +183,8 @@
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Build step 4, Phases 1–4 complete and pushed; Phases 5 and 6 built, their live checks waiting for the push (Phase 7) |
-| Where am I going? | The dispatcher and the audit-log receiver (Phase 5), the coverage cron job (Phase 6), then the final deploy and the README tour (Phase 7) |
+| Where am I? | Build step 4 complete: Phases 1–7 deployed and verified live |
+| Where am I going? | Step 5 (`ropa-api.md` §8): CSV reports and the engagement sub-resource |
 | What's the goal? | The record's past answerable (Ch8) and its changes heard: events delivered, findings carried to a person on a schedule |
 | What have I learned? | See findings.md, and `plan-archive/4/findings.md` for step 3 |
 | What have I done? | Steps 1–3 complete and deployed. Step 4 Phases 1–4 deployed: the record as of a date, `asOf` on four views, `GET /changes` with review items' own history, and `subprocessors.changed` |

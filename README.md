@@ -75,36 +75,65 @@ Hireloop demo record.
      region, which breaks Aurelia's EEA-only clause. C1 has no Render system,
      and that is correctly not a finding
    - [`/v1/review-items`](https://ropa-api.onrender.com/v1/review-items) — the
-     findings carried to a person, until resolved or dismissed
+     findings carried to a person, until resolved or dismissed. Nobody opened
+     RI-1 by hand: a Render cron job runs coverage nightly and opens an item for
+     each finding no person has yet, as `svc:schedule`. It opens and never
+     decides: a second run opens nothing, a dismissal stands, and closing an
+     item is left to whoever fixed the finding
 
-5. **Try to write something.** `POST /v1/parties` without a token answers `401`
+5. **Ask what the record said then.** The regulator's questions (Ch8), answered
+   from the history every save has kept since the first deploy:
+
+   - [`/v1/report?view=all&asOf=2026-03-01`](https://ropa-api.onrender.com/v1/report?view=all&asOf=2026-03-01)
+     — the record as it stood on 1 March: C1–C4 and P1, no P3, no Scribe AI,
+     and Aurelia not yet a client. Names are the ones the record used that day.
+     [Without `asOf`](https://ropa-api.onrender.com/v1/report?view=all), P3 is
+     there
+   - [`/v1/subprocessors?client=aurelia&asOf=2026-05-01`](https://ropa-api.onrender.com/v1/subprocessors?client=aurelia&asOf=2026-05-01)
+     — Aurelia's list on 1 May: Render and Mailcrest in Ireland. Compare
+     [today's](https://ropa-api.onrender.com/v1/subprocessors?client=aurelia),
+     where Mailcrest reaches India through Helpdesk Partners
+   - [`/v1/changes?from=2026-03-01`](https://ropa-api.onrender.com/v1/changes?from=2026-03-01)
+     — what changed since March, with who and why: Aurelia signing, P2, P3 on
+     14 April, the July edits after Mailcrest's change, and review items as they
+     are opened and closed
+
+   Every change is also pushed as an event, in order, to the services that act
+   on it: the audit log (a private service, reachable only inside Render) gets
+   each one, and the Monitor will get `subprocessors.changed` when a client's
+   list moves.
+
+6. **Try to write something.** `POST /v1/parties` without a token answers `401`
    — not `403`, because we do not know who you are. Authorization runs before
    validation, so you cannot learn whether your body was well-formed either.
 
-6. **Get a token.** `POST /v1/tokens` with a known subject and the mint secret,
+7. **Get a token.** `POST /v1/tokens` with a known subject and the mint secret,
    then **Authorize**. `GET /v1/me` now lists the permissions your roles add up
    to. A viewer attempting a write gets `403` naming the exact permission it
    needed.
 
-7. **Create a party**, leaving out `slug` — it is derived from the name. Then
+8. **Create a party**, leaving out `slug` — it is derived from the name. Then
    read `/v1/parties/{slug}/revisions`: the change is recorded against the
    subject in your token, not against anything the request could assert. Send
    `X-Actor` and watch it be ignored.
 
-8. **Edit it.** A `PUT` without `If-Match` answers `428`; with a stale version,
+9. **Edit it.** A `PUT` without `If-Match` answers `428`; with a stale version,
    `412`. The `ETag` on every response is the version to send back.
 
-9. **Draft and approve an activity.** An editor can save an incomplete draft,
+10. **Draft and approve an activity.** An editor can save an incomplete draft,
    but cannot activate it: `POST /v1/activities/{ref}/activate` needs the
    `activity:approve` permission, and `If-Match` naming the version the approver
    reviewed. Activating a draft that is missing what its role requires answers
    `422`, naming each missing field. An approver holding an older version gets
    `412`.
 
-10. **Carry a finding to a person.** Open a review item from the coverage
-    finding: `POST /v1/review-items` with its `targetType`, `target` and
-    `type` as the `reason`, and its `key` in `details`. It gets an `RI-n` code
-    and records who opened it from your token. An editor closes it with
+11. **Carry a finding to a person.** The nightly job did this for the region
+    violation (RI-1); by hand it is `POST /v1/review-items` with the finding's
+    `targetType`, `target` and `type` as the `reason`, and its `key` in
+    `details`. `?key=` with a finding's key finds the items already carrying
+    it, and [`?source=schedule`](https://ropa-api.onrender.com/v1/review-items?source=schedule)
+    what the job opened. An item gets an `RI-n` code and records who opened it
+    from your token. An editor closes it with
     `POST /v1/review-items/{code}/resolve` and a `resolutionNote`; a second
     close answers `409`, because only an open item can be closed. Review items
     are not versioned, so there is no `If-Match` here.
@@ -143,6 +172,12 @@ it to the **newest commit of a push** only. A push that ends with a docs-only
 commit therefore deploys nothing, even if earlier commits in it change the app,
 and the skip leaves no trace in the service's Events. Push code commits on their
 own, then documentation separately.
+
+A Blueprint sync that creates a service runs its steps in order, so a variable
+pointing at a new service (`EVENT_DESTINATION_AUDIT_LOG`) only arrives once
+that service exists; until then its events wait in the outbox. If a sync sits
+on "Create private service" for long, a **Manual Sync** from the Blueprint's
+page completes it.
 
 The cron job calls the API as `svc:schedule`, which has to be in `ropa-api`'s
 `PRINCIPALS` (set in the dashboard, like every subject):
