@@ -20,6 +20,8 @@ this document records the design as it is settled, one question at a time.
 | 7 | **The Snapshot creates systems; people link them.** A resource no RoPA system points at becomes a new system, created by the Snapshot (`system:write`): its kind, region, `render_resource_id`, hosting party Render, and a name and slug from the resource. For linked systems it keeps kind and region in sync; names stay as people wrote them. It never links by guessing: a stand-in link (`render_resource_id` on `hireloop-api`) is set by a person, and for the demo by a seed step from a small mapping. A new system no activity uses is coverage's `unmapped_system`, and so a review item: Chapter 5's `cv-parser` path. A system whose resource is gone is shown as not deployed, never deleted | Puts "the Snapshot owns systems, RoPA keeps a reference" (DM §1) to work without letting a machine decide what a resource means legally. A guessed link would attach the wrong activities, and so the wrong legal context, to a system | 2026-09-27 |
 | 8 | **Published as a web page, Markdown and an API**, by the Snapshot's web service: an HTML page with the Mermaid diagram (trust boundaries as groups; each system annotated with its RoPA activities, linking to the report's `#p3` anchors), a service catalog, drift and change history; the same document as Markdown, like the report's `format=markdown`, for wikis and audits; and the JSON API the exec summary lists. The data context is read from RoPA's API when the page is rendered | The page is the demo's most visible artifact and a reviewer's way in; Markdown travels into audits and wikis; the API lets other tools query the inventory. Reading RoPA live means the legal context is never older than the record | 2026-09-27 |
 | 9 | **Read with a token by default; anonymous reading is the demo's opt-in.** The Snapshot accepts RoPA's own tokens (the JWT secret passed by the Blueprint) and a new `view:architecture` permission, which viewers get. Anonymous reading is off by default and a setting turns it on, as the public demo does | The document maps an install's attack surface: public URLs, what is private, IP allow lists. RoPA's reads are public by default; this one must not be, or every self-hosted install publishes its infrastructure map unless someone thinks to lock it down | 2026-09-27 |
+| 10 | **History stored on change; changes and drift announced as events.** Every capture is recorded, but its content is stored only when it differs from the last (by hash), and kept indefinitely. Each new snapshot is diffed against the previous one: resources added or removed, configuration changed (plan, region, instances, visibility, IP allow list), edges changed. Drift is a resource no Blueprint manages, or a live value that differs from its `render.yaml`. Changes and drift go to the audit log as events, through the same outbox pattern and envelope RoPA uses (`ropa-api.md` §6) | An inventory with timestamps and a change history is the audit evidence the exec summary promises, and drift reaching the audit trail is its governance signal. Storing only changes keeps a nightly capture from growing the table by a copy a night | 2026-09-27 |
+| 11 | **The coverage job stays the only opener of review items.** The Snapshot opens none itself: it creates systems (decision 7) and captures shortly before the coverage job (for example 01:30 UTC, the job at 02:00), so a new resource becomes a system, an `unmapped_system` finding and a review item the same night. Drift stays in the Snapshot's document and events | One opener means the duplicate-key race on the roadmap can't happen. Drift is an infrastructure signal, not a question about the record, so it doesn't widen RoPA's review vocabulary. **This supersedes** the RoPA documents' expectation that the Snapshot opens `unmapped_system` items with `source: snapshot` (`ropa-api.md` §5.5 and §8, DM §3.11); the `snapshot` source stays available | 2026-09-27 |
 
 ## 2. What it documents
 
@@ -87,13 +89,8 @@ stable per-activity anchors (`…#p3`) for the document to link to.
 
 ## 4. Open questions
 
-1. ~~**Sources.**~~ Settled: decisions 4 and 5. Webhooks as a capture
-   trigger are left for later.
-2. ~~**Secrets.**~~ Settled: decision 6.
-3. ~~**Linking to RoPA systems.**~~ Settled: decision 7.
-4. ~~**The document.**~~ Settled: decisions 8 and 9. Its exact sections are
-   worked out when it is built.
-5. **History and drift.** Snapshots, diffs, and drift events to the audit
-   log.
-6. **Review items.** Whether the Snapshot opens `unmapped_system` items, and
-   how it shares keys with the cron job.
+All six are settled (decisions 4–11). What remains is detail, worked out
+when planning the build: the document's sections, the Snapshot's tables and
+event types, the endpoint allowlist itself, the demo's stand-in mapping, the
+Blueprint's two new resources and their cost, and whether RoPA's delivery code
+moves into a package both apps share.

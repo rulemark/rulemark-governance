@@ -52,25 +52,12 @@ part handles. Together they make the program's goal, a **data-aware
 architecture document** (`docs/ropa/ropa-design.md` §1). Starting point:
 `docs/program/architecture-snapshot-exec-summary.md`.
 
-Decided so far (2026-09-27):
-
-- **Real infrastructure, with stand-ins.** The Snapshot captures the real
-  workspace, and the real resources play Hireloop's systems in RoPA through
-  `render_resource_id` (`ropa-api` as `hireloop-api`, `ropa-db` as
-  `hireloop-db`, and so on), so the document shows true infrastructure with
-  the story's legal context. Story systems with no real resource show as not
-  deployed.
-- **Self-hosted** (above): the collector runs in the customer's own
-  workspace, with their key.
-- **Its own app, sharing the database**: `apps/snapshot`, a cron job and a
-  web service, with its tables in a `snapshot` schema on `ropa-db`, talking to
-  RoPA only over HTTP.
-
-What RoPA already has waiting for it: the `service:snapshot` role
-(`system:write`, `review:create`), systems as records, `/coverage` findings,
-review items with `source: snapshot` and a shared finding `key`, and the
-Markdown report's stable per-activity anchors (`…#p3`) for the document to
-link to.
+Its design questions are settled (2026-09-27): eleven decisions in
+`docs/snapshot/snapshot-design.md`, among them real infrastructure with
+Hireloop's systems played by real resources, an app of its own sharing
+`ropa-db`, the Render API and each Blueprint's `render.yaml` as sources, an
+endpoint allowlist so it never reads a secret, and the coverage job staying
+the only opener of review items. Next: a build plan.
 
 ## Services around the record
 
@@ -102,7 +89,8 @@ Known gaps, none needed by the story so far:
   can't backdate them.
 - Nothing stops two open review items for one finding `key` if the cron job
   and the Snapshot open it at the same moment; a `key` column with a partial
-  unique index on open items would. More pressing once the Snapshot exists.
+  unique index on open items would. Less pressing now: the Snapshot won't
+  open items itself (`snapshot-design.md`, decision 11).
 
 Future improvements to the data model, with their reasoning:
 `ropa-data-model.md` §11 (F1 onward transfers as parties, F2 party roles as a
