@@ -11,7 +11,7 @@ one aggregate: one version, one revision, the same rules and events.
 Build step 5 from `docs/ropa/ropa-api.md` §8, the last in its build order.
 
 ## Current Phase
-Phase 4 (deploy and verify), in progress. Phases 1–3 complete and committed
+Build step 5 complete: all four phases done, deployed (`5b3003b`) and verified on the live, seeded service
 
 ## Definition of done for step 5
 - `GET /report?format=csv` answers `text/csv`, one row per activity ×
@@ -87,10 +87,10 @@ Reference: API §3.5, §1.8; DB §6.1
 - **Status:** complete (2026-09-27). 1174 tests pass; 13 deliberate breaks each failed a test
 
 ### Phase 4: Deploy and verify
-- [ ] Push code commits on their own, docs separately
-- [ ] On the live, seeded service: the CSV as of 1 March; an engagement read
-- [ ] README tour: the CSV download, and one engagement edited on its own
-- **Status:** in_progress
+- [x] Push code commits on their own, docs separately
+- [x] On the live, seeded service: the CSV as of 1 March; an engagement read
+- [x] README tour: the CSV download, and one engagement edited on its own
+- **Status:** complete (2026-09-27). Code pushed alone to `5b3003b`, CI green, `/healthz` uptime reset; the live checks below passed
 
 ## Open questions
 1. ~~**The CSV's shape.**~~ **Resolved (2026-09-27):** one table, a row per activity × engagement, `activityRole` and the union of both roles' columns, lists joined with `; `, `asOf` and `generatedAt` on every row, the scope and date in the filename. See `findings.md`. Was: "One row per activity × engagement" (§5.1) leaves the

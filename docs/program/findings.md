@@ -136,6 +136,16 @@
   test used the monitor, who lacks `record:read` too, so it would have passed
   with writes needing only `record:read`. A viewer (read, no write) does
   tell them apart. Same for the stale-before-content order.
+- **Checking push access from here: test git's own SSH command** (Phase 4).
+  This repo's `.git/config` sets `core.sshCommand` to its own key
+  (`~/.ssh/id_ed25519_rulemark`, `IdentitiesOnly`, no agent), which signs in
+  as `mattmeiske`. A bare `ssh -T git@github.com` goes through the agent and
+  signs in as `mattmeiske-ls` (a work key), which can read the repo but not
+  push, and looks like the cause of a push failure when it isn't. A pre-push
+  hook prints the account on every push. The failed attempt was transient.
+- **Live responses carry weak ETags** (`W/"4"`): Render's proxy weakens them
+  on compressed responses. `requireIfMatch` accepts `W/"n"`, so a client may
+  send back what it received.
 
 ## Issues encountered
 | Issue | Resolution |

@@ -39,6 +39,9 @@ Hireloop demo record.
    - [`/v1/activities/P1`](https://ropa-api.onrender.com/v1/activities/P1) —
      Mailcrest appears twice, one region each: the EU region only for Aurelia,
      the US region for everyone else
+   - [`/v1/activities/P1/engagements`](https://ropa-api.onrender.com/v1/activities/P1/engagements)
+     — the same engagements on their own, each readable by its id, under P1's
+     own `ETag`: they are part of the activity, not a record of their own
    - [`/v1/activities/P1/revisions`](https://ropa-api.onrender.com/v1/activities/P1/revisions)
      — its history, dated as the story tells it: created in February, changed
      when Aurelia signed in March, and again when Mailcrest added a
@@ -89,6 +92,11 @@ Hireloop demo record.
      and Aurelia not yet a client. Names are the ones the record used that day.
      [Without `asOf`](https://ropa-api.onrender.com/v1/report?view=all), P3 is
      there
+   - [The same record as CSV](https://ropa-api.onrender.com/v1/report?view=all&asOf=2026-03-01&format=csv)
+     — for whoever answers the regulator in a spreadsheet: one row per activity
+     and engagement, downloaded as `ropa-all-2026-03-01.csv`, with the date on
+     every row as well, so it survives a rename. A cell that would start a
+     formula in Excel is neutralised
    - [`/v1/subprocessors?client=aurelia&asOf=2026-05-01`](https://ropa-api.onrender.com/v1/subprocessors?client=aurelia&asOf=2026-05-01)
      — Aurelia's list on 1 May: Render and Mailcrest in Ireland. Compare
      [today's](https://ropa-api.onrender.com/v1/subprocessors?client=aurelia),
@@ -127,7 +135,17 @@ Hireloop demo record.
    `422`, naming each missing field. An approver holding an older version gets
    `412`.
 
-11. **Carry a finding to a person.** The nightly job did this for the region
+11. **Change one vendor.** Mailcrest's onward transfer to India (Ch6) can be
+    recorded on its engagement alone:
+    `PUT /v1/activities/P1/engagements/{id}` with the engagement and
+    `If-Match` naming P1's version. It is still one activity: one revision, the
+    same rules, and `subprocessors.changed` for every list it moves, exactly as
+    sending the whole activity would. Errors point into the engagement you
+    sent (`/transfers/0/mechanism`); naming a client as the vendor answers
+    `422 wrong_party_kind`. `POST` adds one, `DELETE` removes one, with an
+    optional `changeNote` in its body.
+
+12. **Carry a finding to a person.** The nightly job did this for the region
     violation (RI-1); by hand it is `POST /v1/review-items` with the finding's
     `targetType`, `target` and `type` as the `reason`, and its `key` in
     `details`. `?key=` with a finding's key finds the items already carrying

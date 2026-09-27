@@ -49,6 +49,19 @@
   and events. 13 deliberate breaks each failed a test; two tests were
   tightened first (the viewer for `403`, stale-before-content). API §3.5
   rewritten
+- **Phase 4 (deploy and verify) complete.** The first push attempt failed
+  with an access error after hanging for two minutes; a diagnosis through the
+  SSH agent wrongly blamed the account (the repo's `core.sshCommand` uses its
+  own key, which signs in as `mattmeiske`). A retry of the same push worked:
+  `git push origin 5b3003b:main` (Phases 1–3 together, since the earlier
+  Phase 1 push ended in a docs commit and deployed nothing). CI green,
+  `/healthz` uptime reset. Live: `?view=all&asOf=2026-03-01&format=csv` is
+  `text/csv`, `ropa-all-2026-03-01.csv`, a BOM and CRLF, 11 rows of C1–C4 and
+  P1 matching its JSON, `asOf` on every row, no P3 or Scribe AI;
+  `/activities/P1/engagements` equals P1's own under `ETag` 4, both Mailcrest
+  engagements read one by one (US: DPF and India; EU: India); P3's id under P1
+  `404`; an anonymous `POST` `401`. README tour: engagements, the CSV, and a
+  step for changing one vendor
 
 ## Test Results
 | Test | Command | Expected | Actual | Status |
@@ -66,8 +79,8 @@
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Build step 5, Phase 4 (deploy and verify); Phases 1–3 complete |
-| Where am I going? | The CSV report, reading engagements, writing engagements, then deploy |
+| Where am I? | Build step 5 complete, deployed and verified; the build order in `ropa-api.md` §8 is finished |
+| Where am I going? | Nothing scheduled: the Monitor, the Snapshot and the DSAR tracker are separate services |
 | What's the goal? | The record easy to use: a spreadsheet export, and one vendor changed on its own while the activity stays one aggregate |
 | What have I learned? | See findings.md, and `plan-archive/5/findings.md` for step 4 |
-| What have I done? | Step 5 Phases 1–3: the CSV report, reading and writing engagements, the party-kind check. Steps 1–4 complete and deployed: records and activities, the subprocessor list and report, governance views, history (`asOf`, `/changes`), event delivery and the coverage cron job |
+| What have I done? | Step 5: the CSV report, reading and writing engagements, the party-kind check, deployed. Steps 1–4 complete and deployed: records and activities, the subprocessor list and report, governance views, history (`asOf`, `/changes`), event delivery and the coverage cron job |
