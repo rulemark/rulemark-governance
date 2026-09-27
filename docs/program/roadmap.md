@@ -45,7 +45,7 @@ today.
 
 ## Next: the Architecture Snapshot
 
-Design in progress. Everything above exists partly to give the Snapshot a
+Design in progress: `docs/snapshot/snapshot-design.md`. Everything above exists partly to give the Snapshot a
 real scenario: public and private services, a database and a cron job it
 should find and describe, and a RoPA that tells it what personal data each
 part handles. Together they make the program's goal, a **data-aware
@@ -62,6 +62,9 @@ Decided so far (2026-09-27):
   deployed.
 - **Self-hosted** (above): the collector runs in the customer's own
   workspace, with their key.
+- **Its own app, sharing the database**: `apps/snapshot`, a cron job and a
+  web service, with its tables in a `snapshot` schema on `ropa-db`, talking to
+  RoPA only over HTTP.
 
 What RoPA already has waiting for it: the `service:snapshot` role
 (`system:write`, `review:create`), systems as records, `/coverage` findings,

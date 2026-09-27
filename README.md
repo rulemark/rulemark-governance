@@ -170,6 +170,7 @@ Hireloop demo record.
 | [docs/ropa/ropa-database.md](docs/ropa/ropa-database.md)                 | Postgres schema, migrations, seeds                   |
 | [docs/ropa/ropa-packages.md](docs/ropa/ropa-packages.md)                 | Shared packages and deployment topology              |
 | [docs/program/roadmap.md](docs/program/roadmap.md)                       | What exists, what comes next, and known gaps         |
+| [docs/snapshot/snapshot-design.md](docs/snapshot/snapshot-design.md)     | Architecture Snapshot design, in progress            |
 | [docs/program/workspace-skeleton.md](docs/program/workspace-skeleton.md) | Repository layout and tooling                        |
 
 ## Deployment
