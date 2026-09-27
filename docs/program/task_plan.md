@@ -11,7 +11,7 @@ one aggregate: one version, one revision, the same rules and events.
 Build step 5 from `docs/ropa/ropa-api.md` §8, the last in its build order.
 
 ## Current Phase
-Phase 2 (reading engagements), not started. Phase 1 (the CSV report) complete, committed, not pushed
+Phase 3 (writing engagements), not started. Phases 1 (the CSV report) and 2 (reading engagements) complete, committed, not pushed
 
 ## Definition of done for step 5
 - `GET /report?format=csv` answers `text/csv`, one row per activity ×
@@ -51,15 +51,15 @@ Reference: API §5.1; DB §6.3
 
 ### Phase 2: Reading engagements
 Reference: API §3.5; DM §3.2, §3.3, §3.8
-- [ ] `GET /activities/{ref}/engagements`: the activity's engagements, in the
+- [x] `GET /activities/{ref}/engagements`: the activity's engagements, in the
       activity's output shape; `ETag` the activity's version
-- [ ] `GET /activities/{ref}/engagements/{id}`: one, by `id` only
+- [x] `GET /activities/{ref}/engagements/{id}`: one, by `id` only
       (engagements have no code or slug, DM §3.0); `404` for an id the
       activity doesn't hold, another activity's included
-- [ ] Reading needs what reading the activity needs; OpenAPI paths
+- [x] Reading needs what reading the activity needs; OpenAPI paths
 - **Done when:** P1's two Mailcrest engagements read one by one, and an id
   from P3 under P1 answers `404`
-- **Status:** pending
+- **Status:** complete (2026-09-27). 1149 tests pass; four deliberate breaks each failed a test
 
 ### Phase 3: Writing engagements
 Reference: API §3.5, §1.8; DB §6.1

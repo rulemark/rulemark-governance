@@ -23,12 +23,25 @@
   each failed a test. OpenAPI: the `format` parameter, a `text/csv` response
   and `Content-Disposition`; `openapi.json` regenerated. API §5.1 documents
   the CSV and its columns
+- **Phase 2 (reading engagements) complete.** `api/routes/engagements.ts`
+  (`engagementsRouter`, mounted in `recordsRouter`) answers
+  `GET /activities/{ref}/engagements` and `/{id}` from `toActivityOutputs`,
+  so the shape is the activity's own, read in one repeatable-read
+  transaction with the version for the `ETag`. `@rulemark/ropa-schemas`
+  exports `ControllerEngagement`, `ProcessorEngagement` and `Engagement`
+  (discriminated by `role`); OpenAPI names all three, so `Activity` now
+  refers to the first two. Tests over the replayed story
+  (`test/db/engagements.test.ts`): P1's two Mailcrest engagements one by one,
+  P3's Scribe AI under P1 `404`, a monitor token `403`. Four deliberate
+  breaks (permission, the foreign-id `404`, the `ETag`, the list shape) each
+  failed a test. API §3.5 documents the reads
 
 ## Test Results
 | Test | Command | Expected | Actual | Status |
 |---|---|---|---|---|
 | Inherited from step 4 | `npm run check` | 1108 tests pass | 1108 pass (823 api, 262 schemas, 14 audit-log, 9 dist) | ✅ |
 | Phase 1 | `npm run check` | all pass | 1137 pass (852 api, 262 schemas, 14 audit-log, 9 dist) | ✅ |
+| Phase 2 | `npm run check` | all pass | 1149 pass (864 api, 262 schemas, 14 audit-log, 9 dist) | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -38,8 +51,8 @@
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Build step 5, Phase 2 (reading engagements), not started; Phase 1 (CSV) complete, not pushed |
+| Where am I? | Build step 5, Phase 3 (writing engagements), not started; Phases 1–2 complete, not pushed |
 | Where am I going? | The CSV report, reading engagements, writing engagements, then deploy |
 | What's the goal? | The record easy to use: a spreadsheet export, and one vendor changed on its own while the activity stays one aggregate |
 | What have I learned? | See findings.md, and `plan-archive/5/findings.md` for step 4 |
-| What have I done? | Step 5 Phase 1: the CSV report. Steps 1–4 complete and deployed: records and activities, the subprocessor list and report, governance views, history (`asOf`, `/changes`), event delivery and the coverage cron job |
+| What have I done? | Step 5 Phases 1–2: the CSV report, reading engagements. Steps 1–4 complete and deployed: records and activities, the subprocessor list and report, governance views, history (`asOf`, `/changes`), event delivery and the coverage cron job |

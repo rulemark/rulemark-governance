@@ -383,6 +383,8 @@ Editing one vendor on an activity shouldn't require sending the whole activity. 
 - **Same conventions.** `changeNote` goes in the body, and `X-Actor` is required. Engagements are identified by `id` only (they have no code or slug, DM §3.0).
 - Nested transfers and client scope entries are replaced as part of the engagement. They don't get endpoints of their own.
 
+**As built (step 5, reading):** `GET /activities/{ref}/engagements` answers `{ data, nextCursor: null }`, never paged, with the engagements exactly as `GET /activities/{ref}` holds them (an `Engagement` is a `ControllerEngagement` or a `ProcessorEngagement`, told apart by `role`; only the latter has `clientScope`). `GET /activities/{ref}/engagements/{id}` answers one. Both carry the activity's version as `ETag`, read in one repeatable-read transaction with the engagements, and need `record:read`, as reading the activity does. `{ref}` is the activity's id, code or slug; `{id}` is an engagement id only, and an id the activity doesn't hold, another activity's included, is `404` ("Activity P1 holds no engagement …").
+
 ## 4. Other records
 
 All follow §1.4 (full `PUT`, `If-Match`, revisions). Notes that go beyond the data model:

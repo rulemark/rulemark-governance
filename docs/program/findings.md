@@ -107,6 +107,14 @@
 - **zsh does not split an unquoted variable into words**: a shell loop passing
   `$files` to `vitest run` asked for one file named with spaces, found none,
   and printed no summary. Quote-free splitting needs `${=files}` or an array.
+- **Reading engagements, as built (Phase 2, 2026-09-27).** The list answers
+  the usual `{ data, nextCursor }` with `nextCursor: null`, never paged: an
+  activity holds a handful, and one list shape across the API matters more.
+  A `{id}` that isn't a UUID is a `404` like any id the activity doesn't
+  hold, not a `422`: the engagement is looked up among the activity's own,
+  never in SQL. The `404` names the activity and the id. Before the route
+  existed, the `404` tests passed on Express's "No route" answer; they check
+  the problem's `detail` so they can't.
 
 ## Issues encountered
 | Issue | Resolution |
