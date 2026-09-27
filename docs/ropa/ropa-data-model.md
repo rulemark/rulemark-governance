@@ -356,14 +356,14 @@ Events are written here **in the same transaction** as the revision they describ
 | destination | text | yes | Consumer name from configuration: `audit-log`, `monitor` |
 | payload | jsonb | yes | The full event envelope, as it will be sent |
 | revision_id | FK → revision | no | The revision that caused it (`record.changed`). Empty for `review_item.changed`, which has no revision behind it |
-| attempts | int | yes | Default `0` |
-| next_attempt_at | timestamptz | yes | When the dispatcher should try next. Default: now |
+| attempts | int | yes | Default `0`. Counted when a dispatcher claims the row |
+| next_attempt_at | timestamptz | yes | When the dispatcher should try next. Default: now. While a dispatcher is sending it, the end of its lease (DB §7) |
 | last_error | text | no | Error from the most recent failed attempt |
 | delivered_at | timestamptz | no | Set on a `2xx` response. Empty = still pending |
 
 - Delivered rows can be deleted after a retention period (e.g. 30 days). `revision` and `review_item_event` remain the permanent history, and `/changes` can rebuild anything.
 - The dispatcher picks pending rows with `FOR UPDATE SKIP LOCKED`, so more than one dispatcher can run safely.
-- Events for one record are delivered in version order: the dispatcher doesn't send a record's later event while an earlier one is still pending.
+- Events for one record are delivered in version order: the dispatcher doesn't send a record's later event while an earlier one is still pending for the same destination. A review item's events, which have no version, go in the order they happened (`review_item_event.occurred_at`).
 
 ## 4. Aggregates (what gets saved, and versioned, together)
 

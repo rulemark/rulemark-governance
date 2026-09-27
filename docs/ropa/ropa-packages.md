@@ -30,10 +30,11 @@ service-ropa/                     # repository root, npm workspaces
 │   └── ropa-client/              # @rulemark/ropa-client — typed API client + openapi.json
 └── apps/
     ├── ropa-api/                 # the service: Express, Drizzle, domain, migrations, seeds (DB §11)
-    └── ropa-web/                 # the frontend (framework TBD); consumes both packages
+    ├── ropa-web/                 # the frontend (framework TBD); consumes both packages
+    └── audit-log/                # a stand-in for the audit log: receives RoPA's events (API §6)
 ```
 
-**Dependency direction.** Both apps depend on the packages; the packages depend on nothing in the repository; **`apps/ropa-web` never imports `apps/ropa-api`**. Everything the frontend needs from the service arrives through `@rulemark/ropa-client` and `@rulemark/ropa-schemas`, which is the same path an outside consumer would take. If that rule ever feels restrictive, the missing piece belongs in a package.
+**Dependency direction.** The apps depend on the packages; the packages depend on nothing in the repository; **`apps/ropa-web` never imports `apps/ropa-api`**. Everything the frontend needs from the service arrives through `@rulemark/ropa-client` and `@rulemark/ropa-schemas`, which is the same path an outside consumer would take. If that rule ever feels restrictive, the missing piece belongs in a package. `apps/audit-log` is the first such consumer from the other direction: it reads the events RoPA pushes with the package's `EventEnvelope`, and imports nothing else.
 
 `apps/ropa-api` keeps the structure from DB §11; `src/api/schemas/` moves out into `packages/ropa-schemas`.
 
@@ -63,6 +64,7 @@ A frontend must never be able to import a table definition. Anything that needs 
 | `primitives` | `Slug`, `Code`, `CountryCode`, `IsoDuration`, `Ref` (`{id, code?/slug?, name}`), `Cursor`, `AsOf` |
 | `resources` | Per record, an **Input** and an **Output** schema: `ActivityInput` / `Activity` (a discriminated union on `role`), `PartyInput` / `Party`, `AgreementTerms`, `Agreement`, `Offering`, `System`, taxonomies, `ReviewItem` |
 | `views` | `ReportResponse`, `SubprocessorsResponse`, `ImpactResponse`, `DataMapResponse`, `CoverageResponse`, `ChangesResponse` |
+| `events` | `EventEnvelope`: the frame of every event RoPA pushes (API §6). Each event's `data` isn't a schema yet; it comes when the Monitor needs one |
 | `errors` | `ProblemDetails` (RFC 9457) with the field-level `errors[]` (API §1.7) |
 | `constants` | `API_VERSION = 'v1'` |
 
@@ -225,7 +227,7 @@ projects:
     environments:
       - name: Production
         databases: [ropa-db]
-        services: [ropa-api]
+        services: [ropa-api, audit-log]
 ```
 
 Three things learned by deploying, which this sketch originally got wrong:
@@ -269,6 +271,7 @@ Notes:
 - A change under `apps/ropa-api/**` alone doesn't rebuild the frontend, and vice versa.
 - Documentation-only commits redeploy nothing.
 - Manual deploys always run, whatever the filters say.
+- **`audit-log` is a private service** (`type: pserv`, step 4): reachable only from the environment's private network, with no public URL. `ropa-api` learns its address from the Blueprint (`EVENT_DESTINATION_AUDIT_LOG`, `fromService` with `property: hostport`), the same wiring the frontend sketch uses. Its filter is `apps/audit-log/**` and `packages/ropa-schemas/**`, so a change to the event contract redeploys the consumer as well as the producer.
 - Whether the frontend calls the API over Render's **private network** (server-side rendering) or from the browser (which needs a public URL and CORS) is a decision for when we pick the framework. The Blueprint sketch above assumes server-side calls.
 
 ## 9. How a frontend uses this

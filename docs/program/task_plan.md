@@ -11,7 +11,7 @@ Build step 4 from `docs/ropa/ropa-api.md` §8. **Enough for Ch8, the audit log,
 and a finding reaching a person on its own.**
 
 ## Current Phase
-Phase 5 (the dispatcher), not started. Phases 1–4 complete
+Phase 5 (the dispatcher) built; its live check waits for the push. Phases 1–4 complete
 
 ## Definition of done for step 4
 - `GET /report?view=all&asOf=2026-03-01` on the seeded record answers Chapter 8:
@@ -87,19 +87,21 @@ Reference: API §6; DB §6.1 step 5; step 2's decision in API §8
 - **Status:** complete
 
 ### Phase 5: The dispatcher
-Reference: DB §7; API §6 (delivery guarantees)
-- [ ] Pending events sent by `POST` to each destination's URL; `delivered_at` on a `2xx`
-- [ ] Failures retried at 1 min, 5 min, 30 min, then hourly; each attempt's error kept
-- [ ] One record's events in version order; rows with no `revision_id` (review items) ordered by `occurredAt`
-- [ ] `FOR UPDATE SKIP LOCKED`, so two dispatchers never send one event at once
-- [ ] Testable as decided (open question 7): the claim query and backoff take `now` as a parameter, not Postgres's `now()`; tests configure a unique destination (`test-<random>`) and see only its rows; a scriptable local receiver answers `2xx`, `500` or times out; real transactions on the test's own connections prove no double send (two `dispatchOnce()` at once), per-record order (v2 waits for v1), and at-least-once (a crash between send and record resends)
-- [ ] Runs inside `ropa-api`: `dispatchOnce()` (claim a batch, send, record) and a runner that loops it; on `SIGTERM` the runner stops claiming and lets the batch in flight finish
-- [ ] Cleanup of delivered rows older than 30 days (DB §7): safe now, since no history lives in the outbox
-- [ ] Routing in code (which destinations each event type is written for); addresses in `EVENT_DESTINATIONS` (`{"audit-log": "http://…/events"}`). A destination with no URL is skipped, its events left pending, not failed
-- [ ] **The audit-log receiver:** a thin `apps/audit-log` workspace, `POST /events`, answering `2xx` and ignoring an `id` it has already seen (in memory), logging each event. The stub of service #1, not the audit log itself
-- [ ] A `pserv` (private service) in `render.yaml`, smallest paid instance; `ropa-api`'s `EVENT_DESTINATIONS` points at its private address
+Reference: DB §7; API §6 (delivery guarantees); Phase 5 questions in "Decisions carried forward"
+- [x] Pending events sent by `POST` to each destination's URL; `delivered_at` on a `2xx`
+- [x] Failures retried at 1 min, 5 min, 30 min, then hourly; each attempt's error kept; never given up on, logged at `warn`, from the 24th attempt at `error` (Phase 5 question 4)
+- [x] One record's events in version order; rows with no `revision_id` (review items) ordered by `occurredAt`
+- [x] `FOR UPDATE SKIP LOCKED`, so two dispatchers never send one event at once
+- [x] Testable as decided (open question 7): the claim query and backoff take `now` as a parameter, not Postgres's `now()`; tests configure a unique destination (`test-<random>`) and see only its rows; a scriptable local receiver answers `2xx`, `500` or times out; real transactions on the test's own connections prove no double send (two `dispatchOnce()` at once), per-record order (v2 waits for v1), and at-least-once (a crash between send and record resends)
+- [x] Runs inside `ropa-api`: `dispatchOnce()` (claim a batch, send, record) and a runner that loops it; on `SIGTERM` the runner stops claiming and lets the batch in flight finish
+- [x] Cleanup of delivered rows older than 30 days (DB §7): safe now, since no history lives in the outbox
+- [x] Routing in code (which destinations each event type is written for); addresses one variable per destination (`EVENT_DESTINATION_AUDIT_LOG`: a `host:port` or a URL; Phase 5 question 2). A destination with no address is skipped, its events left pending, not failed
+- [x] The envelope's frame as a Zod schema in `@rulemark/ropa-schemas` (`id`, `type`, `source`, `occurredAt`, `data`); the API's events parse against it (Phase 5 question 3)
+- [x] **The audit-log receiver:** a thin `apps/audit-log` workspace (`node:http`, pino, the package's envelope), `POST /events`, answering `2xx`, `400` to a malformed body, ignoring an `id` it has already seen (in memory), logging a one-line summary of each event. The stub of service #1, not the audit log itself
+- [x] A `pserv` (private service) in `render.yaml`, smallest paid instance; `ropa-api`'s `EVENT_DESTINATION_AUDIT_LOG` wired to its `hostport` by `fromService`
+- **Built:** `src/delivery/` in `ropa-api`: `claimBatch` (DB §7's query, leased), `dispatchOnce`, `cleanupDelivered`, `startRunner`; started by `index.ts` when a destination is configured, stopped before the pool on `SIGTERM`. `EventEnvelope` in the package's new `events` entry point. `apps/audit-log` (`node:http`, pino). Batch 10, timeout 5 s, lease 2 min, idle 5 s, cleanup hourly. Locally, the development database's backlog (2,045 events, 1,694 records) went out in 2.4 s, each once, none out of order
 - **Done when:** events reach a destination, a failing one is retried on schedule, and none is delivered twice; on Render, the receiver's logs show the backlog since the first deploy arriving in order
-- **Status:** pending
+- **Status:** built; to commit, then the live check (the receiver's logs on Render) after the push
 
 ### Phase 6: The coverage cron job
 Reference: API §8 ("Decided during build step 3"), §5.5
@@ -148,7 +150,7 @@ Reference: API §8 ("Decided during build step 3"), §5.5
 | **Coverage findings carry a stable `key`**, a fixed severity per type, and the `targetType` + `target` a review item would point at. Every finding type is a review-item reason | Step 3 |
 | `vendorTerms` is a list; `noticeConflict` uses the shortest vendor notice, `null` without a vendor DPA | Step 3 |
 | The data map's vendor categories are an upper bound | Step 3 |
-| **Events: routing in code, addresses in configuration.** Outbox rows are written for every consumer that should hear an event, whether or not it is running; `EVENT_DESTINATIONS` maps a name to a URL, and an unconfigured destination's events wait. **A minimal audit-log receiver runs as a Render private service** (about $7/month, the smallest paid instance; private services have no free tier): it logs and dedupes in memory, its own storage deferred to service #1. Not a free public web service: with service auth deferred, anyone could post fake events to an audit log | Step 4, open question 1 |
+| **Events: routing in code, addresses in configuration.** Outbox rows are written for every consumer that should hear an event, whether or not it is running; `EVENT_DESTINATIONS` maps a name to a URL (since Phase 5, one variable per destination), and an unconfigured destination's events wait. **A minimal audit-log receiver runs as a Render private service** (about $7/month, the smallest paid instance; private services have no free tier): it logs and dedupes in memory, its own storage deferred to service #1. Not a free public web service: with service auth deferred, anyone could post fake events to an audit log | Step 4, open question 1 |
 | **The dispatcher runs inside `ropa-api`**, free, as DB §7 and API §6 plan for the demo; `SKIP LOCKED` keeps several instances safe, and at-least-once delivery makes a restart mid-send one duplicate the receiver ignores. Written as `dispatchOnce()` plus a runner, so a background worker later is a new `render.yaml` resource with the same code. Not a worker now (a second paid instance for a few events a day), nor a cron job every minute (a minute's latency, and start-up paid 1,440 times a day) | Step 4, open question 2 |
 | **Review-item events have a history table of their own**, `review_item_event`, append-only like `revision`. The outbox is only a delivery queue: its rows exist per destination, so history read from it would depend on routing, and its cleanup would cut `/changes` to a month. Step 3's decision stands (events, not revisions); they get a proper home | Step 4, open question 3 |
 | **`asOf` as a date means the end of that day, in UTC**: revisions with `valid_from` before the next day's midnight UTC, and that day for business dates (agreements, scopes, engagements). A timestamp is taken as given. A future `asOf` is refused: the record can't know tomorrow, and judging "in force" on a future day reads as a prediction. UTC matches how the code already decides "today", so `asOf` today equals no `asOf`. Accepted: a save at 23:30 UTC counts as that day though it was past midnight in Amsterdam; a timestamp gives the hour when it matters | Step 4, open question 4 |
@@ -156,6 +158,7 @@ Reference: API §8 ("Decided during build step 3"), §5.5
 | **The coverage cron job opens, never decides.** `svc:schedule`, role `service:schedule` (`view:coverage`, `review:read`, `review:create`; no `review:resolve`), a token minted per run with the secret passed by the Blueprint, the API reached over the private network, nightly at 02:00 UTC. A key with an open or dismissed item is skipped: a dismissal stands. It never closes an item: the person who fixes a finding says why | Step 4, open question 6 |
 | **The dispatcher is tested against real Postgres and real HTTP.** A unique destination per test isolates its rows from every other file's committed events (unconfigured destinations are ignored); `now` is a parameter, so the retry schedule is tested by advancing a clock, not by sleeping; a local receiver is scripted to succeed, fail or time out; real transactions on the test's own connections make double sends, ordering and at-least-once observable. The runner's loop and shutdown are tested without a database | Step 4, open question 7 |
 | **`subprocessors.changed`, as built (Phase 4 questions, 2026-09-27):** (1) the planned list is the list once every start and end date recorded has arrived; each entry's `effectiveFrom` is the first day, from the save's own day, on which the saved record shows it as planned. (2) The offering event mirrors `GET /subprocessors?offering=`: standard entries and opt-in module entries, each marked with its `module` (null, or the activity). (3) Client events go to every client holding an agreement for the offering that has not ended, a future-signed one included, and carry the terms that client signed | Step 4, Phase 4 |
+| **The dispatcher, as built (Phase 5 questions, 2026-09-27):** (1) a batch is claimed with a lease in a short transaction (`next_attempt_at` pushed forward, `attempts + 1`) and sent with no transaction open, each result written as it lands; the lease outlasts the batch. (2) One optional variable per destination named in routing (`EVENT_DESTINATION_AUDIT_LOG`, `EVENT_DESTINATION_MONITOR`), not a JSON map: `host:port` (what `fromService` gives) becomes `http://host:port/events`, a URL is used as given. (3) The envelope's frame is a Zod schema in `@rulemark/ropa-schemas` (per-event `data` schemas wait for the Monitor); the receiver is `node:http` and pino, validates against it (`400` otherwise), and redeploys when `packages/**` changes. (4) A failing event is retried forever, never skipped: each failure logged at `warn`, from the 24th attempt at `error`; a stuck event holds only its own record's later events, for that destination | Step 4, Phase 5 |
 | The seeded-story acceptance tests share one replay per file (`governance-views.test.ts`); pure-view tests share `test/fixtures/story-snapshots.ts` | Step 3 |
 | **The views read a `RecordReader`**, live or as of a date, and get snapshots either way; a slug is matched as the record spelled it at *T*; an `asOf` read loads the whole record at *T* once | Step 4, Phase 1 |
 

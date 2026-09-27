@@ -483,29 +483,45 @@ Current-state views (`/subprocessors`, `/parties/{ref}/impact`, `/data-map`, `/c
 
 ## 7. Outbox dispatcher
 
-The dispatcher (API §6) runs in a loop, inside the web service for the demo or as a Render background worker later:
+The dispatcher (API §6) runs in a loop inside the web service for the demo, or as a Render background worker later: `dispatchOnce()` (`src/delivery/dispatcher.ts`) holds the logic, and a runner (`src/delivery/runner.ts`) loops it. **As built (step 4):**
+
+**Claim with a lease, send outside any transaction.** A short transaction claims a batch and leases it, then commits; the sends happen with no transaction open, and each result is written as it lands. `now` is a parameter, never Postgres's `now()`, so tests move the clock rather than sleep:
 
 ```sql
-SELECT o.*
-FROM event_outbox o
-LEFT JOIN revision r ON r.id = o.revision_id
-WHERE o.delivered_at IS NULL
-  AND o.next_attempt_at <= now()
-  -- per-record ordering: skip if an earlier version of the same record is still pending for this destination
-  AND NOT EXISTS (
-    SELECT 1 FROM event_outbox o2
-    JOIN revision r2 ON r2.id = o2.revision_id
-    WHERE o2.destination = o.destination AND o2.delivered_at IS NULL
-      AND r2.entity_type = r.entity_type AND r2.entity_id = r.entity_id AND r2.version < r.version)
-ORDER BY o.next_attempt_at
-LIMIT 50
-FOR UPDATE OF o SKIP LOCKED;
+WITH claimable AS (
+  SELECT o.id, o.next_attempt_at AS due_at, r.entity_type, r.entity_id, r.version, e.review_item_id
+  FROM event_outbox o
+  LEFT JOIN revision r ON r.id = o.revision_id
+  LEFT JOIN review_item_event e ON o.revision_id IS NULL AND e.event_id = o.event_id
+  WHERE o.delivered_at IS NULL
+    AND o.destination IN (:configured)          -- an unconfigured destination's events wait
+    AND o.next_attempt_at <= :now
+    -- a record's event waits while an earlier version is undelivered, for this destination
+    AND NOT EXISTS (
+      SELECT 1 FROM event_outbox o2 JOIN revision r2 ON r2.id = o2.revision_id
+      WHERE o2.destination = o.destination AND o2.delivered_at IS NULL
+        AND r2.entity_type = r.entity_type AND r2.entity_id = r.entity_id AND r2.version < r.version)
+    -- a review item's, while an earlier event of the same item is (they have no versions)
+    AND NOT EXISTS (
+      SELECT 1 FROM event_outbox o2 JOIN review_item_event e2 ON e2.event_id = o2.event_id
+      WHERE o2.revision_id IS NULL AND o2.destination = o.destination AND o2.delivered_at IS NULL
+        AND e2.review_item_id = e.review_item_id AND (e2.occurred_at, e2.id) < (e.occurred_at, e.id))
+  ORDER BY o.next_attempt_at, o.id
+  LIMIT :batch_size
+  FOR UPDATE OF o SKIP LOCKED
+)
+UPDATE event_outbox o
+SET attempts = o.attempts + 1, next_attempt_at = :now + :lease   -- the lease
+FROM claimable c WHERE o.id = c.id
+RETURNING …;
 ```
 
-- `SKIP LOCKED` lets more than one dispatcher run without sending the same event twice at the same time.
-- On `2xx`: set `delivered_at`. On failure: `attempts + 1`, `last_error`, and `next_attempt_at` pushed back (1 min, 5 min, 30 min, then hourly).
-- A cleanup job deletes delivered rows older than 30 days.
-- Drizzle's query builder has row-locking support, but this query can also be written with Drizzle's `sql` template. We'll use whichever the pinned Drizzle version supports cleanly.
+- **`SKIP LOCKED`** lets two dispatchers claim at once without taking the same row.
+- **The lease** (2 minutes) keeps a claimed row from being claimed again while it is sent, and it stays undelivered, so it still holds its record's later events back. It must outlast the batch: 10 events sent one at a time with a 5-second timeout take 50 seconds at most, and a lease shorter than that is refused. A dispatcher that dies mid-send leaves its rows to be claimed again when the lease runs out, so the event in flight is sent twice, which consumers ignore by `id` (API §6).
+- **On `2xx`:** `delivered_at` is set. **Anything else**, a `4xx`, a timeout or a refused connection included: `last_error` is kept and `next_attempt_at` pushed back 1 min, 5 min, 30 min, then every hour. Both updates apply only while the claim is still the dispatcher's own (`delivered_at IS NULL`, and for a failure the same `attempts`), so a dispatcher that outlived its lease can't overwrite a later claim's outcome.
+- **Never given up on.** A failing event is retried hourly for as long as it fails, logged at `warn` each time and at `error` from the 24th attempt. It holds only its own record's later events, for that destination.
+- **Cleanup:** the runner deletes delivered rows older than 30 days, when it starts and hourly after. The outbox is only a delivery queue; `revision` and `review_item_event` are the history.
+- **The runner** goes again at once after a pass that found work (a record's next version only comes due once the one before it is delivered), and otherwise waits 5 seconds. On `SIGTERM` it stops claiming and finishes the batch in flight. It only starts when a destination is configured (API §6).
 
 ## 8. Migration strategy
 

@@ -594,6 +594,8 @@ Response: `{ "generatedAt", "findings": [ { "key", "type", "severity", "targetTy
 
 RoPA **pushes** events to its consumers (Q3). Delivery is HTTP `POST` to configured URLs over Render's private network. Service-to-service auth is deferred along with auth.
 
+**Addresses (step 4).** Who hears which event is routing, in code (`EVENT_ROUTES`: `record.changed` and `review_item.changed` to `audit-log`, `subprocessors.changed` to `monitor`). Where each consumer lives is configuration, one variable per destination: `EVENT_DESTINATION_AUDIT_LOG`, `EVENT_DESTINATION_MONITOR`. A `host:port`, as the Blueprint wires a private service in (`fromService`, `hostport`), means `http://host:port/events`; a full URL is used as given. A destination left unset is not delivered to: its events wait in the outbox, and configuring it later delivers the backlog in order.
+
 | Event | When | Payload | Consumer |
 |---|---|---|---|
 | `record.changed` | Any revision | `entityType`, `entity` (Ref), `version`, `changeType` (`created` \| `updated` \| `activated` \| `retired` \| `deleted`), `actor`, `changeNote`, `validFrom` | Audit log (#1) |
@@ -612,7 +614,7 @@ Review items have no revisions, so `review_item.changed` carries the whole item 
 
 Replaying the story writes twelve: P1 going live (the offering, Northwind, Fjord); Aurelia's EU region and her Glitchlog exclusion (Aurelia alone); P2 going live (the offering, Render as a module); P3 going live (the offering, Northwind, Fjord: Scribe AI); Ch6 (the offering and all three clients: Mailcrest changed).
 
-**Envelope.** Every event has the same wrapper:
+**Envelope.** Every event has the same wrapper, a contract in `@rulemark/ropa-schemas` (`EventEnvelope`, from `@rulemark/ropa-schemas/events`). Only the frame is a schema so far; each event's `data` is described here:
 
 ```json
 { "id": "e7c2…", "type": "record.changed", "source": "ropa", "occurredAt": "2026-04-14T10:02:11Z",
@@ -623,11 +625,11 @@ Replaying the story writes twelve: P1 going live (the offering, Northwind, Fjord
 
 **Delivery guarantees.** The audit log is the permanent history, so an event must never be lost because a consumer was briefly down:
 - **Transactional outbox.** The event is written to an outbox table (DM §3.13) **in the same transaction** as the revision. If the save commits, the event exists. If it rolls back, it doesn't.
-- **At-least-once delivery.** A dispatcher sends pending events and marks them delivered on a `2xx` response. Failures are retried with increasing delays (e.g. 1 min, 5 min, 30 min, then hourly), and each attempt's error is kept.
+- **At-least-once delivery.** A dispatcher sends pending events and marks them delivered on a `2xx` response. Anything else, a `4xx` included, is retried at 1 min, 5 min, 30 min, then hourly, never given up on; the latest error is kept on the row and each one is logged (DB §7).
 - **Idempotent consumers.** A retry can deliver the same event twice, so consumers ignore an `id` they've already processed.
-- **Ordering.** Events for one record are sent in version order. Across records there's no ordering guarantee; consumers use `version` and `occurredAt`.
+- **Ordering.** Events for one record are sent in version order, and a review item's in the order they happened. A failing event holds back its record's later events for that consumer only. Across records there's no ordering guarantee; consumers use `version` and `occurredAt`.
 - **Reconciliation.** `GET /changes` stays available, so the audit log can backfill anything it missed, e.g. after being restored from a backup.
-- **On Render.** The dispatcher can run inside the web service for the demo. A **background worker** is the production shape and another Render feature to showcase (it needs a paid instance).
+- **On Render.** The dispatcher runs inside the web service for the demo (step 4), once a destination is configured. A **background worker** is the production shape and another Render feature to showcase (it needs a paid instance); it would start the same runner. The audit log is represented by `audit-log`, a private service that logs each event and ignores an `id` it has seen (`apps/audit-log`); it answers `400` to a body that isn't an envelope, so a bug in the sender shows up as a retried, logged failure.
 
 ## 7. Story walkthrough
 
@@ -654,7 +656,7 @@ Replaying the story writes twelve: P1 going live (the offering, Northwind, Fjord
 **Decided during build step 2 (2026-09-26)**, for the steps that follow:
 - **Step 4 builds `subprocessors.changed` (§6) with the dispatcher**, not before: the events belong with what delivers them (DB §6.1 step 5). The save computes the list before and after for the offering and for each client the change affects, using the same functions `GET /subprocessors` uses (`domain/views/subprocessors.ts`), and writes `added[]`/`removed[]`. **Done in step 4:** compared as planned, with `changed[]`, `effectiveFrom`, modules and the client's terms (§6, "as built").
 - **`asOf` arrives in step 4 without new view logic.** The views are pure functions over activity aggregates (DB §6.3); only the loading is SQL. `asOf` feeds them snapshots from revisions instead of live rows. Until then, `?asOf=` answers `422 not_yet_supported` rather than answering for today. **Done in step 4:** the views read a `RecordReader`, live or as of a date (DB §6.3), and none of their logic changed.
-- **`/revisions` already exists** (step 1), and every save has written `record.changed` outbox rows since step 1. What step 4 adds is `asOf`, `/changes`, `subprocessors.changed` and delivery. Still open: how to test the dispatcher, which manages its own transactions (not one per test).
+- **`/revisions` already exists** (step 1), and every save has written `record.changed` outbox rows since step 1. What step 4 adds is `asOf`, `/changes`, `subprocessors.changed` and delivery. ~~Still open: how to test the dispatcher~~ **Settled in step 4:** against real Postgres and real HTTP, a destination of its own per test, and the clock as a parameter (DB §7).
 - **Step 5:** `format=csv` answers `422 not_yet_supported` until then. The engagement sub-resource can build on `inputFromSnapshot` (`domain/activity/input.ts`), which turns a stored activity into the `PUT` body that saves it unchanged.
 - **Deploying:** Render judges a push by its newest commit, so code is pushed on its own and documentation separately (README, Deployment).
 

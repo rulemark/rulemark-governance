@@ -272,3 +272,80 @@
     change (the Ch4 edit renames Mailcrest's service to "(US region)"
     without an event for Northwind); only where data goes is.
 
+- **Phase 5's questions (2026-09-27),** raised when building, not in planning.
+  - **Claim with a lease; send outside any transaction.** A short
+    transaction claims a batch with DB §7's query (`FOR UPDATE SKIP LOCKED`,
+    `now` passed in), pushes each row's `next_attempt_at` forward by a lease
+    and adds one to `attempts`, and commits. Sends happen with no transaction
+    open; each result is written by its own short update. A claimed row is
+    still undelivered, so the ordering rule holds a record's v2 until v1 is
+    delivered. The lease must outlast the batch (10 rows, sent one at a time,
+    5 s timeout: 50 s at worst, against 2 min). Rejected: one transaction
+    across the sends, as §7 was written: a connection and row locks held
+    through network I/O, a crash mid-batch resending everything already
+    delivered in it, and a slow receiver stretching shutdown past the 10 s
+    grace on every deploy. Cost: a crashed dispatcher's rows wait out the
+    lease.
+  - **One variable per destination, wired by the Blueprint.** The plan's
+    single JSON `EVENT_DESTINATIONS` can't be built by `fromService`, which
+    gives one value (a private service's `hostport`). Routing already names
+    every destination in code, so config declares one optional variable
+    each: `EVENT_DESTINATION_AUDIT_LOG`, `EVENT_DESTINATION_MONITOR`. A
+    `host:port` becomes `http://host:port/events`; a full URL is used as
+    given (local development); unset means that destination's events wait.
+    Rejected: the JSON set by hand in the dashboard (a private hostname
+    copied by hand, stale on a rename), and `${VAR}` placeholders inside the
+    JSON (a templating language for one use). Tests are unaffected:
+    `dispatchOnce()` takes its destinations as a parameter.
+  - **The envelope is a contract in `@rulemark/ropa-schemas`; the receiver
+    is `node:http` and pino.** `EventEnvelope` existed only as an interface
+    inside the API, and every consumer (the Monitor next) needs it, which by
+    `ropa-packages.md`'s rule puts it in a package, beside the OpenAPI
+    document. Only the frame (`id`, `type`, `source`, `occurredAt`, `data`
+    an object); each event's `data` schema waits for the Monitor. The
+    receiver answers `400` to a malformed body, so a dispatcher bug is a
+    logged, retried failure, and logs a one-line summary with the whole
+    event as a field. Its build filter includes `packages/**`: a contract
+    change redeploys its consumer. Rejected: the frame checked by hand in
+    the receiver (two definitions), and Express with the API's config and
+    startup modules for one route.
+  - **A failing event is retried forever, loudly.** Every failure is logged
+    at `warn` (destination, event, record, attempt, error), from the 24th
+    attempt (about a day of hourly retries) at `error`. Nothing is skipped:
+    once the cause is fixed, the stuck event and everything queued behind it
+    go out in order. Ordering makes a stuck event hold its record's later
+    events for that destination, and only those. Rejected: giving up after
+    N attempts (a gap and reordering in the audit log, which it can only
+    backfill from `/changes` if it knows), and treating `4xx` as permanent
+    (a misconfigured receiver answering `404` would lose events rather than
+    delay them). Dead-lettering can come per destination if the Monitor
+    ever needs it.
+- **Phase 5: the dispatcher (2026-09-27).**
+  - **Review items are ordered through `review_item_event`,** joined on the
+    shared `event_id`: it gives the item and `occurred_at`, so their outbox
+    rows need no new column. Written out of order in the test, and ordered
+    by when they happened, not when they were queued.
+  - **`FOR UPDATE` refuses window functions,** so the claim can't number its
+    rows; `RETURNING` has no order of its own, so the claim returns each
+    row's old `next_attempt_at` and sorts in code.
+  - **The lease guard is the one place double sends could come from.** A
+    lease shorter than a batch's worst case is refused at the call; the
+    result updates are guarded (`delivered_at IS NULL`, the claim's
+    `attempts`) for a dispatcher that outlived its lease anyway, and both
+    guards have tests that pause a send past its lease.
+  - **A record's next version needs another pass,** so the runner goes again
+    at once after any pass that found work. The local backlog of 2,045
+    events took about 200 passes and 2.4 s.
+  - **Test isolation by destination worked as planned;** the file resets the
+    database afterwards only because its fixture revisions have no records
+    behind them, which the `asOf` readers would trip over.
+  - **24 mutations of the dispatcher, 11 of the runner, 15 of the receiver:
+    all caught but two equivalents** (`parsed.data` after a successful parse,
+    and code before slug on a Ref that never has both). Two tests were
+    tightened on the way: `stop()` was checked after the batch had already
+    finished, and the stale-lease guards had no test at all.
+  - **Locally, a port already held by another process** (a stray
+    `next-server` on 3100) made the service's listening socket vanish on
+    macOS: it exited 0 on its own without a dispatcher, and with one, a
+    `SIGTERM` found no server to close. Nothing to do with Phase 5; on Render
+    `PORT` is assigned.

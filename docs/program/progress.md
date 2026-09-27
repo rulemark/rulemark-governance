@@ -90,6 +90,34 @@
   passed and the service restarted on it about 70s later; docs pushed after.
   The outbox isn't exposed, so the new events can't be seen live; none were
   written for the seeded history, which was not replayed
+- Phase 5 (the dispatcher) started. Four questions the plan left open,
+  asked and decided (findings, "Phase 5's questions"): claim with a lease
+  and send outside any transaction; one address variable per destination,
+  wired by `fromService`; the envelope's frame as a contract in the schemas
+  package, the receiver on `node:http`; a failing event retried forever,
+  loudly
+- Phase 5 built, test-first:
+  - Package: `EventEnvelope` (`@rulemark/ropa-schemas/events`); the API's
+    builders tested against it, its interface replaced by the package type
+  - Config: `EVENT_DESTINATION_AUDIT_LOG`, `EVENT_DESTINATION_MONITOR`
+    (`host:port` or a URL); a test that every routed destination has one
+  - `src/delivery/`: `backoff.ts`, `dispatcher.ts` (claim with a lease,
+    send, record, cleanup), `runner.ts`; `index.ts` starts it when a
+    destination is configured and stops it before the pool
+  - `test/db/dispatcher.test.ts` (24 tests, real Postgres and HTTP),
+    `test/scripted-receiver.ts`, runner tests, a bootstrap test delivering
+    from the running service
+  - `apps/audit-log`: receiver, summary, entry point; startup tests from
+    source and from `dist/`
+  - `render.yaml`: `audit-log` as a `pserv` (`0.5c-512mb`), `ropa-api`'s
+    `EVENT_DESTINATION_AUDIT_LOG` from its `hostport`
+  - 50 mutations, all caught but two equivalents
+  - Run locally from `dist/`: the development database's 2,045 pending
+    events delivered in 2.4 s, each once, per-record order held; both
+    processes exit cleanly on `SIGTERM`
+  - DB §7 and API §6 as built; DM §3.13; `ropa-packages.md` (layout, the
+    `events` module, the private service); README (Deployment, Layout,
+    Events)
 
 ## Test Results
 | Test | Command | Expected | Actual | Status |
@@ -99,6 +127,7 @@
 | Phase 2 | `npm run check` | all pass | 956 pass (705 api, 246 schemas, 5 dist) | ✅ |
 | Phase 3 | `npm run check` | all pass | 994 pass (735 api, 254 schemas, 5 dist) | ✅ |
 | Phase 4 | `npm run check` | all pass | 1021 pass (762 api, 254 schemas, 5 dist) | ✅ |
+| Phase 5 | `npm run check` | all pass | 1088 pass (805 api, 261 schemas, 14 audit-log, 8 dist) | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -111,7 +140,7 @@
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Build step 4, Phases 1–4 complete, committed and pushed; Phase 5 (the dispatcher) next |
+| Where am I? | Build step 4, Phases 1–4 complete and pushed; Phase 5 (the dispatcher) built, its live check waiting for the push |
 | Where am I going? | The dispatcher and the audit-log receiver (Phase 5), the coverage cron job (Phase 6), then the final deploy and the README tour (Phase 7) |
 | What's the goal? | The record's past answerable (Ch8) and its changes heard: events delivered, findings carried to a person on a schedule |
 | What have I learned? | See findings.md, and `plan-archive/4/findings.md` for step 3 |
