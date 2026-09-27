@@ -17,6 +17,7 @@ import {
 import type { AggregateSpec } from '../aggregate.js';
 import type { Identifiable } from '../identifiers.js';
 import { ActivitySnapshot, SNAPSHOT_SCHEMA_VERSION, toSnapshotTimestamps } from '../snapshots.js';
+import { recordSubprocessorChanges } from '../subprocessor-events.js';
 import type { Transaction } from '../transaction.js';
 
 /**
@@ -223,4 +224,6 @@ export const activityAggregate: AggregateSpec<ActivityRow, ActivitySnapshot> & I
   snapshotSchema: ActivitySnapshot,
   toSnapshot: (row, tx) => loadActivitySnapshot(tx, row),
   toRef: (row): Ref => ({ id: row.id, code: row.code, name: row.name }),
+  // A save can change who processes a client's data (API §6).
+  afterRevision: (tx, written) => recordSubprocessorChanges(tx, written),
 };

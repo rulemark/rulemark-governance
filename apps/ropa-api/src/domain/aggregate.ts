@@ -39,6 +39,24 @@ export interface AggregateSpec<TRow, TSnapshot> {
   readonly toSnapshot: (row: TRow, tx: Transaction) => TSnapshot | Promise<TSnapshot>;
   /** How this record is named in an event (§6). */
   readonly toRef: (row: TRow) => Ref;
+  /**
+   * Events a revision of this aggregate causes beyond `record.changed` (§6.1
+   * step 5), written in the same transaction: an activity's save can change a
+   * subprocessor list.
+   */
+  readonly afterRevision?: (tx: Transaction, written: WrittenRevision<TSnapshot>) => Promise<void>;
+}
+
+/** A revision just written, as `afterRevision` sees it. */
+export interface WrittenRevision<TSnapshot> {
+  readonly revisionId: string;
+  readonly entityId: string;
+  readonly version: number;
+  readonly changeType: ChangeType;
+  /** The aggregate as saved; for a deletion, as it was just before. */
+  readonly snapshot: TSnapshot;
+  readonly context: SaveContext;
+  readonly validFrom: Date;
 }
 
 export interface SaveContext {
@@ -232,5 +250,15 @@ async function recordRevision<TRow extends RowShape, TSnapshot>(
   await enqueueEvent(tx, envelope, {
     destinations: context.destinations,
     revisionId: written.id,
+  });
+
+  await spec.afterRevision?.(tx, {
+    revisionId: written.id,
+    entityId: row.id,
+    version: row.version,
+    changeType,
+    snapshot,
+    context,
+    validFrom,
   });
 }

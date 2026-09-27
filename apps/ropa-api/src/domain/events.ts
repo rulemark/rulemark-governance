@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type {
+  AuthorizationType,
   ChangeType,
   EventType,
   Ref,
@@ -47,12 +48,67 @@ export interface ReviewItemChangedData extends Record<string, unknown> {
   readonly reviewItem: ReviewItem;
 }
 
+/** What a subprocessor list says about one party (API §5.2). */
+export interface ListedSubprocessor {
+  readonly services: readonly string[];
+  readonly processingCountries: readonly string[];
+  readonly transfers: readonly {
+    readonly destinationCountry: string;
+    readonly mechanism: string;
+    readonly onwardVia: string | null;
+  }[];
+}
+
+interface SubprocessorEntry {
+  readonly party: Ref;
+  /** The opt-in activity it is listed under, on an offering's list; else null. */
+  readonly module: Ref | null;
+  /** The first day the list shows this change (Phase 4, question 1). */
+  readonly effectiveFrom: string;
+}
+
 /**
- * Where events go. The audit log is the permanent history of who changed what,
- * so it is the one destination that exists from the start; configuration
- * arrives with the dispatcher in build step 4.
+ * A save changed an offering's or a client's subprocessor list, compared as
+ * planned (API §6; step 4, open question 5). For the Monitor, which sends the
+ * notices Art. 28(2) requires before a change takes effect, so it carries the
+ * terms the list is under: whether a client is told or asked.
  */
-export const DEFAULT_EVENT_DESTINATIONS = ['audit-log'] as const;
+export interface SubprocessorsChangedData extends Record<string, unknown> {
+  readonly offering: Ref;
+  /** Null for the offering's own list, the one prospects read. */
+  readonly client: Ref | null;
+  readonly terms: Ref & {
+    readonly authorizationType: AuthorizationType;
+    readonly noticeDays: number;
+  };
+  /** The save that changed it. */
+  readonly cause: {
+    readonly activity: Ref;
+    readonly version: number;
+    readonly changeType: ChangeType;
+    readonly actor: string;
+    readonly changeNote: string | null;
+  };
+  readonly added: (SubprocessorEntry & ListedSubprocessor)[];
+  readonly removed: (SubprocessorEntry & ListedSubprocessor)[];
+  /** Still listed, but its countries or transfers are not what they were. */
+  readonly changed: (SubprocessorEntry & {
+    readonly before: ListedSubprocessor;
+    readonly after: ListedSubprocessor;
+  })[];
+}
+
+/**
+ * Who hears what: routing, in code (step 4, open question 1). An outbox row
+ * is written for every consumer that should hear an event, whether or not it
+ * is running yet; where each consumer lives is configuration, for the
+ * dispatcher.
+ */
+export const EVENT_ROUTES: Readonly<Record<EventType, readonly string[]>> = {
+  'record.changed': ['audit-log'],
+  'review_item.changed': ['audit-log'],
+  'subprocessors.changed': ['monitor'],
+};
 
 export function recordChangedEvent(data: RecordChangedData): EventEnvelope {
   return {
@@ -61,6 +117,20 @@ export function recordChangedEvent(data: RecordChangedData): EventEnvelope {
     type: 'record.changed',
     source: 'ropa',
     occurredAt: data.validFrom,
+    data,
+  };
+}
+
+export function subprocessorsChangedEvent(
+  data: SubprocessorsChangedData,
+  occurredAt: string,
+): EventEnvelope {
+  return {
+    id: randomUUID(),
+    type: 'subprocessors.changed',
+    source: 'ropa',
+    // When the save took effect, like the record.changed it follows.
+    occurredAt,
     data,
   };
 }
@@ -90,7 +160,7 @@ export async function enqueueEvent(
     readonly revisionId?: string | undefined;
   } = {},
 ): Promise<void> {
-  const destinations = options.destinations ?? DEFAULT_EVENT_DESTINATIONS;
+  const destinations = options.destinations ?? EVENT_ROUTES[envelope.type];
   if (destinations.length === 0) return;
 
   await tx.insert(eventOutbox).values(
