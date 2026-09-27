@@ -63,6 +63,34 @@ const Principals = z.string().transform((value, ctx) => {
  */
 const Secret = z.string().min(16, 'Must be at least 16 characters');
 
+/**
+ * Where one consumer of events lives (step 4, Phase 5 question 2). Render's
+ * Blueprint wires a private service in as `host:port` (`fromService`,
+ * `hostport`), which becomes `http://host:port/events`; a full URL is used as
+ * given. Plain http is the private network's, as API §6 assumes.
+ */
+const HOST_PORT = /^[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?:\d{1,5}$/;
+const EventDestination = z.string().transform((value, ctx) => {
+  if (HOST_PORT.test(value)) return `http://${value}/events`;
+  try {
+    if (['http:', 'https:'].includes(new URL(value).protocol)) return value;
+  } catch {
+    // Neither; reported below.
+  }
+  ctx.addIssue({ code: 'custom', message: 'Must be host:port or an http(s) URL' });
+  return z.NEVER;
+});
+
+/**
+ * One variable per destination an event is routed to (`EVENT_ROUTES`). A
+ * destination left unset is not delivered to: its events wait in the outbox
+ * until it is configured.
+ */
+export const EVENT_DESTINATION_VARIABLES = {
+  'audit-log': 'EVENT_DESTINATION_AUDIT_LOG',
+  monitor: 'EVENT_DESTINATION_MONITOR',
+} as const;
+
 /** What every process reads, the service and the database tools alike. */
 const databaseFields = {
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -81,6 +109,8 @@ const EnvSchema = z
     REQUIRE_AUTH_FOR_READS: Flag.default(false),
     /** Development only: skips verification and honours `X-Actor` (§1.6). */
     AUTH_DISABLED: Flag.default(false),
+    EVENT_DESTINATION_AUDIT_LOG: EventDestination.optional(),
+    EVENT_DESTINATION_MONITOR: EventDestination.optional(),
   })
   .superRefine((env, ctx) => {
     // With auth disabled the actor comes from a header, so anyone could claim
@@ -119,6 +149,8 @@ export interface Config {
   readonly principals: readonly Principal[];
   readonly requireAuthForReads: boolean;
   readonly authDisabled: boolean;
+  /** Destination name → the URL its events are posted to; configured ones only. */
+  readonly eventDestinations: Readonly<Record<string, string>>;
 }
 
 export class ConfigError extends Error {
@@ -163,6 +195,12 @@ export function loadConfig(
     principals: data.PRINCIPALS,
     requireAuthForReads: data.REQUIRE_AUTH_FOR_READS,
     authDisabled: data.AUTH_DISABLED,
+    eventDestinations: Object.fromEntries(
+      Object.entries(EVENT_DESTINATION_VARIABLES).flatMap(([destination, variable]) => {
+        const url = data[variable];
+        return url === undefined ? [] : [[destination, url]];
+      }),
+    ),
   };
 }
 

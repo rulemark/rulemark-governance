@@ -12,3 +12,4 @@ export * from './primitives.js';
 export * from './errors.js';
 export * from './resources/index.js';
 export * from './views/index.js';
+export * from './events.js';

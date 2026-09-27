@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type {
   AuthorizationType,
   ChangeType,
+  EventEnvelope,
   EventType,
   Ref,
   ReviewChangeType,
@@ -13,18 +14,12 @@ import { eventOutbox } from '../db/schema/history.js';
 import type { Transaction } from './transaction.js';
 
 /**
- * The event envelope every consumer receives (`ropa-api.md` §6). Events are
- * written to `event_outbox` in the same transaction as the change they
- * describe, so if the change commits the event exists, and if it rolls back the
- * event never existed.
+ * The envelope every consumer receives (`ropa-api.md` §6), a contract in the
+ * package (step 4, Phase 5 question 3). Events are written to `event_outbox`
+ * in the same transaction as the change they describe, so if the change
+ * commits the event exists, and if it rolls back the event never existed.
  */
-export interface EventEnvelope {
-  readonly id: string;
-  readonly type: EventType;
-  readonly source: 'ropa';
-  readonly occurredAt: string;
-  readonly data: Record<string, unknown>;
-}
+export type { EventEnvelope };
 
 export interface RecordChangedData extends Record<string, unknown> {
   readonly entityType: RevisionEntityType;

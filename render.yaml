@@ -123,5 +123,50 @@ projects:
               - key: PRINCIPALS
                 sync: false
 
+              # Where each consumer of events lives (ropa-api.md §6): one
+              # variable per destination, wired here rather than copied by hand
+              # (step 4, Phase 5 question 2). The service posts to
+              # http://<hostport>/events. A destination left out is not
+              # delivered to; its events wait in the outbox.
+              - key: EVENT_DESTINATION_AUDIT_LOG
+                fromService:
+                  type: pserv
+                  name: audit-log
+                  property: hostport
+
               # PORT is deliberately absent. Render assigns it and the service
               # reads it; setting it here is how you make the health check fail.
+
+          # A stand-in for the audit log (service #1): receives every event
+          # ropa-api delivers, logs it, and ignores an id it has seen. Private:
+          # reachable only from this environment's private network, because
+          # with service-to-service auth deferred, anything public could post
+          # fake history to an audit log. Private services have no free
+          # instance type (step 4, open question 1).
+          - type: pserv
+            name: audit-log
+            runtime: node
+            region: frankfurt # beside ropa-api, on its private network
+            plan: 0.5c-512mb
+            branch: main
+
+            # tsc --build follows the reference to @rulemark/ropa-schemas,
+            # where the event envelope it validates against lives.
+            buildCommand: npm ci --include=dev && npm run build -w apps/audit-log
+            startCommand: npm start -w apps/audit-log
+            autoDeployTrigger: checksPass
+
+            # The envelope is a contract in the package, so a change there
+            # redeploys its consumer too.
+            buildFilter:
+              paths:
+                - apps/audit-log/**
+                - packages/ropa-schemas/**
+                - package.json
+                - package-lock.json
+
+            envVars:
+              - key: NODE_ENV
+                value: production
+              # PORT is assigned by Render; ropa-api learns it through
+              # `hostport` above.

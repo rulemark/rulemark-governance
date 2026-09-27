@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { ConfigError, loadConfig, loadDatabaseConfig, loadDemoClientConfig } from './config.js';
+import { EVENT_ROUTES } from '../domain/events.js';
+import {
+  ConfigError,
+  EVENT_DESTINATION_VARIABLES,
+  loadConfig,
+  loadDatabaseConfig,
+  loadDemoClientConfig,
+} from './config.js';
 
 /** The variables with no sensible default: everything else may be omitted. */
 const REQUIRED = {
@@ -22,6 +29,7 @@ describe('loadConfig', () => {
       principals: [{ sub: 'priya.raman', name: 'Priya Raman', roles: ['editor', 'approver'] }],
       requireAuthForReads: false,
       authDisabled: false,
+      eventDestinations: {},
     });
   });
 
@@ -38,6 +46,7 @@ describe('loadConfig', () => {
       principals: [{ sub: 'priya.raman', name: 'Priya Raman', roles: ['editor', 'approver'] }],
       requireAuthForReads: false,
       authDisabled: false,
+      eventDestinations: {},
     });
   });
 
@@ -52,6 +61,7 @@ describe('loadConfig', () => {
       principals: [{ sub: 'priya.raman', name: 'Priya Raman', roles: ['editor', 'approver'] }],
       requireAuthForReads: false,
       authDisabled: false,
+      eventDestinations: {},
     });
   });
 
@@ -215,6 +225,52 @@ describe('auth switches', () => {
     expect(
       loadConfig({ ...REQUIRED, NODE_ENV: 'development', AUTH_DISABLED: 'true' }).authDisabled,
     ).toBe(true);
+  });
+});
+
+/**
+ * Where each consumer lives: one optional variable per destination named in
+ * routing (step 4, Phase 5 question 2), so the Blueprint can wire a private
+ * service's `hostport` into it with `fromService`.
+ */
+describe('event destinations', () => {
+  it('has a variable for every destination an event is routed to', () => {
+    const routed = new Set(Object.values(EVENT_ROUTES).flat());
+    expect(Object.keys(EVENT_DESTINATION_VARIABLES).sort()).toEqual([...routed].sort());
+  });
+
+  it('turns a host:port, as Render gives it, into the consumer’s events URL', () => {
+    expect(
+      loadConfig({ ...REQUIRED, EVENT_DESTINATION_AUDIT_LOG: 'audit-log-x7kq:10000' })
+        .eventDestinations,
+    ).toEqual({ 'audit-log': 'http://audit-log-x7kq:10000/events' });
+  });
+
+  it('takes a URL as given, for local development', () => {
+    expect(
+      loadConfig({
+        ...REQUIRED,
+        EVENT_DESTINATION_AUDIT_LOG: 'http://localhost:4000/events',
+        EVENT_DESTINATION_MONITOR: 'https://monitor.example/hooks/ropa',
+      }).eventDestinations,
+    ).toEqual({
+      'audit-log': 'http://localhost:4000/events',
+      monitor: 'https://monitor.example/hooks/ropa',
+    });
+  });
+
+  it('leaves an unset or blank destination out, so its events wait', () => {
+    expect(
+      loadConfig({ ...REQUIRED, EVENT_DESTINATION_AUDIT_LOG: '  ' }).eventDestinations,
+    ).toEqual({});
+  });
+
+  it('rejects something that is neither, naming the variable', () => {
+    for (const value of ['audit-log', 'ftp://audit-log:21/events', 'audit-log:port']) {
+      expect(() => loadConfig({ ...REQUIRED, EVENT_DESTINATION_MONITOR: value }), value).toThrow(
+        /EVENT_DESTINATION_MONITOR/,
+      );
+    }
   });
 });
 
