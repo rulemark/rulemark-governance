@@ -11,7 +11,7 @@ one aggregate: one version, one revision, the same rules and events.
 Build step 5 from `docs/ropa/ropa-api.md` §8, the last in its build order.
 
 ## Current Phase
-Phase 1 (CSV report), not started: all five open questions decided
+Phase 2 (reading engagements), not started. Phase 1 (the CSV report) complete, committed, not pushed
 
 ## Definition of done for step 5
 - `GET /report?format=csv` answers `text/csv`, one row per activity ×
@@ -37,17 +37,17 @@ engagement party-kind check, into Phase 3. See `ropa-api.md` §3.5, §5.1 and §
 
 ### Phase 1: CSV report
 Reference: API §5.1; DB §6.3
-- [ ] `format=csv` on `GET /report`: every view, scope and `asOf` the JSON
+- [x] `format=csv` on `GET /report`: every view, scope and `asOf` the JSON
       takes, from the same report builder, so the two can't disagree
-- [ ] One row per activity × engagement (open question 1): the activity's columns repeated per engagement, one row for an activity with none; `activityRole` and the union of both roles' columns; lists joined with `; `; `asOf` and `generatedAt` on every row
-- [ ] Spreadsheet-safe (open question 2): formula cells neutralised with a leading `'`; a UTF-8 BOM; RFC 4180 quoting and CRLF
-- [ ] `Content-Type: text/csv`, a `Content-Disposition` filename naming the
+- [x] One row per activity × engagement (open question 1): the activity's columns repeated per engagement, one row for an activity with none; `activityRole` and the union of both roles' columns; lists joined with `; `; `asOf` and `generatedAt` on every row
+- [x] Spreadsheet-safe (open question 2): formula cells neutralised with a leading `'`; a UTF-8 BOM; RFC 4180 quoting and CRLF
+- [x] `Content-Type: text/csv`, a `Content-Disposition` filename naming the
       scope and date
-- [ ] OpenAPI: the `format` parameter and a `text/csv` response;
+- [x] OpenAPI: the `format` parameter and a `text/csv` response;
       `openapi.json` regenerated
 - **Done when:** the regulator's report as of 1 March downloads as CSV and
   holds the same activities and engagements as its JSON
-- **Status:** pending
+- **Status:** complete (2026-09-27). 1137 tests pass; each new test was checked by breaking the code on purpose
 
 ### Phase 2: Reading engagements
 Reference: API §3.5; DM §3.2, §3.3, §3.8

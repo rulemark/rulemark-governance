@@ -91,6 +91,22 @@
   The seeded story must pass it first. `@rulemark/ropa-client` stays empty
   until its first consumer (the frontend or the Monitor) can shape it; both
   HTTP callers so far used `fetch`. The other known gaps stay unscheduled.
+- **The CSV's columns, as built (Phase 1, 2026-09-27).** Headers are the
+  JSON's field names in camelCase (`activityRole`, `engagementParty`), with
+  an `activity` or `engagement` prefix where a bare name would be ambiguous.
+  References are written as names; enums and booleans as the JSON writes
+  them (`all_enrolled`, `6(1)(b)`, `true`); retention periods read as words
+  ("7 years"), reusing the Markdown's `humanDuration` and mechanism labels.
+  An empty list or a null is an empty cell. The filename is
+  `ropa-<view>[-<offering or client slug>]-<date>.csv`, the date being the
+  `asOf` date (a timestamp's UTC date, as the views judge it) or today's.
+  Not included: the organisation (Art. 30(1)(a)), which the JSON and Markdown
+  carry in their headers and which a one-table file has no place for.
+- **supertest keeps the byte-order mark** in `response.text`, so a route test
+  can check for it; parse the body after `slice(1)`.
+- **zsh does not split an unquoted variable into words**: a shell loop passing
+  `$files` to `vitest run` asked for one file named with spaces, found none,
+  and printed no summary. Quote-free splitting needs `${=files}` or an array.
 
 ## Issues encountered
 | Issue | Resolution |

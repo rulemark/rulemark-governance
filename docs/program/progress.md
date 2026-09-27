@@ -12,11 +12,23 @@
   `record:write` for engagement writes; `If-Match` on `POST`, a `DELETE`
   body for the change note, writes answering with the engagement; the
   party-kind check joins Phase 3
+- **Phase 1 (CSV report) complete.** `api/views/csv.ts` renders the JSON
+  report (`renderReportCsv`, `reportCsvFilename`); `GET /report?format=csv`
+  answers `text/csv` as an attachment. The sample report moved from
+  `markdown.test.ts` to `test/fixtures/report.ts`, shared by both renderings;
+  `test/fixtures/csv.ts` reads a CSV back strictly (RFC 4180) and compares its
+  rows with the JSON. Ten deliberate breaks (formula guard, tab/CR guard, BOM,
+  CRLF, quote doubling, the row for an activity with no engagements, `asOf`
+  per row, the filename, a timestamp's UTC date, the client in the filename)
+  each failed a test. OpenAPI: the `format` parameter, a `text/csv` response
+  and `Content-Disposition`; `openapi.json` regenerated. API §5.1 documents
+  the CSV and its columns
 
 ## Test Results
 | Test | Command | Expected | Actual | Status |
 |---|---|---|---|---|
 | Inherited from step 4 | `npm run check` | 1108 tests pass | 1108 pass (823 api, 262 schemas, 14 audit-log, 9 dist) | ✅ |
+| Phase 1 | `npm run check` | all pass | 1137 pass (852 api, 262 schemas, 14 audit-log, 9 dist) | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -26,8 +38,8 @@
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Build step 5, Phase 1 (CSV report), not started; open questions settled |
+| Where am I? | Build step 5, Phase 2 (reading engagements), not started; Phase 1 (CSV) complete, not pushed |
 | Where am I going? | The CSV report, reading engagements, writing engagements, then deploy |
 | What's the goal? | The record easy to use: a spreadsheet export, and one vendor changed on its own while the activity stays one aggregate |
 | What have I learned? | See findings.md, and `plan-archive/5/findings.md` for step 4 |
-| What have I done? | Steps 1–4 complete and deployed: records and activities, the subprocessor list and report, governance views, history (`asOf`, `/changes`), event delivery and the coverage cron job |
+| What have I done? | Step 5 Phase 1: the CSV report. Steps 1–4 complete and deployed: records and activities, the subprocessor list and report, governance views, history (`asOf`, `/changes`), event delivery and the coverage cron job |
