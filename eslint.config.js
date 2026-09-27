@@ -2,16 +2,24 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import prettier from 'eslint-config-prettier';
+import nextPlugin from '@next/eslint-plugin-next';
 import reactHooks from 'eslint-plugin-react-hooks';
 
 export default tseslint.config(
-  { ignores: ['**/dist/**', '**/.next/**', 'node_modules/**'] },
+  { ignores: ['**/dist/**', '**/.next/**', '**/next-env.d.ts', 'node_modules/**'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   prettier,
   // React code: the interface's component package and app. (eslint-plugin-react
   // doesn't support ESLint 10 yet; the hooks rules are the ones that catch bugs.)
   { files: ['**/*.tsx'], ...reactHooks.configs.flat.recommended },
+  // Next's own rules for the web app. (eslint-config-next brings
+  // eslint-plugin-react, which doesn't support ESLint 10 yet.)
+  {
+    files: ['apps/ropa-web/**/*.{ts,tsx}'],
+    ...nextPlugin.configs['core-web-vitals'],
+    settings: { next: { rootDir: 'apps/ropa-web' } },
+  },
   // The interface's `cn` knows the Rulemark foundations' names; the `cn`
   // package alone doesn't, and silently drops or keeps the wrong class.
   // `shadcn add` writes `from 'cn'`, so this catches every new component.

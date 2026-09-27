@@ -7,9 +7,10 @@
 /* Geist, the type scale, spacing and layout tokens, the named radii. */
 @import './rulemark-foundations.css';
 
-@source '../../../apps/**/*.{ts,tsx}';
-@source '../../../components/**/*.{ts,tsx}';
+/* Where Tailwind finds the classes in use: this package, and the web app's
+   sources (not the API's, nor the app's build output). */
 @source '../**/*.{ts,tsx}';
+@source '../../../../apps/ropa-web/src/**/*.{ts,tsx}';
 
 /* shadcn's colour names, which its generated components use, defined from the
    Rulemark tokens (open question 8). One block serves both themes: every

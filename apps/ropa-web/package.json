@@ -3,11 +3,40 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "RoPA frontend (framework not chosen yet)",
+  "description": "The RoPA interface: a Next.js app on @rulemark/ui, reading the record through a proxy to ropa-api (demo project)",
   "license": "UNLICENSED",
+  "scripts": {
+    "dev": "NEXT_TELEMETRY_DISABLED=1 next dev --port 3001",
+    "build": "NEXT_TELEMETRY_DISABLED=1 next build",
+    "start": "NEXT_TELEMETRY_DISABLED=1 next start",
+    "typecheck:tests": "NEXT_TELEMETRY_DISABLED=1 next typegen && tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
   "dependencies": {
     "@rulemark/ropa-client": "*",
-    "@rulemark/ropa-schemas": "*"
+    "@rulemark/ropa-schemas": "*",
+    "@rulemark/ui": "*",
+    "@tanstack/react-query": "^5.104.0",
+    "geist": "^1.7.2",
+    "lucide-react": "^1.48.0",
+    "next": "^16.3.6",
+    "next-themes": "^0.4.6",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "zod": "^4.6.5"
   },
-  "scripts": {}
+  "devDependencies": {
+    "@next/eslint-plugin-next": "^16.3.6",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^26.6.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "@vitest/browser-playwright": "^5.0.2",
+    "playwright": "^1.63.0",
+    "tailwindcss": "^4.3.3",
+    "vitest-browser-react": "^2.3.0"
+  }
 }

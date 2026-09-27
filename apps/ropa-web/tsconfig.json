@@ -1,0 +1,24 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // A Next.js app: Next compiles it, so TypeScript only checks it.
+    "composite": false,
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
+    "incremental": true,
+    "tsBuildInfoFile": ".next/cache/tsconfig.tsbuildinfo",
+    "lib": ["es2023", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "allowJs": false,
+    // Workspace packages resolve to their sources, as Next compiles them.
+    "customConditions": ["development"],
+    "types": ["@vitest/browser-playwright", "vite/client"],
+    "plugins": [{ "name": "next" }],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "src", ".next/types/**/*.ts", "*.ts", "*.mjs"],
+  "exclude": ["node_modules", ".next/cache"]
+}
