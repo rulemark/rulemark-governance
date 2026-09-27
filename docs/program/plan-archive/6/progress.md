@@ -62,6 +62,13 @@
   engagements read one by one (US: DPF and India; EU: India); P3's id under P1
   `404`; an anonymous `POST` `401`. README tour: engagements, the CSV, and a
   step for changing one vendor
+- **After closing: the organisation on every CSV row.** An `organisation`
+  column after `generatedAt`, the `self` party's legal name (Art. 30(1)(a)),
+  empty until recorded. Tests first (the golden rows, a null organisation, the
+  March CSV), one deliberate break caught. Code `0517fcd` pushed alone, CI
+  green. The uptime watcher fired early (the previous deploy was only minutes
+  old) and the old code answered for another ~80s; confirmed by the header
+  itself: the live March CSV names Hireloop B.V. on all 11 rows
 
 ## Test Results
 | Test | Command | Expected | Actual | Status |
@@ -70,6 +77,7 @@
 | Phase 1 | `npm run check` | all pass | 1137 pass (852 api, 262 schemas, 14 audit-log, 9 dist) | ✅ |
 | Phase 2 | `npm run check` | all pass | 1149 pass (864 api, 262 schemas, 14 audit-log, 9 dist) | ✅ |
 | Phase 3 | `npm run check` | all pass | 1174 pass (889 api, 262 schemas, 14 audit-log, 9 dist) | ✅ |
+| Organisation column | `npm run check` | all pass | 1175 pass (890 api, 262 schemas, 14 audit-log, 9 dist) | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |

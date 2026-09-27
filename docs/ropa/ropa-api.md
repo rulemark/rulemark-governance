@@ -671,7 +671,7 @@ Replaying the story writes twelve: P1 going live (the offering, Northwind, Fjord
 2. **Activities:** CRUD, role rules, activate/retire. `GET /subprocessors` and `GET /report` in **JSON and Markdown** (current state). Markdown comes this early because it feeds the architecture document (Q5). This is enough for Ch2–Ch4.
 3. **Governance views:** `/parties/{ref}/impact`, `/data-map`, `/coverage`, review items. Enough for Ch5–Ch7 and the Monitor/DSAR integrations. **Done 2026-09-26.**
 4. **History:** `asOf`, `/revisions`, `/changes`, event outbox and push delivery, and the Render cron job that opens review items from coverage findings. Enough for Ch8, the audit log, and a finding reaching a person without anyone asking. **Done 2026-09-27.**
-5. **Conveniences:** CSV report format; engagement sub-resource (§3.5).
+5. **Conveniences:** CSV report format; engagement sub-resource (§3.5). **Done 2026-09-27**, the last step in this order.
 
 **Decided during build step 2 (2026-09-26)**, for the steps that follow:
 - **Step 4 builds `subprocessors.changed` (§6) with the dispatcher**, not before: the events belong with what delivers them (DB §6.1 step 5). The save computes the list before and after for the offering and for each client the change affects, using the same functions `GET /subprocessors` uses (`domain/views/subprocessors.ts`), and writes `added[]`/`removed[]`. **Done in step 4:** compared as planned, with `changed[]`, `effectiveFrom`, modules and the client's terms (§6, "as built").
