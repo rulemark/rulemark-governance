@@ -1,12 +1,64 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
+/* The Rulemark palette, its light and dark themes, and the `dark` variant
+   (data-theme on <html>, else the OS's preference). */
+@import './rulemark-colors.css';
+/* Geist, the type scale, spacing and layout tokens, the named radii. */
+@import './rulemark-foundations.css';
 
-@custom-variant dark (&:is(.dark *));
-@source "../../../apps/**/*.{ts,tsx}";
-@source "../../../components/**/*.{ts,tsx}";
-@source "../**/*.{ts,tsx}";
+@source '../../../apps/**/*.{ts,tsx}';
+@source '../../../components/**/*.{ts,tsx}';
+@source '../**/*.{ts,tsx}';
 
+/* shadcn's colour names, which its generated components use, defined from the
+   Rulemark tokens (open question 8). One block serves both themes: every
+   --rm-* token switches on :root, so these follow. Components read a few
+   directly (var(--primary), var(--muted)...), the rest through the utilities
+   below. App code uses the Rulemark names instead: bg-surface, text-fg-muted,
+   bg-danger-subtle... */
+:root {
+  --background: var(--rm-canvas);
+  --foreground: var(--rm-fg);
+  --card: var(--rm-surface);
+  --card-foreground: var(--rm-fg);
+  --popover: var(--rm-surface-raised);
+  --popover-foreground: var(--rm-fg);
+  --primary: var(--rm-primary);
+  --primary-foreground: var(--rm-primary-fg);
+  /* A soft, borderless fill in shadcn; Rulemark's secondary button is the
+     button's `outline` variant. */
+  --secondary: var(--rm-neutral-subtle);
+  --secondary-foreground: var(--rm-neutral-subtle-fg);
+  --muted: var(--rm-surface-hover);
+  --muted-foreground: var(--rm-fg-muted);
+  --accent: var(--rm-surface-hover);
+  --accent-foreground: var(--rm-fg);
+  --destructive: var(--rm-danger);
+  --border: var(--rm-border);
+  /* A field's border (and, faded, a tint behind it) in shadcn. The field
+     background is Rulemark's `field`. */
+  --input: var(--rm-input-border);
+  --ring: var(--rm-ring);
+  /* No Rulemark chart palette yet: shadcn's neutral greys, in both themes. */
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: var(--rm-nav);
+  --sidebar-foreground: var(--rm-nav-fg);
+  --sidebar-primary: var(--rm-primary);
+  --sidebar-primary-foreground: var(--rm-primary-fg);
+  --sidebar-accent: var(--rm-nav-hover);
+  --sidebar-accent-foreground: var(--rm-nav-active-fg);
+  --sidebar-border: var(--rm-nav-border);
+  --sidebar-ring: var(--rm-ring);
+}
+
+/* shadcn's utilities. `primary`, `border` and `ring` mean the same in both
+   vocabularies and come from rulemark-colors.css. */
 @theme inline {
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -22,9 +74,7 @@
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
   --color-input: var(--input);
-  --color-border: var(--border);
   --color-destructive: var(--destructive);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
@@ -33,92 +83,28 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
   --color-foreground: var(--foreground);
   --color-background: var(--background);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
+  /* shadcn's radius steps, at the foundations' values (open question 10):
+     generated controls (rounded-lg) land on 8px and cards (rounded-xl) on
+     12px. The largest steps stay multiples of --radius, so rounded-4xl
+     badges stay pills. */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
-  --font-sans: var(--font-sans);
 }
 
-:root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
-
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
-}
-
+/* With Rulemark's own base (the canvas, selection and focus outline, in
+   rulemark-colors.css). Its :focus-visible outline outranks the `*` rule
+   here, so focus is Rulemark's everywhere a component doesn't draw its own. */
 @layer base {
   * {
     @apply border-border outline-ring/50;

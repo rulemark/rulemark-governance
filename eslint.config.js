@@ -12,6 +12,26 @@ export default tseslint.config(
   // React code: the interface's component package and app. (eslint-plugin-react
   // doesn't support ESLint 10 yet; the hooks rules are the ones that catch bugs.)
   { files: ['**/*.tsx'], ...reactHooks.configs.flat.recommended },
+  // The interface's `cn` knows the Rulemark foundations' names; the `cn`
+  // package alone doesn't, and silently drops or keeps the wrong class.
+  // `shadcn add` writes `from 'cn'`, so this catches every new component.
+  {
+    files: ['packages/ui/src/**/*.{ts,tsx}', 'apps/ropa-web/**/*.{ts,tsx}'],
+    ignores: ['packages/ui/src/lib/utils.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'cn',
+              message: "Import cn from '@rulemark/ui/lib/utils', which knows the Rulemark theme.",
+            },
+          ],
+        },
+      ],
+    },
+  },
   // Test servers on a random port start through listenOnLoopback()
   // (apps/ropa-api/test/listen.ts), which binds 127.0.0.1 and waits until it's
   // listening. A bare `listen(0)` binds every interface, where macOS can hand

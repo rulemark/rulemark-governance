@@ -2,6 +2,20 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { playwright } from '@vitest/browser-playwright';
 import { defineConfig } from 'vitest/config';
+import type { BrowserCommand } from 'vitest/node';
+
+// The OS's light or dark preference, which the theme follows when <html> has
+// no data-theme: `prefers-color-scheme` as Chromium reports it to the page.
+const setColorScheme: BrowserCommand<[scheme: 'light' | 'dark']> = async ({ page }, scheme) => {
+  await page.emulateMedia({ colorScheme: scheme });
+};
+
+// Moves the pointer to the page's far corner, away from anything a test
+// renders (at the top left), so a hover can't carry over into the next test.
+const parkPointer: BrowserCommand<[]> = async ({ page }) => {
+  const { width, height } = page.viewportSize() ?? { width: 1280, height: 720 };
+  await page.mouse.move(width - 1, height - 1);
+};
 
 export default defineConfig({
   // Tailwind compiles the theme for real, so a test can check the colour a
@@ -36,6 +50,7 @@ export default defineConfig({
       provider: playwright(),
       headless: true,
       instances: [{ browser: 'chromium' }],
+      commands: { setColorScheme, parkPointer },
     },
   },
 });
