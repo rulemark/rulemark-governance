@@ -32,6 +32,7 @@ import { refOf } from '../../src/domain/record/reader.js';
 import type { Transaction } from '../../src/domain/transaction.js';
 import { Problem } from '../../src/shared/problems.js';
 import { loadConfig } from '../../src/shared/config.js';
+import { csvLines, csvRows, reportLines } from '../fixtures/csv.js';
 import { TEST_DATABASE_URL } from './harness.js';
 
 /**
@@ -139,6 +140,25 @@ describe('GET /report?view=all&asOf=2026-03-01: the record as it stood (Ch8)', (
     expect(response.text).toContain('As of 2026-03-01.');
     expect(response.text).toContain('<a id="p1"></a>');
     expect(response.text).not.toContain('<a id="p3"></a>');
+    expect(response.text).not.toMatch(/Scribe/);
+  });
+
+  it('downloads the same record as CSV, dated on every row and in its name', async () => {
+    const response = await ok('/v1/report?view=all&asOf=2026-03-01&format=csv');
+    expect(response.headers['content-type']).toBe('text/csv; charset=utf-8');
+    expect(response.headers['content-disposition']).toBe(
+      'attachment; filename="ropa-all-2026-03-01.csv"',
+    );
+    const rows = csvRows(response.text.replace(/^\uFEFF/, ''));
+    expect(csvLines(rows)).toEqual(reportLines(then));
+    expect([...new Set(rows.map((row) => row['activityCode']))]).toEqual([
+      'C1',
+      'C2',
+      'C3',
+      'C4',
+      'P1',
+    ]);
+    expect(new Set(rows.map((row) => row['asOf']))).toEqual(new Set(['2026-03-01']));
     expect(response.text).not.toMatch(/Scribe/);
   });
 });

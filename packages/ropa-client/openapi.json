@@ -14272,7 +14272,7 @@
           "views"
         ],
         "summary": "The Art. 30 record",
-        "description": "The record of processing activities (§5.1): the organisation and its DPO, controller activities (Art. 30(1)) and processor activities (Art. 30(2)), active ones only. `offering` or `client` scopes it to what one audience is owed, implies the processor view, and closes the report with the same list `GET /subprocessors` gives. `format=markdown` renders it for the architecture document, with a stable anchor per activity built from its code (`#p3`).\n\nRequires the `view:report` permission.",
+        "description": "The record of processing activities (§5.1): the organisation and its DPO, controller activities (Art. 30(1)) and processor activities (Art. 30(2)), active ones only. `offering` or `client` scopes it to what one audience is owed, implies the processor view, and closes the report with the same list `GET /subprocessors` gives. `format=markdown` renders it for the architecture document, with a stable anchor per activity built from its code (`#p3`). `format=csv` flattens it for a spreadsheet: one row per activity × engagement, `asOf` and `generatedAt` on every row, downloaded as `ropa-<view>[-<offering or client>]-<date>.csv`.\n\nRequires the `view:report` permission.",
         "parameters": [
           {
             "name": "view",
@@ -14319,7 +14319,7 @@
             "name": "format",
             "in": "query",
             "required": false,
-            "description": "json (default) or markdown. csv is not supported yet.",
+            "description": "json (default), markdown or csv.",
             "schema": {
               "type": "string",
               "enum": [
@@ -14332,7 +14332,15 @@
         ],
         "responses": {
           "200": {
-            "description": "The record, as JSON or Markdown",
+            "description": "The record, as JSON, Markdown or CSV",
+            "headers": {
+              "Content-Disposition": {
+                "description": "CSV only: `attachment`, with a filename naming the scope and date.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -14342,6 +14350,12 @@
               "text/markdown": {
                 "schema": {
                   "type": "string"
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "description": "RFC 4180 with a UTF-8 byte-order mark and CRLF; a header row, then one row per activity × engagement. A cell that would start a formula carries a leading `'`."
                 }
               }
             }

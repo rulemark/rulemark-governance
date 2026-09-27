@@ -14,6 +14,7 @@ import { refOf } from '../../domain/record/reader.js';
 import { fieldErrorsFromZod, notFound } from '../../shared/problems.js';
 import { requires } from '../middleware/authorize.js';
 import { buildCoverage } from '../views/coverage.js';
+import { renderReportCsv, reportCsvFilename } from '../views/csv.js';
 import { buildDataMap } from '../views/data-map.js';
 import { buildImpact } from '../views/impact.js';
 import { renderReportMarkdown } from '../views/markdown.js';
@@ -80,19 +81,14 @@ export function viewsRouter(db: Database): Router {
         const parsed = ReportQuery.safeParse(queryOf(req));
         if (!parsed.success) refused(fieldErrorsFromZod(parsed.error));
         const query = parsed.data;
-        if (query.format === 'csv') {
-          refused([
-            {
-              path: '/format',
-              code: 'not_yet_supported',
-              message: 'CSV arrives in a later build step; use json or markdown',
-            },
-          ]);
-        }
-
         const report = await reading(query.asOf, (read) => buildReport(read, query));
         if (query.format === 'markdown') {
           res.type('text/markdown; charset=utf-8').send(renderReportMarkdown(report));
+        } else if (query.format === 'csv') {
+          res
+            .type('text/csv; charset=utf-8')
+            .attachment(reportCsvFilename(report))
+            .send(renderReportCsv(report));
         } else {
           res.json(report);
         }

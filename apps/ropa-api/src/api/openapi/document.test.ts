@@ -124,6 +124,19 @@ describe('the OpenAPI document', () => {
     expect(input.properties['changeNote']).toBeDefined();
   });
 
+  it('offers the report as JSON, Markdown and CSV (§5.1)', () => {
+    const report = document.paths['/v1/report']?.['get'] as unknown as {
+      responses: { '200': { content: Record<string, unknown>; headers: Record<string, unknown> } };
+    };
+    expect(Object.keys(report.responses['200'].content)).toEqual([
+      'application/json',
+      'text/markdown',
+      'text/csv',
+    ]);
+    expect(report.responses['200'].headers).toHaveProperty('Content-Disposition');
+    expect(JSON.stringify(report)).not.toContain('not supported yet');
+  });
+
   it('strips the JSON Schema keywords that mean nothing inside components', () => {
     for (const [name, schema] of Object.entries(document.components.schemas)) {
       expect(schema, name).not.toHaveProperty('$schema');

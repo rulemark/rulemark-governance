@@ -50,7 +50,7 @@ function table(headers: readonly string[], rows: readonly string[][]): string {
   ].join('\n');
 }
 
-const MECHANISMS: Readonly<Record<string, string>> = {
+export const MECHANISMS: Readonly<Record<string, string>> = {
   adequacy: 'adequacy decision',
   dpf: 'DPF',
   sccs: 'SCCs',

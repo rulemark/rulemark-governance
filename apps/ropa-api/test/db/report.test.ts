@@ -24,6 +24,7 @@ import type { SaveContext } from '../../src/domain/aggregate.js';
 import { activateActivity } from '../../src/domain/activity/lifecycle.js';
 import { createActivity, replaceActivity } from '../../src/domain/activity/save.js';
 import { loadConfig } from '../../src/shared/config.js';
+import { csvLines, csvRows, reportLines } from '../fixtures/csv.js';
 import { TEST_DATABASE_URL } from './harness.js';
 
 /**
@@ -466,6 +467,41 @@ describe('Markdown (§5.1, the Phase 6 done-when)', () => {
   });
 });
 
+describe('CSV (§5.1; step 5, Phase 1)', () => {
+  async function csv(query: string) {
+    const response = await request(server).get(`/v1/report?format=csv&${query}`);
+    expect(response.status, response.text).toBe(200);
+    expect(response.headers['content-type']).toBe('text/csv; charset=utf-8');
+    expect(response.text.startsWith('\uFEFF'), 'a byte-order mark').toBe(true);
+    return response;
+  }
+
+  it.each([
+    ['the whole record', ''],
+    ['the controller view', 'view=controller'],
+    ['the processor view', 'view=processor'],
+    ['an offering’s standard terms', `offering=${ref('ats')}`],
+    ['one client', `client=${ref('aurelia')}`],
+  ])('holds the same activities and engagements as the JSON, for %s', async (_, query) => {
+    const json = await request(server).get(`/v1/report?${query}`);
+    expect(json.status, JSON.stringify(json.body)).toBe(200);
+    const expected = reportLines(ReportResponse.parse(json.body));
+    expect(expected.length).toBeGreaterThan(0);
+
+    const response = await csv(query);
+    expect(csvLines(csvRows(response.text.slice(1)))).toEqual(expected);
+  });
+
+  it('names the scope and the date in the filename', async () => {
+    const response = await csv(`client=${ref('aurelia')}`);
+    expect(response.headers['content-disposition']).toMatch(
+      new RegExp(
+        `^attachment; filename="ropa-processor-${ref('aurelia')}-\\d{4}-\\d{2}-\\d{2}\\.csv"$`,
+      ),
+    );
+  });
+});
+
 describe('asking properly', () => {
   const refused = async (query: string) => {
     const response = await request(server).get(`/v1/report?${query}`);
@@ -486,10 +522,6 @@ describe('asking properly', () => {
     expect(await refused(`client=${ref('aurelia')}&view=all`)).toEqual([
       ['/view', 'scope_needs_processor_view'],
     ]);
-  });
-
-  it('says CSV is not supported yet', async () => {
-    expect(await refused('format=csv')).toEqual([['/format', 'not_yet_supported']]);
   });
 
   it('refuses an asOf in the future', async () => {
