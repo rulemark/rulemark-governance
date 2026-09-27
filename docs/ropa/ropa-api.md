@@ -675,6 +675,12 @@ Replaying the story writes twelve: P1 going live (the offering, Northwind, Fjord
 - **`asOf` for the step 3 views needs no new view logic either.** Impact and the data map are pure functions over activity snapshots (`partyImpact`, `dataMap`), like the step 2 views; step 4 feeds them snapshots, and the agreements and terms they read, as of the date. Coverage alone stays current-only: it refuses `asOf` with `422 not_supported`, not `not_yet_supported`, because "where do the record and the architecture disagree" is a question about today.
 - **Review-item history lived only in the outbox**, which DB §7's cleanup purges after 30 days. Settled when planning step 4: `review_item_event` (above).
 
+**Decided during build step 4 (2026-09-27)**, for the steps that follow:
+- **Engagement writes need no event logic of their own.** `subprocessors.changed` is written by the activity save's `afterRevision` hook whenever a list changes, so a sub-resource write that goes through the same save (§3.5) emits it exactly as a whole-activity `PUT` does.
+- **The sub-resource's actor comes from the token** (§1.9), like every write since step 1; §3.5 still says `X-Actor` is required, which step 5 corrects.
+- **Services open review items; people decide.** The coverage cron job's role holds no `review:resolve`, and no service role holds `record:write`. Who may write through the sub-resource, which §3.5 describes as for the Monitor and the Snapshot, is step 5's to settle against that.
+- **The event envelope is a contract in the package** (`@rulemark/ropa-schemas/events`); each event's `data` schema waits for the Monitor, its first consumer that needs one.
+
 ## 9. Open questions
 
 1. ~~**Concurrency**~~ **Resolved (2026-09-19):** `If-Match` required on `PUT`, `DELETE`, `activate` and `retire`. Review-item transitions are protected by a status check. See §1.8.
