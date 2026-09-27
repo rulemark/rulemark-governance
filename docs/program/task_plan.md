@@ -13,7 +13,7 @@ The first step of the interface, the roadmap's next priority
 (`docs/program/roadmap.md`, "Next: the interface, and what clients see").
 
 ## Current Phase
-Phase 1 (the component package), not started: all six open questions settled
+Phase 2 (the app), not started. Phase 1 (the component package) is complete, committed and not pushed
 
 ## The stack (decided by the user, 2026-09-27)
 | Concern | Choice |
@@ -64,12 +64,18 @@ the user wants soon.
 ## Phases
 
 ### Phase 1: The component package
-- [ ] `packages/ui` (`@rulemark/ui`): Tailwind v4, `shadcn init`, its own
+- [x] `packages/ui` (`@rulemark/ui`): Tailwind v4, `shadcn init`, its own
       `components.json`, `src/styles/globals.css` with the theme, `lib/utils`
-      (`cn`), a first component (`button`)
-- [ ] Wired into the workspace's TypeScript, ESLint and Prettier config
-- [ ] Vitest in browser mode for components (Chromium, Playwright provider), per open question 5
-- **Status:** pending
+      (`cn`), a first component (`button`). The files are shadcn's own
+      (`init --monorepo --base base --preset nova`, generated in a scratch
+      directory and ported); the button is added with `shadcn add` from the
+      package
+- [x] Wired into the workspace's TypeScript (in the build graph, declarations
+      only), ESLint (`react-hooks` for `.tsx`) and Prettier config
+- [x] Vitest in browser mode for components (Chromium, Playwright provider), per open question 5:
+      eight button tests, including the theme's colour in light and dark, each
+      checked by breaking the code; CI installs Chromium
+- **Status:** complete
 
 ### Phase 2: The app
 - [ ] `apps/ropa-web` on Next.js 16, App Router, its own `components.json`
@@ -109,6 +115,8 @@ the user wants soon.
 ### Phase 5: Deploy and docs
 - [ ] `ropa-web` in `render.yaml`: a web service (about $7 a month, accepted),
       its own build filter, `ROPA_API_URL` from `ropa-api`'s `hostport`;
+      `packages/ui/**` added to the API's `ignoredPaths` (its filter watches
+      `packages/**`, so a component change would rebuild the API);
       pushed code-first **once the user gives the go-ahead**, verified by
       behaviour (the live page lists P1–P3)
 - [ ] `workspace-skeleton.md`, `ropa-packages.md` §8, the README

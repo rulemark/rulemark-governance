@@ -160,6 +160,72 @@
   those surprises would come with a bigger app. Pushed only on the user's
   go-ahead.
 
+- **Phase 1: presets are styles, not base-and-style (2026-09-27).** The
+  earlier note that `shadcn init` takes a preset named `base-nova` is wrong:
+  4.21 answers `Invalid preset: base-nova. Available presets: nova, vega,
+  maia, lyra, mira, luma, sera, rhea`. The base is its own flag: `--base base
+  --preset nova`. `components.json` still records the pair as `"style":
+  "base-nova"`, which is what the app's file must match.
+- **Phase 1: shadcn's scaffold, ported rather than run in place.** `shadcn
+  init --monorepo` makes a whole pnpm and Turborepo project, and `init` in a
+  bare package has no framework to detect. So the scaffold was generated in a
+  scratch directory and its package files ported: `components.json` (aliases
+  renamed to `@rulemark/ui`), `globals.css` unchanged, `postcss.config.mjs`,
+  and the same `exports` map (`./globals.css`, `./postcss.config`, `./lib/*`,
+  `./components/*`, `./hooks/*`). `shadcn add button`, run from the package,
+  then produced a file identical to the scaffold's: the CLI finds where files
+  go through the `@rulemark/ui/*` path in the package's `tsconfig.json`.
+  Differences from the scaffold: React as a peer dependency, not pinned; no
+  `zod` or `next-themes` in the package (the app brings next-themes in Phase
+  2); the repo's own TypeScript, ESLint and Prettier configs, not shadcn's
+  config packages.
+- **Phase 1: `cn` is a package now.** shadcn's `lib/utils` re-exports `cn`
+  from the `cn` package (shadcn's own, 0.4, "a drop-in replacement for clsx +
+  tailwind-merge"), and generated components import it from `cn` directly,
+  not from `lib/utils`. Kept as generated.
+- **Phase 1: the theme `@source`s every app.** `globals.css` has `@source
+  "../../../apps/**/*.{ts,tsx}"`, so Tailwind also scans `ropa-api` and
+  `audit-log`: wasted work and possibly stray classes, but harmless. It and
+  the scaffold's `components/**` line (a directory we don't have) are kept as
+  generated until Phase 2 shows what the app needs.
+- **Phase 1: Vite's optimiser splits React when a dependency turns up
+  mid-run.** Every test failed with `Cannot read properties of null
+  (reading 'useRef')`, one copy of React on disk. The cache had been built
+  before the button (and its Base UI import) existed; the new import made
+  Vite re-optimise and reload the test mid-run. It'll happen again locally
+  whenever a new component imports a Base UI entry the cache hasn't seen (CI
+  starts cold and scans first). Fixed with `optimizeDeps.include`: React, the
+  renderer, and `@base-ui/react/**` (a glob Vite accepts: about a hundred
+  entries, a cold run still about a second). Verified by the same
+  reproduction.
+- **Phase 1: Base UI's button is `type="button"`.** A test renders one inside
+  a form and clicks it: the form doesn't submit. Swapping in a plain
+  `<button>` fails that test, so a future `button.tsx` regenerated without
+  Base UI is caught.
+- **Phase 1: the theme is tested by computed colour.** Tailwind's Vite plugin
+  compiles `globals.css` in the test setup, and the button's background is
+  compared with a probe painted `var(--primary)`, in light and under `.dark`.
+  Removing the `.dark` block or `bg-primary` fails it.
+- **Phase 1: the build graph checks the package's types.** `tsc --build`
+  can't reference a project that emits nothing, so `packages/ui` joins the
+  root references with `emitDeclarationOnly` into an ignored `dist/`; its
+  exports still point at sources. Tests type-check through
+  `tsconfig.test.json`, as elsewhere. The generated button passes the repo's
+  strict settings (`exactOptionalPropertyTypes` included) unchanged.
+- **Phase 1: lint.** `eslint-plugin-react` supports ESLint only up to 9.7, and
+  the repo is on 10; `eslint-plugin-react-hooks` 7 supports 10, and its
+  recommended flat config now applies to `**/*.tsx` (checked with a
+  conditional hook). `eslint-config-next` in Phase 2 may bring its own.
+- **Phase 1: shadcn writes its own style.** Generated files use double quotes
+  and no semicolons, and fail `format:check`: run `npm run format` after
+  every `shadcn add`.
+- **Phase 1: CI needs Chromium.** `npm run test` now runs the component tests
+  in a browser, so CI installs it (`npx playwright install --with-deps
+  chromium`) right after `npm ci`. Phase 4's Playwright job uses the same.
+- **Phase 1: the API's build filter watches `packages/**`.** A component
+  change would rebuild `ropa-api` on Render. `packages/ui/**` goes in its
+  `ignoredPaths` with the rest of the Blueprint work in Phase 5.
+
 ## Issues encountered
 | Issue | Resolution |
 |---|---|
