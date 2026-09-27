@@ -14,6 +14,8 @@ this document records the design as it is settled, one question at a time.
 | 1 | **Real infrastructure, with stand-ins.** The Snapshot captures the real workspace. The real resources play Hireloop's systems in RoPA through `system.render_resource_id` (`ropa-api` as `hireloop-api`, `ropa-db` as `hireloop-db`, …); story systems with no real resource show as not deployed | The seed tells the Hireloop story and the demo stays story-centred, while the document shows true types, regions, visibility and drift | 2026-09-27 |
 | 2 | **Self-hosted, single-tenant.** Shipped in the suite's Blueprint; the collector runs in the customer's own workspace, with their key | The Render API's only credential is a personal key with every permission across every workspace; it should never leave the customer's account (`docs/program/roadmap.md`, Distribution) | 2026-09-27 |
 | 3 | **Its own app, sharing the database.** `apps/snapshot`: a cron job that captures, and a web service for the document and its API. Its tables live in their own Postgres schema (`snapshot`) on the existing `ropa-db` instance. It talks to RoPA only over HTTP, as `service:snapshot`, like the coverage job | "The Snapshot owns systems, RoPA keeps a reference" (DM §1) stays true in the code; no second paid database per install; one Blueprint still ships the suite. The schema boundary is a convention, not a wall: neither app reads the other's tables | 2026-09-27 |
+| 4 | **Sources: the Render API, the Blueprint API, and `render.yaml`.** The API for what exists and how it is configured; the Blueprint API for which resources each Blueprint manages (any other resource was created by hand); each Blueprint's `render.yaml` for the edges (`fromService`, `fromDatabase`) and for declared-versus-live drift. Environment variable values are never requested | The API describes every resource but records no relationships: a reference is only an environment variable's value (§3). `render.yaml` is the one place the wiring is declared without secrets | 2026-09-27 |
+| 5 | **Scope: workspaces, and an optional read-only Git token.** A setting lists the workspaces to document (default: the one Rulemark runs in); every Blueprint in them counts, Rulemark's own and the customer's apps'. A Blueprint's `render.yaml` is fetched from its repo when the repo is public or an optional read-only Git token can read it (e.g. a GitHub fine-grained token with contents read access to the repos holding Blueprints); otherwise the document says "relationships unknown" for that Blueprint rather than showing none. **Rulemark Governance documents itself**: it holds the customer's record of processing, staff and DPO names included, so it is one of their systems | The Render API gives a Blueprint's repo, branch and path, not its contents. Inventory, visibility and made-by-hand drift need only the Render key, so the Git token buys the arrows and declared drift, nothing else, and stays narrow | 2026-09-27 |
 
 ## 2. What it documents
 
@@ -50,9 +52,25 @@ stable per-activity anchors (`…#p3`) for the document to link to.
   manages (id, name, type), with its repo, branch, `render.yaml` path, status
   and last sync. A resource in no Blueprint was created by hand: drift
   without parsing anything.
-- **Relationships are not first-class.** A `fromService` or `fromDatabase`
-  reference is only visible in `render.yaml`; to the API it is an
-  environment variable's value.
+- **What each resource carries.** A service: type, runtime, region, plan,
+  instances and autoscaling, repo, branch, root directory, build filter,
+  build, start and pre-deploy commands, health check path, open ports, public
+  URL, IP allow list, disk, previews, suspension, and a cron job's schedule
+  and last successful run. A Postgres instance: version, plan, region, disk,
+  high availability, read replicas, IP allow list. An environment: its
+  project, the services and datastores in it, network isolation and IP allow
+  list. An environment group: the services linked to it (but retrieving one
+  returns its values too).
+- **Relationships are not first-class.** No field says which services use a
+  database, and a service carries no references. A `fromService` or
+  `fromDatabase` reference is only visible in `render.yaml`; to the API it is
+  an environment variable's value. Environment-group links are the only
+  relationship the API exposes.
+- **Only in `render.yaml`:** the edges; the declared configuration, so a
+  dashboard change can be told from a sanctioned one (without it, a change is
+  still seen by diffing captures); and environment variable names without
+  their values, with how each is set (`generateValue`, `sync: false`,
+  `fromService`).
 - **Secrets come back unasked.** Listing a service's environment variables
   always returns values, with no keys-only option. The same key can also read
   secret files, database connection strings, and live and top queries
@@ -65,8 +83,8 @@ stable per-activity anchors (`…#p3`) for the document to link to.
 
 ## 4. Open questions
 
-1. **Sources.** Which of the Render API, the Blueprint API, `render.yaml`
-   and webhooks the capture reads, and where relationships come from.
+1. ~~**Sources.**~~ Settled: decisions 4 and 5. Webhooks as a capture
+   trigger are left for later.
 2. **Secrets.** How "names, never values" is enforced: the endpoint
    allowlist, and whether values are ever read, even in memory.
 3. **Linking to RoPA systems.** Who sets `render_resource_id` for the
