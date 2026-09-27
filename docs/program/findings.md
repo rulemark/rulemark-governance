@@ -76,6 +76,89 @@
 
 ## Build findings
 <!-- Add as we go: surprises, library behaviour, decisions with rationale -->
+- **The component package (open question 1, 2026-09-27).** `@rulemark/ui`
+  in `packages/ui`, **source-only**: it exports its TypeScript sources and
+  the app compiles them through Next's `transpilePackages`, as the repo's
+  other packages serve sources through a `development` condition. No build
+  step, and an edit to a component shows in the app at once; built output
+  can come if the toolkit is ever used outside this repo. **Base UI** as the
+  primitives: shadcn's current default (`base-nova`), actively developed, and
+  supported by every style (Radix has more third-party examples; React Aria,
+  a first-class base since July 2026, the strongest accessibility behaviour).
+  **Nova** style: compact without being cramped, for an app of lists and
+  forms. **Neutral** base colour (fixed once initialised) with **dark mode
+  from the start**, via next-themes as shadcn recommends, because retrofitting
+  it once screens exist is the expensive way. **Lucide** icons, the default.
+  Rejected: a built package (a build and watch step for no consumer outside
+  the repo), light only.
+- **The shadcn CLI is ahead of its documentation page** (checked
+  2026-09-27). `components.json`'s page lists only the `new-york` style and no
+  choice of primitives, but `shadcn init` (4.21) takes `--base base|radix|aria`
+  and presets named for base and style (`base-nova`, the default). The styles
+  are Vega (classic), Nova, Maia, Lyra and Mira. Trust `--help` and the
+  changelog over the reference page.
+- **Where data is fetched (open question 2, 2026-09-27).** TanStack Query's
+  documented App Router pattern: a page's Server Component prefetches its
+  queries on the server, straight to `ropa-api` over the private network with
+  the token, dehydrates them into a `HydrationBoundary`, and its client
+  components `useQuery` the same keys, refetching through `/api/ropa` in the
+  browser. Writes are `useMutation` through the proxy, then invalidate. The
+  first paint has data and no loading flash; one query-key scheme serves both
+  sides; and the public subprocessor page (step 5) is server-rendered for
+  free. The cost, two fetch paths, is the one `ropa-packages.md` §8.1 already
+  planned for (two client instances). Rejected: client-only (a loading state
+  on every screen, and the public page to revisit), and Server Components with
+  Server Actions (TanStack Query reduced to a side tool, the proxy barely
+  used).
+- **The API client (open question 3, 2026-09-27).** `@rulemark/ropa-client`
+  is built now, as `ropa-packages.md` §5 designs it, but only its core and the
+  calls the first page needs: an injectable base URL, `fetch` and token
+  provider, so the server's instance (internal host, token) and the browser's
+  (`/api/ropa`, no token) are the same code; responses parsed with the shared
+  schemas; `problem+json` as the typed errors of §5.3; the `ETag` surfaced as
+  `version` and `If-Match` required on writes. Each later screen adds the calls
+  it uses, so the package is shaped by its first consumer as §5 intended.
+  §5.1's `actor` option is out of date (the actor is the token's subject) and
+  goes. Rejected: `fetch` helpers in the app (likely rewritten as the client
+  anyway), and a client generated from `openapi.json` (types from the OpenAPI
+  document rather than the Zod schemas: no runtime validation, typed problems
+  or compile-time `If-Match`).
+- **Auth in the skeleton (open question 4, 2026-09-27).** Reads go through
+  the proxy and the server prefetch without a token, and the proxy answers
+  any write with a problem saying sign-in arrives in step 2. It proves the
+  proxy passes `If-Match`, `ETag` and problems through, not token attachment,
+  and leaves step 2 nothing to undo. Rejected: a server-held service token (a
+  principal step 2 would replace) and a development sign-in (it could steer
+  step 2's design, and must never reach production).
+- **Step 2's direction (the user, 2026-09-27): Stytch.** The user has a
+  Stytch workspace and wants sign-in through it, with users, roles and
+  permissions supported properly, in the database, instead of principals in
+  an environment variable (the data model's F5). Today's permission map
+  (`apps/ropa-api/src/auth/permissions.ts`) and the API's own JWTs are what
+  it replaces or builds on: a question for step 2's plan.
+- **Testing layout (open question 5, 2026-09-27).** Components in
+  `packages/ui` and the app's client components are tested in **Vitest's
+  browser mode**, in a real Chromium with Playwright as the provider: Base UI
+  leans on focus, keyboard, pointer events and portals, which jsdom only
+  imitates. The client package and pure logic run in Node like the rest of
+  the repo. Playwright's browsers are needed for end-to-end tests anyway, so
+  CI gains no new dependency. **One Playwright smoke test** in this step: the
+  home page lists P1–P3 read through the proxy, and a write is refused,
+  against the real API with the story replayed, started by Playwright's
+  `webServer` locally and by a CI job with the Postgres service container
+  (migrate, seed, start both, Chromium only). Async Server Components can't
+  be rendered by a component test, so pages are covered end to end. Rejected:
+  jsdom (passes where a browser fails), and a stubbed API for end-to-end tests
+  (can't catch the web app and the real API disagreeing).
+- **Deploy in step 1 (open question 6, 2026-09-27).** `ropa-web` joins the
+  Blueprint as a web service in this step, about $7 a month, accepted. The
+  skeleton proves what only Render can while the app is tiny: a Next.js build
+  inside the npm workspace (`transpilePackages`, the shared packages), the
+  proxy reaching `ropa-api` over the private network by `hostport`, and
+  whether a 512 MB instance builds and runs it. The live page shows only what
+  the API already shows publicly. Rejected: staying local until step 2, when
+  those surprises would come with a bigger app. Pushed only on the user's
+  go-ahead.
 
 ## Issues encountered
 | Issue | Resolution |

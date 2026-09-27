@@ -9,6 +9,12 @@
 - Checked current versions and shadcn's monorepo guidance
 - Wrote the step 1 plan (5 phases, 6 open questions) in `task_plan.md`, with
   a proposed build order for the interface
+- Settled the six open questions, one at a time: `@rulemark/ui` source-only,
+  on Base UI, Nova, neutral with dark mode; server prefetch and hydration;
+  `@rulemark/ropa-client` built now and grown by screens; anonymous reads and
+  writes refused until step 2, which brings Stytch and users, roles and
+  permissions in the database; Vitest browser mode and a seeded Playwright
+  smoke test; `ropa-web` deployed in this step (about $7 a month)
 
 ## Test Results
 | Test | Command | Expected | Actual | Status |
@@ -23,7 +29,7 @@
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Interface step 1 (the workspace skeleton), planning: six open questions to settle |
+| Where am I? | Interface step 1 (the workspace skeleton), Phase 1 not started; open questions settled |
 | Where am I going? | The component package, the app, the proxy and first page, tests and CI, then deploy and docs |
 | What's the goal? | A Next.js app and a shadcn component package in the workspace, reading the record through the proxy, tested from the first commit |
 | What have I learned? | See findings.md |

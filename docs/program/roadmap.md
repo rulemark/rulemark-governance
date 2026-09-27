@@ -76,6 +76,8 @@ chosen, and the app proxies to `ropa-api` over the private network
   list should be public (III.1).
 - Signing in is minting a token with a shared secret (II.1); users live in an
   environment variable, so adding one means a redeploy (II.3, F5).
+  Direction (2026-09-27): sign-in through **Stytch**, with users, roles and
+  permissions in the database, as the interface's step 2.
 - Client staff and outside auditors need their own sign-in, and access
   limited to one client's views; roles are global today (III.18, II.19).
 - Which fields may leave Hireloop, per output: owners, role rationales
