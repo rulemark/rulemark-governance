@@ -115,6 +115,7 @@ Reference: API §8 ("Decided during build step 3"), §5.5
 - **Status:** pending
 
 ### Phase 7: Deploy and verify
+*Phases 1–4 are already deployed, code first, each verified (see `progress.md`); Ch8's `asOf` and `/changes` answer on the live service.*
 - [ ] Push code commits on their own, docs separately
 - [ ] Ch8 answered on the live, seeded service; the cron job's run visible in Render
 - [ ] README tour: the regulator's question, `/changes`, and the cron job
@@ -169,4 +170,5 @@ Reference: API §8 ("Decided during build step 3"), §5.5
 ## Errors encountered
 | Error | Attempt | Resolution |
 |---|---|---|
-| | | |
+| An empty custom migration (`0009`) was applied by a test run before its SQL was written, and never re-run | 1 | Dropped the test database; DB §8.1 warns (details in `progress.md`) |
+| `/changes` answered 500: raw SQL returns timestamps as strings | 1 | Parsed with `new Date(…)` |
