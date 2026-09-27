@@ -12,6 +12,9 @@ import {
   DataCategory,
   CoverageResponse,
   DataCategoryInput,
+  ControllerEngagement,
+  Engagement,
+  ProcessorEngagement,
   DataMapResponse,
   ImpactResponse,
   DEFAULT_PAGE_SIZE,
@@ -110,6 +113,9 @@ const OUTPUT_SCHEMAS: readonly [string, z.ZodType][] = [
   ['DataCategory', DataCategory],
   ['SecurityMeasure', SecurityMeasure],
   ['Activity', Activity],
+  ['ControllerEngagement', ControllerEngagement],
+  ['ProcessorEngagement', ProcessorEngagement],
+  ['Engagement', Engagement],
   ['ReviewItem', ReviewItem],
   ['Change', Change],
   ['SubprocessorsResponse', SubprocessorsResponse],
@@ -511,6 +517,63 @@ export function buildOpenApiDocument(): JsonObject {
   for (const resource of RESOURCES) {
     Object.assign(paths, pathsForResource(resource as ResourceDefinition<never, never, never>));
   }
+
+  // The engagement sub-resource (§3.5): the activity's own rows, so the
+  // activity's permission and version.
+  const engagements = `/${API_VERSION}/activities/{ref}/engagements`;
+  const ACTIVITY_ETAG: JsonObject = {
+    ETag: {
+      description: 'The activity’s version, not the engagement’s: send it back as If-Match (§3.5).',
+      schema: { type: 'string', example: '"3"' },
+    },
+  };
+  paths[engagements] = {
+    get: guarded(
+      {
+        tags: ['activities'],
+        summary: 'List an activity’s engagements',
+        description:
+          'The activity’s engagements, exactly as `GET /activities/{ref}` holds them (§3.5): its recipients and processors, or its subprocessors. Never paged.',
+        parameters: [REF_PARAM('activity')],
+        responses: {
+          '200': {
+            description: 'The engagements',
+            headers: ACTIVITY_ETAG,
+            content: { 'application/json': { schema: listResponseSchema('Engagement') } },
+          },
+          '404': problem('No activity matching that identifier'),
+          ...COMMON_ERRORS,
+        },
+      },
+      'record:read',
+    ),
+  };
+  paths[`${engagements}/{id}`] = {
+    get: guarded(
+      {
+        tags: ['activities'],
+        summary: 'Read one engagement',
+        description:
+          'One of the activity’s engagements, by its id: engagements have no code or slug (DM §3.0).',
+        parameters: [
+          REF_PARAM('activity'),
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            description: 'The engagement’s id.',
+            schema: { type: 'string', format: 'uuid' },
+          },
+        ],
+        responses: {
+          '200': { ...json('Engagement', 'The engagement'), headers: ACTIVITY_ETAG },
+          '404': problem('No such activity, or it holds no engagement with that id'),
+          ...COMMON_ERRORS,
+        },
+      },
+      'record:read',
+    ),
+  };
 
   const queryParam = (
     name: string,

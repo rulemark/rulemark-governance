@@ -1311,174 +1311,7 @@
               "engagements": {
                 "type": "array",
                 "items": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "format": "uuid",
-                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                      "description": "A UUID. Records are keyed by UUIDv7.",
-                      "examples": [
-                        "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
-                      ]
-                    },
-                    "party": {
-                      "$ref": "#/components/schemas/Ref"
-                    },
-                    "serviceDescription": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 200,
-                      "examples": [
-                        "Mailcrest Inc."
-                      ]
-                    },
-                    "processingCountries": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "pattern": "^[A-Z]{2}$",
-                        "description": "An ISO 3166-1 alpha-2 country code.",
-                        "examples": [
-                          "NL",
-                          "US",
-                          "DE"
-                        ]
-                      }
-                    },
-                    "dataCategories": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Ref"
-                      }
-                    },
-                    "transfers": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string",
-                            "format": "uuid",
-                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                            "description": "A UUID. Records are keyed by UUIDv7.",
-                            "examples": [
-                              "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
-                            ]
-                          },
-                          "destinationCountry": {
-                            "type": "string",
-                            "pattern": "^[A-Z]{2}$",
-                            "description": "An ISO 3166-1 alpha-2 country code.",
-                            "examples": [
-                              "NL",
-                              "US",
-                              "DE"
-                            ]
-                          },
-                          "mechanism": {
-                            "type": "string",
-                            "enum": [
-                              "adequacy",
-                              "dpf",
-                              "sccs",
-                              "bcr",
-                              "derogation_49"
-                            ]
-                          },
-                          "onwardVia": {
-                            "anyOf": [
-                              {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 200,
-                                "examples": [
-                                  "Mailcrest Inc."
-                                ]
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "documentRef": {
-                            "anyOf": [
-                              {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 200,
-                                "examples": [
-                                  "Mailcrest Inc."
-                                ]
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "destinationCountry",
-                          "mechanism",
-                          "onwardVia",
-                          "documentRef"
-                        ],
-                        "additionalProperties": false
-                      }
-                    },
-                    "startedAt": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "format": "date",
-                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-                          "description": "A date, \"YYYY-MM-DD\".",
-                          "examples": [
-                            "2026-03-16"
-                          ]
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "endedAt": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "format": "date",
-                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-                          "description": "A date, \"YYYY-MM-DD\".",
-                          "examples": [
-                            "2026-03-16"
-                          ]
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "role": {
-                      "type": "string",
-                      "enum": [
-                        "processor",
-                        "recipient"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "party",
-                    "serviceDescription",
-                    "processingCountries",
-                    "dataCategories",
-                    "transfers",
-                    "startedAt",
-                    "endedAt",
-                    "role"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ControllerEngagement"
                 }
               }
             },
@@ -1845,240 +1678,7 @@
               "engagements": {
                 "type": "array",
                 "items": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "format": "uuid",
-                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                      "description": "A UUID. Records are keyed by UUIDv7.",
-                      "examples": [
-                        "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
-                      ]
-                    },
-                    "party": {
-                      "$ref": "#/components/schemas/Ref"
-                    },
-                    "serviceDescription": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 200,
-                      "examples": [
-                        "Mailcrest Inc."
-                      ]
-                    },
-                    "processingCountries": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "pattern": "^[A-Z]{2}$",
-                        "description": "An ISO 3166-1 alpha-2 country code.",
-                        "examples": [
-                          "NL",
-                          "US",
-                          "DE"
-                        ]
-                      }
-                    },
-                    "dataCategories": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Ref"
-                      }
-                    },
-                    "transfers": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string",
-                            "format": "uuid",
-                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                            "description": "A UUID. Records are keyed by UUIDv7.",
-                            "examples": [
-                              "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
-                            ]
-                          },
-                          "destinationCountry": {
-                            "type": "string",
-                            "pattern": "^[A-Z]{2}$",
-                            "description": "An ISO 3166-1 alpha-2 country code.",
-                            "examples": [
-                              "NL",
-                              "US",
-                              "DE"
-                            ]
-                          },
-                          "mechanism": {
-                            "type": "string",
-                            "enum": [
-                              "adequacy",
-                              "dpf",
-                              "sccs",
-                              "bcr",
-                              "derogation_49"
-                            ]
-                          },
-                          "onwardVia": {
-                            "anyOf": [
-                              {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 200,
-                                "examples": [
-                                  "Mailcrest Inc."
-                                ]
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "documentRef": {
-                            "anyOf": [
-                              {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 200,
-                                "examples": [
-                                  "Mailcrest Inc."
-                                ]
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "destinationCountry",
-                          "mechanism",
-                          "onwardVia",
-                          "documentRef"
-                        ],
-                        "additionalProperties": false
-                      }
-                    },
-                    "startedAt": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "format": "date",
-                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-                          "description": "A date, \"YYYY-MM-DD\".",
-                          "examples": [
-                            "2026-03-16"
-                          ]
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "endedAt": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "format": "date",
-                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-                          "description": "A date, \"YYYY-MM-DD\".",
-                          "examples": [
-                            "2026-03-16"
-                          ]
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "role": {
-                      "type": "string",
-                      "enum": [
-                        "subprocessor"
-                      ]
-                    },
-                    "clientScope": {
-                      "anyOf": [
-                        {
-                          "type": "object",
-                          "properties": {
-                            "mode": {
-                              "type": "string",
-                              "enum": [
-                                "include",
-                                "exclude"
-                              ]
-                            },
-                            "clients": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "type": "string",
-                                    "format": "uuid",
-                                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                                    "description": "A UUID. Records are keyed by UUIDv7.",
-                                    "examples": [
-                                      "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
-                                    ]
-                                  },
-                                  "client": {
-                                    "$ref": "#/components/schemas/Ref"
-                                  },
-                                  "reason": {
-                                    "type": "string",
-                                    "minLength": 1,
-                                    "maxLength": 2000
-                                  },
-                                  "agreement": {
-                                    "anyOf": [
-                                      {
-                                        "$ref": "#/components/schemas/Ref"
-                                      },
-                                      {
-                                        "type": "null"
-                                      }
-                                    ]
-                                  }
-                                },
-                                "required": [
-                                  "id",
-                                  "client",
-                                  "reason",
-                                  "agreement"
-                                ],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": [
-                            "mode",
-                            "clients"
-                          ],
-                          "additionalProperties": false
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "party",
-                    "serviceDescription",
-                    "processingCountries",
-                    "dataCategories",
-                    "transfers",
-                    "startedAt",
-                    "endedAt",
-                    "role",
-                    "clientScope"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ProcessorEngagement"
                 }
               }
             },
@@ -2110,6 +1710,425 @@
               "engagements"
             ],
             "additionalProperties": false
+          }
+        ],
+        "discriminator": {
+          "propertyName": "role"
+        }
+      },
+      "ControllerEngagement": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "A UUID. Records are keyed by UUIDv7.",
+            "examples": [
+              "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+            ]
+          },
+          "party": {
+            "$ref": "#/components/schemas/Ref"
+          },
+          "serviceDescription": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "examples": [
+              "Mailcrest Inc."
+            ]
+          },
+          "processingCountries": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z]{2}$",
+              "description": "An ISO 3166-1 alpha-2 country code.",
+              "examples": [
+                "NL",
+                "US",
+                "DE"
+              ]
+            }
+          },
+          "dataCategories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ref"
+            }
+          },
+          "transfers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "description": "A UUID. Records are keyed by UUIDv7.",
+                  "examples": [
+                    "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                  ]
+                },
+                "destinationCountry": {
+                  "type": "string",
+                  "pattern": "^[A-Z]{2}$",
+                  "description": "An ISO 3166-1 alpha-2 country code.",
+                  "examples": [
+                    "NL",
+                    "US",
+                    "DE"
+                  ]
+                },
+                "mechanism": {
+                  "type": "string",
+                  "enum": [
+                    "adequacy",
+                    "dpf",
+                    "sccs",
+                    "bcr",
+                    "derogation_49"
+                  ]
+                },
+                "onwardVia": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "examples": [
+                        "Mailcrest Inc."
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "documentRef": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "examples": [
+                        "Mailcrest Inc."
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "destinationCountry",
+                "mechanism",
+                "onwardVia",
+                "documentRef"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "startedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                "description": "A date, \"YYYY-MM-DD\".",
+                "examples": [
+                  "2026-03-16"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "endedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                "description": "A date, \"YYYY-MM-DD\".",
+                "examples": [
+                  "2026-03-16"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "processor",
+              "recipient"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "party",
+          "serviceDescription",
+          "processingCountries",
+          "dataCategories",
+          "transfers",
+          "startedAt",
+          "endedAt",
+          "role"
+        ],
+        "additionalProperties": false
+      },
+      "ProcessorEngagement": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "A UUID. Records are keyed by UUIDv7.",
+            "examples": [
+              "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+            ]
+          },
+          "party": {
+            "$ref": "#/components/schemas/Ref"
+          },
+          "serviceDescription": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "examples": [
+              "Mailcrest Inc."
+            ]
+          },
+          "processingCountries": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z]{2}$",
+              "description": "An ISO 3166-1 alpha-2 country code.",
+              "examples": [
+                "NL",
+                "US",
+                "DE"
+              ]
+            }
+          },
+          "dataCategories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ref"
+            }
+          },
+          "transfers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "description": "A UUID. Records are keyed by UUIDv7.",
+                  "examples": [
+                    "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                  ]
+                },
+                "destinationCountry": {
+                  "type": "string",
+                  "pattern": "^[A-Z]{2}$",
+                  "description": "An ISO 3166-1 alpha-2 country code.",
+                  "examples": [
+                    "NL",
+                    "US",
+                    "DE"
+                  ]
+                },
+                "mechanism": {
+                  "type": "string",
+                  "enum": [
+                    "adequacy",
+                    "dpf",
+                    "sccs",
+                    "bcr",
+                    "derogation_49"
+                  ]
+                },
+                "onwardVia": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "examples": [
+                        "Mailcrest Inc."
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "documentRef": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "examples": [
+                        "Mailcrest Inc."
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "destinationCountry",
+                "mechanism",
+                "onwardVia",
+                "documentRef"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "startedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                "description": "A date, \"YYYY-MM-DD\".",
+                "examples": [
+                  "2026-03-16"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "endedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                "description": "A date, \"YYYY-MM-DD\".",
+                "examples": [
+                  "2026-03-16"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "subprocessor"
+            ]
+          },
+          "clientScope": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "include",
+                      "exclude"
+                    ]
+                  },
+                  "clients": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "A UUID. Records are keyed by UUIDv7.",
+                          "examples": [
+                            "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                          ]
+                        },
+                        "client": {
+                          "$ref": "#/components/schemas/Ref"
+                        },
+                        "reason": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        },
+                        "agreement": {
+                          "anyOf": [
+                            {
+                              "$ref": "#/components/schemas/Ref"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "client",
+                        "reason",
+                        "agreement"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "mode",
+                  "clients"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "party",
+          "serviceDescription",
+          "processingCountries",
+          "dataCategories",
+          "transfers",
+          "startedAt",
+          "endedAt",
+          "role",
+          "clientScope"
+        ],
+        "additionalProperties": false
+      },
+      "Engagement": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ControllerEngagement"
+          },
+          {
+            "$ref": "#/components/schemas/ProcessorEngagement"
           }
         ],
         "discriminator": {
@@ -13622,6 +13641,199 @@
           }
         },
         "x-required-permission": "activity:approve"
+      }
+    },
+    "/v1/activities/{ref}/engagements": {
+      "get": {
+        "tags": [
+          "activities"
+        ],
+        "summary": "List an activity’s engagements",
+        "description": "The activity’s engagements, exactly as `GET /activities/{ref}` holds them (§3.5): its recipients and processors, or its subprocessors. Never paged.\n\nRequires the `record:read` permission.",
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "path",
+            "required": true,
+            "description": "The activity: an id, code or slug (§1.2).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The engagements",
+            "headers": {
+              "ETag": {
+                "description": "The activity’s version, not the engagement’s: send it back as If-Match (§3.5).",
+                "schema": {
+                  "type": "string",
+                  "example": "\"3\""
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "nextCursor"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Engagement"
+                      }
+                    },
+                    "nextCursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "Pass as ?cursor= for the next page. Null on the last page."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No token, or the token is not valid",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Valid token without the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No activity matching that identifier",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request failed validation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "record:read"
+      }
+    },
+    "/v1/activities/{ref}/engagements/{id}": {
+      "get": {
+        "tags": [
+          "activities"
+        ],
+        "summary": "Read one engagement",
+        "description": "One of the activity’s engagements, by its id: engagements have no code or slug (DM §3.0).\n\nRequires the `record:read` permission.",
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "path",
+            "required": true,
+            "description": "The activity: an id, code or slug (§1.2).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The engagement’s id.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The engagement",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Engagement"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "The activity’s version, not the engagement’s: send it back as If-Match (§3.5).",
+                "schema": {
+                  "type": "string",
+                  "example": "\"3\""
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No token, or the token is not valid",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Valid token without the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such activity, or it holds no engagement with that id",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request failed validation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "record:read"
       }
     },
     "/v1/changes": {

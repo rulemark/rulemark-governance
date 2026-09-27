@@ -408,12 +408,12 @@ const engagementFields = {
   endedAt: IsoDate.nullable(),
 };
 
-const ControllerEngagement = z.object({
+export const ControllerEngagement = z.object({
   ...engagementFields,
   role: z.enum(CONTROLLER_ENGAGEMENT_ROLES),
 });
 
-const ProcessorEngagement = z.object({
+export const ProcessorEngagement = z.object({
   ...engagementFields,
   role: z.enum(PROCESSOR_ENGAGEMENT_ROLES),
   clientScope: EngagementClientScope.nullable(),
@@ -460,6 +460,15 @@ export const ProcessorActivity = z.object({
   engagements: z.array(ProcessorEngagement),
 });
 
+/**
+ * One engagement, as its activity holds it (§3.5): a controller activity's
+ * recipient or processor, or a processor activity's subprocessor, which alone
+ * carries a client scope. The roles don't overlap, so `role` tells them apart.
+ */
+export const Engagement = z
+  .discriminatedUnion('role', [ControllerEngagement, ProcessorEngagement])
+  .meta({ discriminator: { propertyName: 'role' } });
+
 /** No `joint_controller` branch: one can never be saved. */
 export const Activity = z
   .discriminatedUnion('role', [ControllerActivity, ProcessorActivity])
@@ -472,6 +481,9 @@ export type ActivityInput = z.infer<typeof ActivityInput>;
 export type ControllerActivity = z.infer<typeof ControllerActivity>;
 export type ProcessorActivity = z.infer<typeof ProcessorActivity>;
 export type Activity = z.infer<typeof Activity>;
+export type ControllerEngagement = z.infer<typeof ControllerEngagement>;
+export type ProcessorEngagement = z.infer<typeof ProcessorEngagement>;
+export type Engagement = z.infer<typeof Engagement>;
 export type ActivateInput = z.infer<typeof ActivateInput>;
 export type RetireInput = z.infer<typeof RetireInput>;
 export type RetentionRule = z.infer<typeof RetentionRule>;

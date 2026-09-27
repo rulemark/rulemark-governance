@@ -137,6 +137,18 @@ describe('the OpenAPI document', () => {
     expect(JSON.stringify(report)).not.toContain('not supported yet');
   });
 
+  it('documents reading engagements, under the activity’s ETag (§3.5)', () => {
+    const list = document.paths['/v1/activities/{ref}/engagements']?.['get'];
+    const one = document.paths['/v1/activities/{ref}/engagements/{id}']?.['get'];
+    for (const operation of [list, one]) {
+      expect(operation?.['x-required-permission']).toBe('record:read');
+      expect(JSON.stringify(operation)).toContain('ETag');
+    }
+    expect(JSON.stringify(list)).toContain('#/components/schemas/Engagement');
+    expect(JSON.stringify(one)).toContain('#/components/schemas/Engagement');
+    expect(document.components.schemas).toHaveProperty('Engagement');
+  });
+
   it('strips the JSON Schema keywords that mean nothing inside components', () => {
     for (const [name, schema] of Object.entries(document.components.schemas)) {
       expect(schema, name).not.toHaveProperty('$schema');
