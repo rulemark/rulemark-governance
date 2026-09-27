@@ -401,6 +401,66 @@
   `h-control*` with `px-control-x` for `sm`, default and `lg`; `xs` keeps its
   24px, 8px padding and smaller radius, in `text-label-sm`.
 
+- **Phase 2: `eslint-config-next` needs `eslint-plugin-react`**, which
+  supports ESLint only to 9.7. `@next/eslint-plugin-next` alone has no such
+  dependency, and its `core-web-vitals` config is flat: it applies to
+  `apps/ropa-web` (checked with a plain `<a>` to `/`).
+- **Phase 2: `next typegen` before `tsc`.** Next generates `next-env.d.ts`
+  and route types during a build; `next typegen` (Next 15.5+) writes them
+  without one, so the type-check runs in CI before any build.
+  `next-env.d.ts` is gitignored, as `create-next-app` does.
+- **Phase 2: the startup check.** `instrumentation.ts`'s `register()` runs
+  once as `next start` or `next dev` begins, not during `next build` (which
+  succeeds without `ROPA_API_URL`, so CI needs none). Next compiles the file
+  for the Edge runtime too, so its Node-only half (`process.exit`,
+  `process.stderr`) lives in `lib/startup.ts`, imported under
+  `process.env.NEXT_RUNTIME === 'nodejs'`, which Next replaces at compile
+  time (dot access, not brackets). On `next start` the server prints "Ready"
+  first, then the problem, and exits 1: it never serves a request, and a
+  Render deploy never passes its health check.
+- **Phase 2: one `.env`.** The API reads the repository-root `.env` in
+  development; Next reads only its own directory's. `@next/env`'s
+  `loadEnvConfig(root)` from `next.config.ts` looks right and does nothing:
+  Next has already loaded the app directory's files by then, and the
+  function returns its cached first result unless forced (and forcing
+  resets `process.env` first). `loadRootEnvFile()` reads the root `.env`
+  itself (`util.parseEnv`, Node 21.7+), fills in only what isn't set, and
+  reads nothing in production. Found only by running `next dev` without the
+  variable exported: every earlier check had passed it explicitly. The web app runs on 3001 in development,
+  the API on 3000 (`next dev --port 3001`, since the root `.env` sets `PORT`
+  for the API).
+- **Phase 2: the scaffold's `@source` never reached the apps.** From
+  `packages/ui/src/styles/`, `../../../apps/**` is `packages/apps`. It didn't
+  show because Tailwind also detects sources from the working directory, as
+  the app's builds and tests run. Now `../../../../apps/ropa-web/src/**`,
+  which leaves out the API, `audit-log` and `.next`.
+- **Phase 2: `next/link` in component tests.** It reads `process.env`,
+  which Next defines in its bundles; the browser test project defines it as
+  `{}`. Link renders a plain anchor without Next's router, enough for a
+  component test; navigation is Playwright's (Phase 4).
+- **Phase 2: the title template skips its own segment.** A layout's
+  `title.template` applies to pages below it, so the home page, beside it,
+  sets its full title (`absolute`).
+- **Phase 2: the theme toggle and hydration.** The server can't know a
+  stored theme, so the toggle renders "system" until the client takes over
+  (`useSyncExternalStore` with a server snapshot of `false`; an effect
+  setting state would trip `react-hooks`' newer rules), then shows the
+  stored choice: the server's HTML and the first client render agree.
+- **Phase 2: telemetry off.** `next build`, `dev` and `start` report
+  anonymous usage to Vercel by default; the app's scripts set
+  `NEXT_TELEMETRY_DISABLED=1`, on Render and in CI too.
+- **Phase 2: one Next build per `npm run build`.** The root `build` runs
+  every workspace's, now including `next build`; the helper scripts that
+  only need compiled TypeScript (`db:*`, `openapi:write`, `test:dist`,
+  `demo:data`) run `tsc --build` instead, which builds exactly what they did.
+
+- **Phase 2: Next writes agent rules.** Next 16.3's `next dev` writes a
+  managed block of instructions for coding agents into `AGENTS.md` and a
+  `CLAUDE.md` that imports it, and re-adds it if removed
+  (`next/dist/server/lib/generate-agent-files.js`; `agentRules: false` in
+  `next.config.ts` turns it off). The user chose `CLAUDE.md` only: with the
+  block in `CLAUDE.md` and no `AGENTS.md`, Next updates `CLAUDE.md` alone.
+
 ## Issues encountered
 | Issue | Resolution |
 |---|---|

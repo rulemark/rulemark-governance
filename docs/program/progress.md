@@ -69,6 +69,40 @@
 - Tests first (76 failing, then 47 with the undefined-token guard), built,
   ten deliberate breaks
 
+### Phase 2: The app (complete, committed, not pushed)
+- `apps/ropa-web` on Next.js 16.3.6 and React 19.3: the TypeScript, Next,
+  PostCSS and shadcn configuration; `next.config.ts` loading the root `.env`
+  in development, compiling `@rulemark/ui`, rooted at the workspace
+- Tests first, in two Vitest projects (Node; Chromium): the configuration,
+  `/healthz`, the startup check, the query client, the favicon, the
+  providers, the theme toggle, the header; all failed on missing modules
+  (the favicon's passed at once, being copied first: broken on purpose later)
+- Built: `loadConfig` (as the API reads a service address), the startup
+  check in `instrumentation.ts` with its Node-only half in `lib/startup.ts`,
+  TanStack Query's server/browser client, the providers (next-themes on
+  `data-theme`), a theme toggle cycling system, light and dark, the header
+  with the lockup, the layout with Geist through `next/font`, a placeholder
+  home page
+- Ran it: `next build` needs no `ROPA_API_URL`; `next start` without it
+  exits 1 with `ROPA_API_URL: Required`; with it, `/healthz`, the page (Geist
+  preloaded, the theme script, the lockup, the favicon) and screenshots in
+  light and dark; a theme chosen survives a reload
+- `shadcn add badge` from the app: the file lands in `packages/ui`, the lint
+  rule flags its `cn` import; removed
+- Found the scaffold's `@source` for the apps pointing at `packages/apps`
+  (never scanned); now `apps/ropa-web/src`
+- Root helper scripts (`db:*`, `openapi:write`, `test:dist`, `demo:data`)
+  build with `tsc --build`, so `npm run build`'s Next build runs once; Next
+  telemetry off in the app's scripts
+- Ten deliberate breaks, each failing its tests
+- The user asked to see it running: `npm run dev -w apps/ropa-web` stopped
+  with `ROPA_API_URL: Required`, the root `.env` never read (every earlier
+  check had passed the variable explicitly). `@next/env`'s cache; replaced
+  with `loadRootEnvFile()`, tested first; the dev server then served
+- `next dev` wrote `AGENTS.md` and `CLAUDE.md` (Next's agent rules); on the
+  user's choice, the block lives in `CLAUDE.md` alone, which Next keeps
+  without recreating `AGENTS.md` (checked on a restart)
+
 ## Test Results
 | Test | Command | Expected | Actual | Status |
 |---|---|---|---|---|
@@ -83,6 +117,12 @@
 | API test servers on loopback | `npm run test` in `ropa-api` and `audit-log`, twice | all pass | 893 and 14, both times | ✅ |
 | Phase 1b: foundations breaks | ten deliberate breaks | each fails its tests | 1 to 51 failures each, the intended ones | ✅ |
 | Phase 1b: foundations | `npm run check` | 1411 tests pass | 1411 pass (893 api, 262 schemas, 14 audit-log, 233 ui, 9 dist) | ✅ |
+| Phase 2: before the code | `npx vitest run` in `apps/ropa-web` | fails on missing modules | every file but the favicon's | ✅ |
+| Phase 2: breaks | ten deliberate breaks | each fails its tests | 1 to 3 failures each, the intended ones | ✅ |
+| Phase 2: startup | `next start` without `ROPA_API_URL` | exits 1, naming it | `ROPA_API_URL: Required`, exit 1 | ✅ |
+| Phase 2: serving | `next start`, then `/healthz`, `/`, `/icon.svg`, screenshots | 200s, Geist, both themes | as expected; the theme survives a reload | ✅ |
+| Phase 2 | `npm run check`; `npm run build` | 1436 tests pass; the build succeeds | 1436 pass (893 api, 262 schemas, 14 audit-log, 233 ui, 25 web, 9 dist); built; 29 web tests with the root `.env` loader | ✅ |
+| Phase 2: development | `npm run dev -w apps/ropa-web`, the root `.env` only | serves on 3001 | first failed (`ROPA_API_URL: Required`); after the fix, `/` and `/healthz` 200 | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -92,12 +132,15 @@
 | 2026-09-27 | `ropa-api`, 12 then 21 tests: 401 with `authentication_error` from `POST /v1/tokens` | The body isn't the API's; `curl` found it at a VS Code helper on `127.0.0.1:52173` | A test's `listen(0)` on `::` given a port another process holds on `127.0.0.1`; fixed in `5eebf6a` with `listenOnLoopback()` |
 | 2026-09-27 | Two API files: `Cannot read properties of null (reading 'port')` | With a host, `listen` binds asynchronously | `listenOnLoopback()` awaits `listening` |
 | 2026-09-27 | `tsc --build`: the inferred type of `cn` can't be named | Declarations need a portable type | Annotated `CnFunction` |
+| 2026-09-27 | The header's tests: `process is not defined` | `next/link` reads `process.env`, which only Next defines | `define: { 'process.env': '{}' }` in the browser project |
+| 2026-09-27 | `next dev`: `ROPA_API_URL: Required`, though the root `.env` sets it | `@next/env`'s `loadEnvConfig` returns its cached first load (the app directory's) | `loadRootEnvFile()`, reading the root `.env` with `util.parseEnv`, never overriding |
+| 2026-09-27 | `next build`: Node API (`process.stderr`) not supported in the Edge Runtime | Next compiles `instrumentation.ts` for both runtimes | The Node-only half in `lib/startup.ts`, imported under `process.env.NEXT_RUNTIME === 'nodejs'` |
 
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Interface step 1 (the workspace skeleton), Phase 2 (the app) not started; Phases 1 and 1b done and committed, not pushed |
-| Where am I going? | The app, the proxy and first page, tests and CI, then deploy and docs |
+| Where am I? | Interface step 1 (the workspace skeleton), Phase 3 (the proxy and the first page) not started; Phases 1, 1b and 2 done and committed, not pushed |
+| Where am I going? | The proxy and first page, tests and CI, then deploy and docs |
 | What's the goal? | A Next.js app and a shadcn component package in the workspace, reading the record through the proxy, tested from the first commit |
 | What have I learned? | See findings.md |
 | What have I done? | The RoPA API is built and deployed (steps 1–5); the story's Parts II and III and the roadmap set the interface as next |

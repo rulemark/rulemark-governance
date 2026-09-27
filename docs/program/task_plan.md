@@ -13,7 +13,7 @@ The first step of the interface, the roadmap's next priority
 (`docs/program/roadmap.md`, "Next: the interface, and what clients see").
 
 ## Current Phase
-Phase 2 (the app), not started. Phases 1 and 1b (the component package, the Rulemark theme and foundations) are complete, committed and not pushed Phase 1 (the component package) is complete, committed and not pushed
+Phase 3 (the proxy and the first page), not started. Phase 2 (the app) is complete, committed and not pushed; Phases 1 and 1b before it too
 
 ## The stack (decided by the user, 2026-09-27)
 | Concern | Choice |
@@ -107,19 +107,27 @@ neutral.
 - **Status:** complete
 
 ### Phase 2: The app
-- [ ] `apps/ropa-web` on Next.js 16, App Router, its own `components.json`
+- [x] `apps/ropa-web` on Next.js 16, App Router, its own `components.json`
       pointing at `@rulemark/ui` with the same style, icon library and base
-      colour; Tailwind reading the package's `globals.css`
-- [ ] Geist through the `geist` package and `next/font` (`GeistSans.variable`
+      colour; Tailwind reading the package's `globals.css`. `shadcn add`,
+      run from the app, puts the component in `packages/ui` (tried with
+      `badge`, then removed)
+- [x] Geist through the `geist` package and `next/font` (`GeistSans.variable`
       and `GeistMono.variable` on `<html>`, open question 12), not the
       scaffold's `next/font/google` with `variable: '--font-sans'`
-- [ ] next-themes with `attribute="data-theme"` (open question 7); the
-      favicon from `@rulemark/ui/brand/rulemark-icon.svg`; the lockup in the
-      layout shell
-- [ ] TanStack Query provider, a layout shell, a health route
-- [ ] The environment validated at startup with Zod, failing fast, as the
-      other apps do (`ROPA_API_URL`)
-- **Status:** pending
+- [x] next-themes with `attribute="data-theme"` (open question 7); the
+      favicon from `@rulemark/ui/brand/rulemark-icon.svg` (a copy, tested
+      against it); the lockup in the layout shell, with a theme toggle
+- [x] TanStack Query provider (a client per request on the server, one in
+      the browser), a layout shell, `GET /healthz`
+- [x] The environment validated at startup with Zod, failing fast, as the
+      other apps do (`ROPA_API_URL`, a URL or `host:port`; the root `.env` in
+      development); checked on a real `next start`, which exits 1 naming it
+- [x] Wired in: Next's lint rules, `next typegen` before the type-check,
+      root helper scripts on `tsc --build` (not a Next build each),
+      telemetry off; 25 tests (Node and Chromium), each checked by breaking
+      the code (ten breaks)
+- **Status:** complete
 
 ### Phase 3: The proxy and the first page
 - [ ] `/api/ropa/[...path]` as a Route Handler forwarding to `ROPA_API_URL`,
@@ -138,7 +146,7 @@ neutral.
 - **Status:** pending
 
 ### Phase 4: Tests and CI
-- [ ] Vitest in both workspaces, in `npm run check`
+- [x] Vitest in both workspaces, in `npm run check` (done in Phases 1 and 2)
 - [ ] Playwright: one smoke test (the home page shows P1–P3 read through the
       proxy; a write is refused) against the API with the story replayed;
       locally through `webServer` (API and built web app on the test
