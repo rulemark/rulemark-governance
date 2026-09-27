@@ -833,7 +833,7 @@ export function buildOpenApiDocument(): JsonObject {
         tags: ['views'],
         summary: 'The Art. 30 record',
         description:
-          'The record of processing activities (§5.1): the organisation and its DPO, controller activities (Art. 30(1)) and processor activities (Art. 30(2)), active ones only. `offering` or `client` scopes it to what one audience is owed, implies the processor view, and closes the report with the same list `GET /subprocessors` gives. `format=markdown` renders it for the architecture document, with a stable anchor per activity built from its code (`#p3`). `format=csv` flattens it for a spreadsheet: one row per activity × engagement, `asOf` and `generatedAt` on every row, downloaded as `ropa-<view>[-<offering or client>]-<date>.csv`.',
+          'The record of processing activities (§5.1): the organisation and its DPO, controller activities (Art. 30(1)) and processor activities (Art. 30(2)), active ones only. `offering` or `client` scopes it to what one audience is owed, implies the processor view, and closes the report with the same list `GET /subprocessors` gives. `format=markdown` renders it for the architecture document, with a stable anchor per activity built from its code (`#p3`). `format=csv` flattens it for a spreadsheet: one row per activity × engagement, `asOf`, `generatedAt` and the organisation on every row, downloaded as `ropa-<view>[-<offering or client>]-<date>.csv`.',
         parameters: [
           queryParam('view', 'controller, processor or all. Default all; processor when scoped.', {
             type: 'string',

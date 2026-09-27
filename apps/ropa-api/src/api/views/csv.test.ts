@@ -15,6 +15,7 @@ import { renderReportCsv, reportCsvFilename } from './csv.js';
 const HEADER = [
   'asOf',
   'generatedAt',
+  'organisation',
   'activityRole',
   'activityCode',
   'activityName',
@@ -66,10 +67,10 @@ describe('renderReportCsv', () => {
     expect(renderReportCsv(REPORT)).toBe(
       [
         `${BOM}${HEADER}`,
-        ',2026-09-26T10:00:00.000Z,controller,C2,Customer accounts & billing,"Accounts for client users, and invoicing.",Priya Raman,2026-02-10,2027-02-10,Candidates,Billing data; Health data (Art. 9),Encryption at rest,Provide contracted service accounts; Invoice and collect payment,6(1)(b); 6(1)(c),9(2)(b),Billing data: 7 years after invoice date (Dutch tax law); All other data: 90 days after contract end,false,,,,,,,,Ledgerpay Ltd,recipient,Payment processing,IE,,Billing data',
-        ',2026-09-26T10:00:00.000Z,processor,P1,Candidate application management,,Priya Raman,2026-02-10,,Candidates,Identity & contact,Encryption at rest,,,,,,,Hireloop ATS,all_enrolled,false,all clients of Hireloop ATS on Standard DPA v3,hosting; candidate notifications,,"Render Services, Inc.",subprocessor,Hosting,DE,,Identity & contact',
-        ',2026-09-26T10:00:00.000Z,processor,P1,Candidate application management,,Priya Raman,2026-02-10,,Candidates,Identity & contact,Encryption at rest,,,,,,,Hireloop ATS,all_enrolled,false,all clients of Hireloop ATS on Standard DPA v3,hosting; candidate notifications,,Mailcrest Inc.,subprocessor,Candidate notifications (US region),US,US: DPF,Identity & contact',
-        ',2026-09-26T10:00:00.000Z,processor,P2,Diversity & accommodations module,,Priya Raman,2026-03-16,,Candidates,Health data (Art. 9),Encryption at rest,,,,,,,Hireloop ATS,opt_in,true,clients of Hireloop ATS on Standard DPA v3 who enable this module,storage,DPIA-SUPPORT-DIVERSITY,"Render Services, Inc.",subprocessor,Hosting,DE,,Health data',
+        ',2026-09-26T10:00:00.000Z,Hireloop B.V.,controller,C2,Customer accounts & billing,"Accounts for client users, and invoicing.",Priya Raman,2026-02-10,2027-02-10,Candidates,Billing data; Health data (Art. 9),Encryption at rest,Provide contracted service accounts; Invoice and collect payment,6(1)(b); 6(1)(c),9(2)(b),Billing data: 7 years after invoice date (Dutch tax law); All other data: 90 days after contract end,false,,,,,,,,Ledgerpay Ltd,recipient,Payment processing,IE,,Billing data',
+        ',2026-09-26T10:00:00.000Z,Hireloop B.V.,processor,P1,Candidate application management,,Priya Raman,2026-02-10,,Candidates,Identity & contact,Encryption at rest,,,,,,,Hireloop ATS,all_enrolled,false,all clients of Hireloop ATS on Standard DPA v3,hosting; candidate notifications,,"Render Services, Inc.",subprocessor,Hosting,DE,,Identity & contact',
+        ',2026-09-26T10:00:00.000Z,Hireloop B.V.,processor,P1,Candidate application management,,Priya Raman,2026-02-10,,Candidates,Identity & contact,Encryption at rest,,,,,,,Hireloop ATS,all_enrolled,false,all clients of Hireloop ATS on Standard DPA v3,hosting; candidate notifications,,Mailcrest Inc.,subprocessor,Candidate notifications (US region),US,US: DPF,Identity & contact',
+        ',2026-09-26T10:00:00.000Z,Hireloop B.V.,processor,P2,Diversity & accommodations module,,Priya Raman,2026-03-16,,Candidates,Health data (Art. 9),Encryption at rest,,,,,,,Hireloop ATS,opt_in,true,clients of Hireloop ATS on Standard DPA v3 who enable this module,storage,DPIA-SUPPORT-DIVERSITY,"Render Services, Inc.",subprocessor,Hosting,DE,,Health data',
         '',
       ].join('\r\n'),
     );
@@ -91,6 +92,15 @@ describe('renderReportCsv', () => {
     expect(new Set(then.map((row) => row.generatedAt))).toEqual(
       new Set(['2026-09-26T10:00:00.000Z']),
     );
+  });
+
+  it('names the organisation keeping the record on every row (Art. 30(1)(a))', () => {
+    expect(new Set(rows(REPORT).map((row) => row['organisation']))).toEqual(
+      new Set(['Hireloop B.V.']),
+    );
+    expect(
+      new Set(rows({ ...REPORT, organisation: null }).map((row) => row['organisation'])),
+    ).toEqual(new Set(['']));
   });
 
   it('writes a transfer as country, mechanism and onward party', () => {

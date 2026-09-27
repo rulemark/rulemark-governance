@@ -159,6 +159,7 @@ describe('GET /report?view=all&asOf=2026-03-01: the record as it stood (Ch8)', (
       'P1',
     ]);
     expect(new Set(rows.map((row) => row['asOf']))).toEqual(new Set(['2026-03-01']));
+    expect(new Set(rows.map((row) => row['organisation']))).toEqual(new Set(['Hireloop B.V.']));
     expect(response.text).not.toMatch(/Scribe/);
   });
 });

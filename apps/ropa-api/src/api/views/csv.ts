@@ -18,8 +18,9 @@ import { MECHANISMS, humanDuration } from './markdown.js';
  *   its own. Controller and processor activities share the table, each role
  *   leaving the other's columns empty. The closing subprocessor list is left
  *   out: the rows hold it, and `/subprocessors` serves it.
- * - **Dated on every row**: `asOf` and `generatedAt` are columns, since the
- *   file most likely to be handed over as evidence may be renamed.
+ * - **Dated and attributed on every row**: `asOf`, `generatedAt` and the
+ *   organisation keeping the record are columns, since the file most likely
+ *   to be handed over as evidence may be renamed or cut apart.
  * - **Spreadsheet-safe**: a UTF-8 byte-order mark, so Excel reads "Zürich"
  *   right; a cell that would start a formula gets a leading `'` (OWASP); and
  *   otherwise RFC 4180, with CRLF.
@@ -86,6 +87,8 @@ type Row = Record<(typeof COLUMNS)[number], string>;
 const COLUMNS = [
   'asOf',
   'generatedAt',
+  // Art. 30(1)(a): who keeps the record. Empty until the self party is recorded.
+  'organisation',
   'activityRole',
   'activityCode',
   'activityName',
@@ -128,6 +131,7 @@ function activityColumns(
   return {
     asOf: report.asOf ?? '',
     generatedAt: report.generatedAt,
+    organisation: report.organisation?.legalName ?? '',
     activityCode: activity.code,
     activityName: activity.name,
     activityDescription: activity.description ?? '',
