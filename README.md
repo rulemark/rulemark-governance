@@ -94,8 +94,8 @@ Hireloop demo record.
      there
    - [The same record as CSV](https://ropa-api.onrender.com/v1/report?view=all&asOf=2026-03-01&format=csv)
      — for whoever answers the regulator in a spreadsheet: one row per activity
-     and engagement, downloaded as `ropa-all-2026-03-01.csv`, with the date on
-     every row as well, so it survives a rename. A cell that would start a
+     and engagement, downloaded as `ropa-all-2026-03-01.csv`, with the date and
+     the organisation on every row as well, so both survive a rename. A cell that would start a
      formula in Excel is neutralised
    - [`/v1/subprocessors?client=aurelia&asOf=2026-05-01`](https://ropa-api.onrender.com/v1/subprocessors?client=aurelia&asOf=2026-05-01)
      — Aurelia's list on 1 May: Render and Mailcrest in Ireland. Compare

@@ -100,8 +100,13 @@
   An empty list or a null is an empty cell. The filename is
   `ropa-<view>[-<offering or client slug>]-<date>.csv`, the date being the
   `asOf` date (a timestamp's UTC date, as the views judge it) or today's.
-  Not included: the organisation (Art. 30(1)(a)), which the JSON and Markdown
-  carry in their headers and which a one-table file has no place for.
+  ~~Not included: the organisation (Art. 30(1)(a)), which the JSON and Markdown
+  carry in their headers and which a one-table file has no place for.~~
+  **Added after the deploy (2026-09-27):** an `organisation` column after
+  `generatedAt`, the `self` party's legal name on every row (empty until it
+  is recorded), for the same reason `asOf` is there: a regulator's CSV names
+  who keeps the record even once renamed or cut apart. Its contact and DPO
+  stay in the JSON and Markdown.
 - **supertest keeps the byte-order mark** in `response.text`, so a route test
   can check for it; parse the body after `slice(1)`.
 - **zsh does not split an unquoted variable into words**: a shell loop passing
