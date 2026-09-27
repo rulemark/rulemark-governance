@@ -1,6 +1,6 @@
 # The Hireloop Story: RoPA in Practice
 
-> A narrative walkthrough of the RoPA service (with the future Subprocessor Monitor and DSAR tracker, and, in Part II, the Architecture Snapshot) used to sanity-check design decisions in `ropa-design.md` and to define our synthetic seed data. All companies and people are fictional, except Render, whose role is generic (hosting provider) and makes no claims about its real subprocessors.
+> A narrative walkthrough of the RoPA service (with the future Subprocessor Monitor and DSAR tracker, and, in Parts II and III, the Architecture Snapshot and what Hireloop's clients see) used to sanity-check design decisions in `ropa-design.md` and to define our synthetic seed data. All companies and people are fictional, except Render, whose role is generic (hosting provider) and makes no claims about its real subprocessors.
 
 ---
 
@@ -18,6 +18,7 @@
 | **Lena Vogel** | A candidate who applied to Northwind via Hireloop. |
 | **Kees de Vries** | A former Hireloop employee. |
 | **Sanne Okafor** | Hireloop's SOC 2 auditor (Part II, Chapter 15). |
+| **Femke Jansen** | Northwind's privacy officer (Part III, Chapter 20). |
 
 **Clients (controllers of candidate data)**
 
@@ -447,6 +448,112 @@ The authority wants the record as it stood on 1 March. Priya has it (`/report?as
 
 ---
 
+# Part III: What Hireloop's clients see
+
+> Parts I and II follow the record and the infrastructure. Part III follows what leaves Hireloop: the subprocessor page, questionnaire answers, notices of change and the approvals they ask for, and what a client can look up for itself. These outputs are where the record pays off for the people outside Hireloop who depend on it. Like Part II, it runs **alongside** Part I, stays high-level, and ends each chapter with the **gaps** it exposed.
+
+## Chapter 16: The subprocessor page (February 2026)
+
+Every B2B SaaS company publishes its subprocessors, and Hireloop's page on `hireloop.com` is a hand-edited table last touched when Glitchlog arrived. Ines wants it to come from the record: the ATS's standard terms, exactly what `GET /subprocessors?offering=ats` answers, with the Diversity module listed separately. Beneath the table, a box: *"Get notified when this list changes."*
+
+Marc subscribes from Aurelia's side of the fence (Chapter 4), and so do people at Northwind, Fjord and two prospects.
+
+> **Gaps:**
+> - **Everything is public, not just the page.** RoPA's reads are open to anonymous callers by default, a demo convenience. On a real install that publishes C1 (Hireloop's staff administration), every agreement and every client's name. The subprocessor list for an offering should be public; the record should not. *RoPA API (access).*
+> - **A page, not JSON.** The list needs a presentation Hireloop can put on its own domain or embed in its marketing site, with the date it was generated and the changes of the last year. *UI.*
+> - **Subscribers are personal data.** Their emails need consent (double opt-in), an unsubscribe link, retention, and an activity in the record (C3's newsletter is the nearest). *Product, record.*
+> - **A subscriber isn't a client.** A subscription is a courtesy. The Standard DPA's 30 days' notice is owed to each *client*, at the address its contract names, whether or not anyone there subscribed. Two audiences, two obligations. *Model.*
+
+---
+
+## Chapter 17: Question 37, and the other 139 (February–March 2026)
+
+Chapter 4, from Ines's desk. Marc's questionnaire has 140 questions. Question 37 wants the extract and the subprocessor list, and Rulemark answers it with the offering's report and list. Ines looks further and finds a dozen more the record already knows: the DPO's contact, transfer mechanisms per vendor, the categories of personal data (special categories marked), retention, security measures, how subprocessor changes are notified (the Standard DPA's terms), where data is stored. Others it doesn't know: incident response, certifications, penetration tests.
+
+Then Marc asks the question that decides the deal: *"With EU-only processing, what would our list be?"* Tomás's answer, Mailcrest's EU region and no Glitchlog, exists only in an email thread until Aurelia signs.
+
+> **Gaps:**
+> - **What a vendor-risk analyst accepts.** A dated PDF on Hireloop's letterhead, or an answer in the bank's own portal, not Markdown or CSV. *UI, exports.*
+> - **Internal fields in external documents.** The extract carries `owner: Priya Raman`, and Priya's `roleRationale` notes are candid. Which fields may leave Hireloop needs deciding, per output. *RoPA API, UI.*
+> - **No "what if" for a prospect.** Prospects aren't in the record (Part I, lesson 10), so RoPA can't show Aurelia's list under proposed terms before signing. That preview is exactly what the negotiation needs. Draft terms, or a scope previewed without saving? *Model.*
+> - **The same questions every time.** Most questionnaires repeat each other. Mapping recurring questions to the record's fields, so answers are regenerated rather than retyped, is where much of Ines's time goes. *Product, new capability.*
+
+---
+
+## Chapter 18: Notice, approval, and one objection (April–May 2026)
+
+Chapter 5, from the clients' side. Art. 28(2) wants notice *before* Scribe AI starts, so Priya records P3 on 14 April with the Scribe AI engagement starting on **15 May**. The save produces `subprocessors.changed` for the offering and every client whose list changes, each entry saying when it lands (`effectiveFrom`).
+
+- **398 clients on the Standard DPA** get a notice: *Scribe AI (US, SCCs) joins on 15 May; you may object until then.*
+- **Aurelia** has specific authorization and 60 days, so she gets a **request for approval**, and the earliest date Scribe AI could reach her data is mid-June. Marc says no. Priya excludes Aurelia from P3 as a whole (Chapter 5).
+- **Fjord objects.** Its works council in Norway won't accept automated CV screening. Under general authorization Hireloop must address an objection, so parsing is switched off for Fjord too, and P3 gets a second exclusion.
+- The other 397 stay silent, which under their DPA means they accept.
+
+> **Gaps:**
+> - **The seed contradicts this chapter.** It starts the Scribe AI engagement on 14 April, the day P3 went live, so the record says CVs reached Scribe AI a month before the notice period ended. *Story, seed.*
+> - **Who receives a notice?** An agreement records no notice contact. Parties carry a contact and a DPO email, but a DPA usually names its own address, and 400 of them must be current. *Model.*
+> - **Nothing sends it.** `subprocessors.changed` is routed to the Monitor, which doesn't exist: the events wait in the outbox. And the Monitor was designed to *watch vendors*; sending Hireloop's own notices may be a job of its own. *Architecture decision.*
+> - **Responses have nowhere to live.** A notice sent, its deadline, an approval (Aurelia), an objection (Fjord), silence taken as acceptance: none of it is in the model, and it's exactly what a client or a regulator would ask Hireloop to prove. *Model.*
+> - **One date doesn't fit every client.** Aurelia's 60 days put her start later than everyone else's, but an engagement has one start date, and its client-scope entries have no dates at all (an activity's do). *Model.*
+> - **Proof of delivery.** If Fjord had said it was never told, what would show the notice reached it? *Notices, audit log.*
+
+---
+
+## Chapter 19: Thirty days minus one (June 2026)
+
+Chapter 6, from the clients' side. On 3 June Mailcrest announces Helpdesk Partners, effective 3 July: 30 days' notice to Hireloop. Hireloop owes its Standard DPA clients the same 30 days, so their notices must leave **today**. But Priya hasn't decided anything yet. She's asking Mailcrest to keep the EU region out, and the record changes only when she records the onward transfer, days later. A notice that waits for the record arrives too late.
+
+For Aurelia it's impossible either way: 60 days and prior approval can't fit inside 30. `GET /parties/mailcrest/impact` already says so (`noticeConflict`). Priya writes to Marc the same day: a change is proposed, it's under review, and here's what Hireloop is doing about it.
+
+> **Gaps:**
+> - **Notices about changes not yet decided.** The record holds what is decided; notices are about what's coming, sometimes before Hireloop has decided anything. Events fire on saves, so they come too late. Does the record need *proposed* changes, a draft revision that notifies without taking effect? *Model, the biggest open question in Part III.*
+> - **Each client's last day to be told.** The effective date minus each client's notice days, per client, with the conflicts first. The impact view computes the conflict; nothing turns it into a notice schedule. *Notices.*
+> - **399 notices at once.** Bulk sending, bounces, a client whose contact left: who follows up, and where is that tracked? *Notices, UI.*
+
+---
+
+## Chapter 20: Northwind looks for itself (August 2026)
+
+**Femke Jansen**, Northwind's privacy officer, is updating Northwind's own record, where Hireloop is one of Northwind's processors. Northwind's record must say what Hireloop does with its candidates' data and who else touches it. She wants to look it up herself, any day: Northwind's current subprocessor list, the notices Northwind received and when, the Standard DPA's terms, P3's DPIA support pack for her own DPIA, and an export she can load into Northwind's record-keeping tool.
+
+In July, Hireloop forwarded Lena Vogel's erasure request to Northwind (Chapter 7) by email. Femke would rather have seen it here too.
+
+> **Gaps:**
+> - **A client's own view, and who may see it.** A per-client page needs external sign-in for client staff and access limited to that client's views. Today's roles are global: nothing says "this person sees Northwind only." *RoPA API (auth), UI.*
+> - **Documents aren't records.** `dpiaSupportRef` is a text reference, not a file a client can download. *Model.*
+> - **A shape to exchange.** No standard format exists for a processor's extract; a published JSON schema for what we already return would let Femke's tool import it. *RoPA API.*
+> - **Requests between controller and processor.** Forwarded DSARs, instructions, confirmations: a channel with history, part of the DSAR tracker's future. *DSAR tracker.*
+
+---
+
+## What Part III revealed
+
+| # | Gap | Chapter | Lands in |
+|---|---|---|---|
+| 1 | Anonymous reads expose the whole record; only an offering's list should be public | 16 | RoPA API (access) |
+| 2 | The subprocessor list needs a page Hireloop can publish on its own domain | 16 | UI |
+| 3 | Subscribers' emails need consent, unsubscribe, retention and an activity | 16 | Product, record |
+| 4 | Subscribers and clients are different audiences with different obligations | 16 | Model |
+| 5 | Exports in the form reviewers accept (dated PDF, portal answers) | 17 | UI, exports |
+| 6 | No per-output rule for which fields may leave Hireloop | 17 | RoPA API, UI |
+| 7 | No "what if" preview of a prospect's list under proposed terms | 17 | Model |
+| 8 | Recurring questionnaire questions aren't mapped to the record | 17 | New capability |
+| 9 | The seed starts Scribe AI before its notice period ends | 18 | Story, seed |
+| 10 | No notice contact on an agreement | 18 | Model |
+| 11 | Nothing sends notices; the Monitor doesn't exist and may be the wrong home | 18 | Architecture decision |
+| 12 | Notices, deadlines, approvals, objections and silent acceptance aren't recorded | 18 | Model |
+| 13 | One start date per engagement; engagement scope entries have no dates | 18 | Model |
+| 14 | No proof that a notice was delivered | 18 | Notices, audit log |
+| 15 | Notices must go out before a change is decided; the record only holds decided changes | 19 | Model |
+| 16 | No per-client notice schedule from the effective date and each client's notice days | 19 | Notices |
+| 17 | Sending and following up hundreds of notices | 19 | Notices, UI |
+| 18 | No external sign-in or per-client access for client staff | 20 | RoPA API (auth), UI |
+| 19 | Supporting documents (the DPIA support pack) are references, not files | 20 | Model |
+| 20 | No published format for a processor's extract | 20 | RoPA API |
+| 21 | No channel for requests between controller and processor | 20 | DSAR tracker |
+
+---
+
 ## What the story tests
 
 | Scene | Decision tested | Endpoints exercised |
@@ -502,3 +609,5 @@ The authority wants the record as it stood on 1 March. Priya has it (`/report?as
 **Timeline (for versioning):** 2026-01 Aurelia questionnaire → 2026-02-10 record created → 2026-03-16 Aurelia signs (client, agreement, Mailcrest EU region, Glitchlog exclusion, P2) → 2026-04-14 P3 + Scribe added → 2026-06-03 Mailcrest change detected → 2026-07-03 Helpdesk Partners effective → 2026-09 regulator request.
 
 **Part II timeline:** 2026-02-03 Rulemark Governance installed → 2026-02-04 first capture (12 systems, 12 review items) → 2026-02-10–16 systems linked, C5 recorded → 2026-03-30 `cv-parser` deployed behind a flag → 2026-06-19 `hireloop-insights` made by hand → 2026-09 SOC 2 audit.
+
+**Part III timeline:** 2026-02 subprocessor page published from the record → 2026-02–03 Marc's questionnaire answered → 2026-04-14 P3 recorded, Scribe AI to start 2026-05-15; notices to 398 clients, approval requested from Aurelia (refused), Fjord objects → 2026-06-03 Mailcrest's change: notices due the same day → 2026-08 Northwind's privacy officer looks for herself.
