@@ -16,6 +16,33 @@ seeded on the live service. On Render, from one Blueprint (`render.yaml`):
 The step-by-step history is in `docs/program/plan-archive/` (one folder per
 step; its `findings.md` files record why things are the way they are).
 
+## Distribution: self-hosted, single-tenant (decided 2026-09-27)
+
+Rulemark Governance ships as a Blueprint each customer deploys into their own
+Render workspace; one deployment serves one organisation, as the demo does
+today.
+
+- **Why.** The Render API has no OAuth and no scoped keys: its only
+  credential is a personal API key that reaches every workspace its user
+  belongs to, with every action the user has. A hosted service reading
+  customers' Render data would have to hold such keys; self-hosted, the key
+  never leaves the customer's account. And the record itself (employees,
+  vendors, clients) stays in the customer's database, so Rulemark is not a
+  processor of it (Art. 28): the right shape for a GDPR tool.
+- **What it asks of us.** A deployable Blueprint: a "Deploy to Render" button
+  from a public repository, prompting for secrets (`sync: false`), with
+  `autoDeployTrigger: off` for services deployed that way (Render's advice);
+  first-run setup that doesn't depend on our dashboard habits (the
+  `PRINCIPALS` list, the mint secret, the seed being optional); and upgrades
+  customers apply themselves, which migrations run in `preDeployCommand`
+  already allow.
+- **Rejected for now.** A hosted multi-tenant SaaS: the key problem above,
+  Rulemark becoming every customer's processor, and a `tenant_id`, row-level
+  security and per-tenant uniqueness through the whole schema. A hybrid
+  (hosted app, collector in the customer's workspace pushing metadata out,
+  Render webhooks as triggers) stays possible later if the Snapshot's
+  collector talks to the rest only through APIs.
+
 ## Next: the Architecture Snapshot
 
 Design in progress. Everything above exists partly to give the Snapshot a
@@ -24,6 +51,17 @@ should find and describe, and a RoPA that tells it what personal data each
 part handles. Together they make the program's goal, a **data-aware
 architecture document** (`docs/ropa/ropa-design.md` §1). Starting point:
 `docs/program/architecture-snapshot-exec-summary.md`.
+
+Decided so far (2026-09-27):
+
+- **Real infrastructure, with stand-ins.** The Snapshot captures the real
+  workspace, and the real resources play Hireloop's systems in RoPA through
+  `render_resource_id` (`ropa-api` as `hireloop-api`, `ropa-db` as
+  `hireloop-db`, and so on), so the document shows true infrastructure with
+  the story's legal context. Story systems with no real resource show as not
+  deployed.
+- **Self-hosted** (above): the collector runs in the customer's own
+  workspace, with their key.
 
 What RoPA already has waiting for it: the `service:snapshot` role
 (`system:write`, `review:create`), systems as records, `/coverage` findings,
