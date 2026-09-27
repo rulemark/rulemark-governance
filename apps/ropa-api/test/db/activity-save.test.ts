@@ -380,6 +380,94 @@ describe('the cross-entity rules (DM §5)', () => {
     });
   });
 
+  describe('an engagement is with a vendor or other, a scope names a client (step 5, open question 5)', () => {
+    it('refuses a client or ourselves as a subprocessor', async () => {
+      await insert('party', {
+        slug: 'hireloop',
+        kind: 'self',
+        legalName: 'Hireloop B.V.',
+        country: 'NL',
+        dpoName: 'Priya Raman',
+        dpoEmail: 'dpo@hireloop.example',
+      });
+      const input = p1();
+      const engaging = (party: string) => ({
+        ...input,
+        engagements: [{ ...input.engagements[0]!, party }],
+      });
+
+      for (const [party, kind] of [
+        ['aurelia', 'client'],
+        ['hireloop', 'self'],
+      ] as const) {
+        const problem = await rejected(() => createActivity(db().db, engaging(party), PRIYA));
+        expect(errorsOf(problem), party).toEqual([
+          {
+            path: '/engagements/0/party',
+            code: 'wrong_party_kind',
+            message: `Must be a party of kind vendor or other, not ${kind}`,
+          },
+        ]);
+      }
+    });
+
+    it('accepts a party of kind other as a recipient', async () => {
+      await insert('party', {
+        slug: 'tax-office',
+        kind: 'other',
+        legalName: 'Belastingdienst',
+        country: 'NL',
+      });
+      const input = c2({
+        engagements: [
+          {
+            party: 'tax-office',
+            role: 'recipient',
+            serviceDescription: 'Tax filings',
+            processingCountries: ['NL'],
+            dataCategories: ['billing'],
+          },
+        ],
+      });
+      await expect(createActivity(db().db, input, PRIYA)).resolves.toBeDefined();
+    });
+
+    it('refuses a vendor named as a client, in the activity’s scope or an engagement’s', async () => {
+      const input = p1();
+      const activityScope = {
+        ...input,
+        clientScope: {
+          mode: 'exclude' as const,
+          clients: [{ client: 'render', reason: 'Not a client', startedAt: '2026-04-14' }],
+        },
+      };
+      const engagementScope = {
+        ...input,
+        engagements: [
+          {
+            ...input.engagements[0]!,
+            clientScope: {
+              mode: 'exclude' as const,
+              clients: [{ client: 'render', reason: 'Not a client' }],
+            },
+          },
+        ],
+      };
+
+      for (const [scoped, path] of [
+        [activityScope, '/clientScope/clients/0/client'],
+        [engagementScope, '/engagements/0/clientScope/clients/0/client'],
+      ] as const) {
+        const problem = await rejected(() => createActivity(db().db, scoped, PRIYA));
+        expect(errorsOf(problem)).toContainEqual({
+          path,
+          code: 'wrong_party_kind',
+          message: 'Must be a party of kind client, not vendor',
+        });
+      }
+    });
+  });
+
   it('lets an activity supersede only a retired one (DM §3.0)', async () => {
     const c4 = await createActivity(db().db, c2({ name: 'Candidate sourcing' }), PRIYA);
     const code = (await load(c4.id)).code;

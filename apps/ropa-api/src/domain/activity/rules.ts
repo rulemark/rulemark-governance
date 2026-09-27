@@ -1,7 +1,7 @@
-import { canActivate, type FieldError } from '@rulemark/ropa-schemas';
+import { canActivate, type FieldError, type PartyKind } from '@rulemark/ropa-schemas';
 import { eq, inArray } from 'drizzle-orm';
 
-import { agreement, dataCategory, processingActivity } from '../../db/schema/index.js';
+import { agreement, dataCategory, party, processingActivity } from '../../db/schema/index.js';
 import { clientsWithActiveAgreement } from '../agreements.js';
 import type { Transaction } from '../transaction.js';
 import type { ResolvedActivity } from './resolve.js';
@@ -109,6 +109,50 @@ async function citedAgreementsBelongToClient(
 }
 
 /**
+ * Each party plays the part its kind allows: an engagement is with a vendor or
+ * an `other` party, and a client scope names clients (step 5, open question
+ * 5). Engaging a client or ourselves would put them on every other client's
+ * subprocessor list, and send notices about it.
+ */
+async function partiesOfTheRightKind(
+  tx: Transaction,
+  activity: ResolvedActivity,
+): Promise<FieldError[]> {
+  const uses = [
+    ...activity.engagements.map((engagement, index) => ({
+      path: `/engagements/${index}/party`,
+      partyId: engagement.partyId,
+      allowed: ['vendor', 'other'] as readonly PartyKind[],
+    })),
+    ...scopeEntries(activity).map((entry) => ({
+      path: `${entry.path}/client`,
+      partyId: entry.clientPartyId,
+      allowed: ['client'] as readonly PartyKind[],
+    })),
+  ];
+  if (uses.length === 0) return [];
+
+  const rows = await tx
+    .select({ id: party.id, kind: party.kind })
+    .from(party)
+    .where(inArray(party.id, [...new Set(uses.map((use) => use.partyId))]));
+  const kindOf = new Map(rows.map((row) => [row.id, row.kind as PartyKind]));
+
+  return uses.flatMap((use) => {
+    const kind = kindOf.get(use.partyId);
+    return kind === undefined || use.allowed.includes(kind)
+      ? []
+      : [
+          {
+            path: use.path,
+            code: 'wrong_party_kind',
+            message: `Must be a party of kind ${use.allowed.join(' or ')}, not ${kind}`,
+          },
+        ];
+  });
+}
+
+/**
  * An activity supersedes a retired one: a role change retires the old entry
  * and creates a new one pointing back at it (DM §3.0).
  */
@@ -198,6 +242,7 @@ export async function crossEntityErrors(
     ...(await supersedesARetiredActivity(tx, activity)),
     ...(await scopedClientsHaveAgreements(tx, activity, asOf)),
     ...(await citedAgreementsBelongToClient(tx, activity)),
+    ...(await partiesOfTheRightKind(tx, activity)),
     ...dataCategoriesWithinActivity(activity),
   ];
 }
