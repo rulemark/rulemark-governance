@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    // The package ships its sources and the app compiles them
+    // (`transpilePackages`), so the build graph only needs its types checked.
+    "emitDeclarationOnly": true,
+    "lib": ["es2023", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    // For the shadcn CLI, which resolves components.json's aliases through
+    // these paths to find where a component's files go.
+    "paths": {
+      "@rulemark/ui/*": ["./src/*"]
+    }
+  },
+  "include": ["src"],
+  "exclude": ["src/**/*.test.tsx", "src/**/*.test.ts", "src/test-setup.ts"]
+}

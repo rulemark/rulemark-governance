@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": false,
+    "noEmit": true,
+    "emitDeclarationOnly": false,
+    "declaration": false,
+    "declarationMap": false,
+    "rootDir": ".",
+    "types": ["@vitest/browser-playwright"]
+  },
+  "include": ["src", "vitest.config.ts"],
+  "exclude": []
+}

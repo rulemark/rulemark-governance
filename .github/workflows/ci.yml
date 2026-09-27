@@ -49,6 +49,9 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      # The component tests run in a real Chromium (Vitest's browser mode),
+      # at the version the lockfile's Playwright expects.
+      - run: npx playwright install --with-deps chromium
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run format:check
