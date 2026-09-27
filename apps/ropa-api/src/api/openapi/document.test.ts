@@ -149,6 +149,31 @@ describe('the OpenAPI document', () => {
     expect(document.components.schemas).toHaveProperty('Engagement');
   });
 
+  it('documents writing engagements: record:write, If-Match on every write (§3.5)', () => {
+    type Operation = {
+      'x-required-permission'?: string;
+      parameters?: { name: string }[];
+      responses: Record<string, unknown>;
+    };
+    const operation = (path: string, method: string) =>
+      document.paths[path]?.[method] as unknown as Operation;
+    const writes = [
+      [operation('/v1/activities/{ref}/engagements', 'post'), '201'],
+      [operation('/v1/activities/{ref}/engagements/{id}', 'put'), '200'],
+      [operation('/v1/activities/{ref}/engagements/{id}', 'delete'), '204'],
+    ] as const;
+    for (const [written, success] of writes) {
+      expect(written['x-required-permission']).toBe('record:write');
+      expect(written.parameters?.map((parameter) => parameter.name)).toContain('If-Match');
+      expect(Object.keys(written.responses)).toEqual(
+        expect.arrayContaining([success, '404', '412', '428']),
+      );
+    }
+    expect(JSON.stringify(writes[0][0])).toContain('#/components/schemas/EngagementInput');
+    expect(JSON.stringify(writes[2][0])).toContain('#/components/schemas/RemoveEngagementInput');
+    expect(document.components.schemas).toHaveProperty('EngagementInput');
+  });
+
   it('strips the JSON Schema keywords that mean nothing inside components', () => {
     for (const [name, schema] of Object.entries(document.components.schemas)) {
       expect(schema, name).not.toHaveProperty('$schema');

@@ -14,6 +14,7 @@ import {
   DataCategoryInput,
   ControllerEngagement,
   Engagement,
+  EngagementInput,
   ProcessorEngagement,
   DataMapResponse,
   ImpactResponse,
@@ -27,6 +28,7 @@ import {
   ProblemDetails,
   Ref,
   ReportResponse,
+  RemoveEngagementInput,
   RetireInput,
   CloseReviewItemInput,
   REVIEW_REASONS,
@@ -97,6 +99,8 @@ const INPUT_SCHEMAS: readonly [string, z.ZodType][] = [
   ['ActivityInput', ActivityInput],
   ['ActivateInput', ActivateInput],
   ['RetireInput', RetireInput],
+  ['EngagementInput', EngagementInput],
+  ['RemoveEngagementInput', RemoveEngagementInput],
   ['ReviewItemInput', ReviewItemInput],
   ['CloseReviewItemInput', CloseReviewItemInput],
   ['TokenRequest', TokenRequest],
@@ -527,6 +531,30 @@ export function buildOpenApiDocument(): JsonObject {
       schema: { type: 'string', example: '"3"' },
     },
   };
+  const ACTIVITY_IF_MATCH: JsonObject = {
+    ...IF_MATCH,
+    description: 'The activity’s version, from its ETag or an engagement’s (§3.5, §1.8).',
+  };
+  const ENGAGEMENT_ID: JsonObject = {
+    name: 'id',
+    in: 'path',
+    required: true,
+    description: 'The engagement’s id.',
+    schema: { type: 'string', format: 'uuid' },
+  };
+  const ENGAGEMENT_BODY: JsonObject = {
+    required: true,
+    content: {
+      'application/json': { schema: { $ref: '#/components/schemas/EngagementInput' } },
+    },
+  };
+  const ENGAGEMENT_WRITE_ERRORS: JsonObject = {
+    '404': problem('No such activity, or it holds no engagement with that id'),
+    '409': problem('The activity is retired'),
+    '412': problem('Someone else has saved the activity since you read it'),
+    '428': problem('If-Match is required on a write'),
+    ...COMMON_ERRORS,
+  };
   paths[engagements] = {
     get: guarded(
       {
@@ -547,6 +575,30 @@ export function buildOpenApiDocument(): JsonObject {
       },
       'record:read',
     ),
+    post: guarded(
+      {
+        tags: ['activities'],
+        summary: 'Add an engagement',
+        description:
+          'Adds one engagement to the activity, which is saved as a whole (§3.5): one activity revision, `record.changed`, and `subprocessors.changed` when a list moves, exactly as `PUT /activities/{ref}` would. The activity is validated after the change, its role rules too when it is active. Errors in the engagement point into the body; anything wrong elsewhere in the activity is reported under `/activity`. The server gives the engagement its id.',
+        parameters: [REF_PARAM('activity'), ACTIVITY_IF_MATCH],
+        requestBody: ENGAGEMENT_BODY,
+        responses: {
+          '201': {
+            ...json('Engagement', 'The engagement added'),
+            headers: {
+              ...ACTIVITY_ETAG,
+              Location: {
+                description: 'Where the engagement lives: /v1/activities/{code}/engagements/{id}.',
+                schema: { type: 'string' },
+              },
+            },
+          },
+          ...ENGAGEMENT_WRITE_ERRORS,
+        },
+      },
+      'record:write',
+    ),
   };
   paths[`${engagements}/{id}`] = {
     get: guarded(
@@ -555,16 +607,7 @@ export function buildOpenApiDocument(): JsonObject {
         summary: 'Read one engagement',
         description:
           'One of the activity’s engagements, by its id: engagements have no code or slug (DM §3.0).',
-        parameters: [
-          REF_PARAM('activity'),
-          {
-            name: 'id',
-            in: 'path',
-            required: true,
-            description: 'The engagement’s id.',
-            schema: { type: 'string', format: 'uuid' },
-          },
-        ],
+        parameters: [REF_PARAM('activity'), ENGAGEMENT_ID],
         responses: {
           '200': { ...json('Engagement', 'The engagement'), headers: ACTIVITY_ETAG },
           '404': problem('No such activity, or it holds no engagement with that id'),
@@ -572,6 +615,41 @@ export function buildOpenApiDocument(): JsonObject {
         },
       },
       'record:read',
+    ),
+    put: guarded(
+      {
+        tags: ['activities'],
+        summary: 'Replace an engagement',
+        description:
+          'Replaces one engagement, its transfers and client scope included, keeping its id; send nested ids back to keep those rows. Saved and validated as the whole activity, like adding one. A body `id`, if sent, must be the one in the path.',
+        parameters: [REF_PARAM('activity'), ENGAGEMENT_ID, ACTIVITY_IF_MATCH],
+        requestBody: ENGAGEMENT_BODY,
+        responses: {
+          '200': { ...json('Engagement', 'The engagement as saved'), headers: ACTIVITY_ETAG },
+          ...ENGAGEMENT_WRITE_ERRORS,
+        },
+      },
+      'record:write',
+    ),
+    delete: guarded(
+      {
+        tags: ['activities'],
+        summary: 'Remove an engagement',
+        description:
+          'Removes one engagement from the activity, saved as a whole. Removing a vendor from a live activity can send Art. 28 notices, so the optional body carries a change note.',
+        parameters: [REF_PARAM('activity'), ENGAGEMENT_ID, ACTIVITY_IF_MATCH],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': { schema: { $ref: '#/components/schemas/RemoveEngagementInput' } },
+          },
+        },
+        responses: {
+          '204': { description: 'Removed', headers: ACTIVITY_ETAG },
+          ...ENGAGEMENT_WRITE_ERRORS,
+        },
+      },
+      'record:write',
     ),
   };
 

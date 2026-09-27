@@ -211,17 +211,35 @@ const engagementInputFields = {
   endedAt: IsoDate.optional(),
 };
 
-const ControllerEngagementInput = z.object({
+export const ControllerEngagementInput = z.object({
   ...engagementInputFields,
   role: engagementRole('controller', CONTROLLER_ENGAGEMENT_ROLES),
   clientScope: forbiddenField(engagementClientScopeMessage('controller')),
 });
 
-const ProcessorEngagementInput = z.object({
+export const ProcessorEngagementInput = z.object({
   ...engagementInputFields,
   role: engagementRole('processor', PROCESSOR_ENGAGEMENT_ROLES),
   clientScope: EngagementClientScopeInput.nullish(),
 });
+
+/**
+ * The body of `POST` and `PUT /activities/{ref}/engagements[/{id}]` (§3.5):
+ * one engagement, with the change note for the activity's revision. Which of
+ * the two it must be depends on the activity, so the server checks it as part
+ * of the whole activity; this union is what the OpenAPI document shows.
+ */
+export const EngagementInput = z
+  .union([
+    ControllerEngagementInput.extend({ changeNote }),
+    ProcessorEngagementInput.extend({ changeNote }),
+  ])
+  .describe(
+    'An engagement on a controller activity (processor or recipient) or on a processor activity (subprocessor, with an optional clientScope).',
+  );
+
+/** The optional body of `DELETE /activities/{ref}/engagements/{id}` (§3.5). */
+export const RemoveEngagementInput = z.object({ changeNote });
 
 // --- the activity, going in ---
 
@@ -478,6 +496,8 @@ export type ControllerActivityInput = z.infer<typeof ControllerActivityInput>;
 export type ProcessorActivityInput = z.infer<typeof ProcessorActivityInput>;
 export type JointControllerActivityInput = z.infer<typeof JointControllerActivityInput>;
 export type ActivityInput = z.infer<typeof ActivityInput>;
+export type EngagementInput = z.infer<typeof EngagementInput>;
+export type RemoveEngagementInput = z.infer<typeof RemoveEngagementInput>;
 export type ControllerActivity = z.infer<typeof ControllerActivity>;
 export type ProcessorActivity = z.infer<typeof ProcessorActivity>;
 export type Activity = z.infer<typeof Activity>;

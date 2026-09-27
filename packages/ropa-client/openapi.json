@@ -6898,6 +6898,410 @@
           }
         }
       },
+      "EngagementInput": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "description": "Send it back to update this row; leave it out to add one. Rows left out are deleted.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                "examples": [
+                  "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                ]
+              },
+              "party": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "description": "A party of kind vendor or other.",
+                "examples": [
+                  "mailcrest"
+                ]
+              },
+              "serviceDescription": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "examples": [
+                  "Mailcrest Inc."
+                ],
+                "description": "Tells engagements with the same party apart: \"Candidate notifications (EU region)\"."
+              },
+              "processingCountries": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[A-Z]{2}$",
+                  "description": "An ISO 3166-1 alpha-2 country code.",
+                  "examples": [
+                    "NL",
+                    "US",
+                    "DE"
+                  ]
+                },
+                "description": "Where the data is processed or accessed, which is not the vendor’s HQ."
+              },
+              "dataCategories": {
+                "default": [],
+                "description": "A subset of the activity’s data categories.",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "description": "An id, code or slug: \"mailcrest\", \"P3\" or a UUID.",
+                  "examples": [
+                    "mailcrest"
+                  ]
+                }
+              },
+              "transfers": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "description": "Send it back to update this row; leave it out to add one. Rows left out are deleted.",
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "examples": [
+                        "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                      ]
+                    },
+                    "destinationCountry": {
+                      "type": "string",
+                      "pattern": "^[A-Z]{2}$",
+                      "description": "An ISO 3166-1 alpha-2 country code.",
+                      "examples": [
+                        "NL",
+                        "US",
+                        "DE"
+                      ]
+                    },
+                    "mechanism": {
+                      "type": "string",
+                      "enum": [
+                        "adequacy",
+                        "dpf",
+                        "sccs",
+                        "bcr",
+                        "derogation_49"
+                      ]
+                    },
+                    "onwardVia": {
+                      "description": "An onward transfer through the vendor’s own subprocessor: \"Helpdesk Partners Pvt Ltd\".",
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "examples": [
+                        "Mailcrest Inc."
+                      ]
+                    },
+                    "documentRef": {
+                      "description": "The SCCs or DPA reference.",
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "examples": [
+                        "Mailcrest Inc."
+                      ]
+                    }
+                  },
+                  "required": [
+                    "destinationCountry",
+                    "mechanism"
+                  ]
+                }
+              },
+              "startedAt": {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                "description": "A date, \"YYYY-MM-DD\".",
+                "examples": [
+                  "2026-03-16"
+                ]
+              },
+              "endedAt": {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                "description": "A date, \"YYYY-MM-DD\".",
+                "examples": [
+                  "2026-03-16"
+                ]
+              },
+              "role": {
+                "enum": [
+                  "processor",
+                  "recipient"
+                ],
+                "type": "string"
+              },
+              "clientScope": {
+                "not": {}
+              },
+              "changeNote": {
+                "description": "Why this change was made. Stored on the revision, never returned.",
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            },
+            "required": [
+              "party",
+              "serviceDescription",
+              "processingCountries",
+              "role"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "description": "Send it back to update this row; leave it out to add one. Rows left out are deleted.",
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                "examples": [
+                  "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                ]
+              },
+              "party": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "description": "A party of kind vendor or other.",
+                "examples": [
+                  "mailcrest"
+                ]
+              },
+              "serviceDescription": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "examples": [
+                  "Mailcrest Inc."
+                ],
+                "description": "Tells engagements with the same party apart: \"Candidate notifications (EU region)\"."
+              },
+              "processingCountries": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[A-Z]{2}$",
+                  "description": "An ISO 3166-1 alpha-2 country code.",
+                  "examples": [
+                    "NL",
+                    "US",
+                    "DE"
+                  ]
+                },
+                "description": "Where the data is processed or accessed, which is not the vendor’s HQ."
+              },
+              "dataCategories": {
+                "default": [],
+                "description": "A subset of the activity’s data categories.",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "description": "An id, code or slug: \"mailcrest\", \"P3\" or a UUID.",
+                  "examples": [
+                    "mailcrest"
+                  ]
+                }
+              },
+              "transfers": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "description": "Send it back to update this row; leave it out to add one. Rows left out are deleted.",
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "examples": [
+                        "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                      ]
+                    },
+                    "destinationCountry": {
+                      "type": "string",
+                      "pattern": "^[A-Z]{2}$",
+                      "description": "An ISO 3166-1 alpha-2 country code.",
+                      "examples": [
+                        "NL",
+                        "US",
+                        "DE"
+                      ]
+                    },
+                    "mechanism": {
+                      "type": "string",
+                      "enum": [
+                        "adequacy",
+                        "dpf",
+                        "sccs",
+                        "bcr",
+                        "derogation_49"
+                      ]
+                    },
+                    "onwardVia": {
+                      "description": "An onward transfer through the vendor’s own subprocessor: \"Helpdesk Partners Pvt Ltd\".",
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "examples": [
+                        "Mailcrest Inc."
+                      ]
+                    },
+                    "documentRef": {
+                      "description": "The SCCs or DPA reference.",
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "examples": [
+                        "Mailcrest Inc."
+                      ]
+                    }
+                  },
+                  "required": [
+                    "destinationCountry",
+                    "mechanism"
+                  ]
+                }
+              },
+              "startedAt": {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                "description": "A date, \"YYYY-MM-DD\".",
+                "examples": [
+                  "2026-03-16"
+                ]
+              },
+              "endedAt": {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                "description": "A date, \"YYYY-MM-DD\".",
+                "examples": [
+                  "2026-03-16"
+                ]
+              },
+              "role": {
+                "enum": [
+                  "subprocessor"
+                ],
+                "type": "string"
+              },
+              "clientScope": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "enum": [
+                          "include",
+                          "exclude"
+                        ]
+                      },
+                      "clients": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "description": "Send it back to update this row; leave it out to add one. Rows left out are deleted.",
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                              "examples": [
+                                "0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e"
+                              ]
+                            },
+                            "client": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 100,
+                              "description": "A party of kind client.",
+                              "examples": [
+                                "mailcrest"
+                              ]
+                            },
+                            "reason": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 2000,
+                              "description": "\"EU-only processing (Aurelia DPA §7)\"."
+                            },
+                            "agreement": {
+                              "description": "The agreement that requires it, if any.",
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 100,
+                              "examples": [
+                                "mailcrest"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "client",
+                            "reason"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "clients"
+                    ],
+                    "description": "Which clients’ data the engagement is used for. Null: every client the activity covers."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "changeNote": {
+                "description": "Why this change was made. Stored on the revision, never returned.",
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            },
+            "required": [
+              "party",
+              "serviceDescription",
+              "processingCountries",
+              "role"
+            ]
+          }
+        ],
+        "description": "An engagement on a controller activity (processor or recipient) or on a processor activity (subprocessor, with an optional clientScope)."
+      },
+      "RemoveEngagementInput": {
+        "type": "object",
+        "properties": {
+          "changeNote": {
+            "description": "Why this change was made. Stored on the revision, never returned.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        }
+      },
       "ReviewItemInput": {
         "type": "object",
         "properties": {
@@ -13742,6 +14146,142 @@
           }
         },
         "x-required-permission": "record:read"
+      },
+      "post": {
+        "tags": [
+          "activities"
+        ],
+        "summary": "Add an engagement",
+        "description": "Adds one engagement to the activity, which is saved as a whole (§3.5): one activity revision, `record.changed`, and `subprocessors.changed` when a list moves, exactly as `PUT /activities/{ref}` would. The activity is validated after the change, its role rules too when it is active. Errors in the engagement point into the body; anything wrong elsewhere in the activity is reported under `/activity`. The server gives the engagement its id.\n\nRequires the `record:write` permission.",
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "path",
+            "required": true,
+            "description": "The activity: an id, code or slug (§1.2).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "description": "The activity’s version, from its ETag or an engagement’s (§3.5, §1.8).",
+            "schema": {
+              "type": "string",
+              "example": "\"3\""
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EngagementInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The engagement added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Engagement"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "The activity’s version, not the engagement’s: send it back as If-Match (§3.5).",
+                "schema": {
+                  "type": "string",
+                  "example": "\"3\""
+                }
+              },
+              "Location": {
+                "description": "Where the engagement lives: /v1/activities/{code}/engagements/{id}.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No token, or the token is not valid",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Valid token without the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such activity, or it holds no engagement with that id",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The activity is retired",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Someone else has saved the activity since you read it",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request failed validation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "If-Match is required on a write",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "record:write"
       }
     },
     "/v1/activities/{ref}/engagements/{id}": {
@@ -13834,6 +14374,279 @@
           }
         },
         "x-required-permission": "record:read"
+      },
+      "put": {
+        "tags": [
+          "activities"
+        ],
+        "summary": "Replace an engagement",
+        "description": "Replaces one engagement, its transfers and client scope included, keeping its id; send nested ids back to keep those rows. Saved and validated as the whole activity, like adding one. A body `id`, if sent, must be the one in the path.\n\nRequires the `record:write` permission.",
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "path",
+            "required": true,
+            "description": "The activity: an id, code or slug (§1.2).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The engagement’s id.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "description": "The activity’s version, from its ETag or an engagement’s (§3.5, §1.8).",
+            "schema": {
+              "type": "string",
+              "example": "\"3\""
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EngagementInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The engagement as saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Engagement"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "The activity’s version, not the engagement’s: send it back as If-Match (§3.5).",
+                "schema": {
+                  "type": "string",
+                  "example": "\"3\""
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No token, or the token is not valid",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Valid token without the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such activity, or it holds no engagement with that id",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The activity is retired",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Someone else has saved the activity since you read it",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request failed validation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "If-Match is required on a write",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "record:write"
+      },
+      "delete": {
+        "tags": [
+          "activities"
+        ],
+        "summary": "Remove an engagement",
+        "description": "Removes one engagement from the activity, saved as a whole. Removing a vendor from a live activity can send Art. 28 notices, so the optional body carries a change note.\n\nRequires the `record:write` permission.",
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "path",
+            "required": true,
+            "description": "The activity: an id, code or slug (§1.2).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The engagement’s id.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "description": "The activity’s version, from its ETag or an engagement’s (§3.5, §1.8).",
+            "schema": {
+              "type": "string",
+              "example": "\"3\""
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveEngagementInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Removed",
+            "headers": {
+              "ETag": {
+                "description": "The activity’s version, not the engagement’s: send it back as If-Match (§3.5).",
+                "schema": {
+                  "type": "string",
+                  "example": "\"3\""
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No token, or the token is not valid",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Valid token without the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such activity, or it holds no engagement with that id",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The activity is retired",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Someone else has saved the activity since you read it",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request failed validation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "If-Match is required on a write",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "record:write"
       }
     },
     "/v1/changes": {
