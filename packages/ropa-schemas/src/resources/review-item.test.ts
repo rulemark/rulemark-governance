@@ -148,4 +148,11 @@ describe('ReviewItemsQuery', () => {
   it('allows a type on its own: every item about a party', () => {
     expect(ReviewItemsQuery.safeParse({ targetType: 'party' }).success).toBe(true);
   });
+
+  it('finds the items carrying a coverage finding’s key, whatever their status (step 4)', () => {
+    const key = `region_violation:${UUID}:${UUID}:IN`;
+    expect(ReviewItemsQuery.parse({ key })).toEqual({ key });
+    expect(ReviewItemsQuery.safeParse({ key: '' }).success).toBe(false);
+    expect(ReviewItemsQuery.safeParse({ key: 'k'.repeat(2_001) }).success).toBe(false);
+  });
 });

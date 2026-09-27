@@ -64,22 +64,26 @@ const Principals = z.string().transform((value, ctx) => {
 const Secret = z.string().min(16, 'Must be at least 16 characters');
 
 /**
- * Where one consumer of events lives (step 4, Phase 5 question 2). Render's
- * Blueprint wires a private service in as `host:port` (`fromService`,
- * `hostport`), which becomes `http://host:port/events`; a full URL is used as
- * given. Plain http is the private network's, as API §6 assumes.
+ * Another service's address. Render's Blueprint wires one in as `host:port`
+ * (`fromService`, `hostport`), which becomes `http://host:port` plus `path`;
+ * a full URL is used as given, for local development. Plain http is the
+ * private network's, as API §6 assumes.
  */
 const HOST_PORT = /^[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?:\d{1,5}$/;
-const EventDestination = z.string().transform((value, ctx) => {
-  if (HOST_PORT.test(value)) return `http://${value}/events`;
-  try {
-    if (['http:', 'https:'].includes(new URL(value).protocol)) return value;
-  } catch {
-    // Neither; reported below.
-  }
-  ctx.addIssue({ code: 'custom', message: 'Must be host:port or an http(s) URL' });
-  return z.NEVER;
-});
+const serviceAddress = (path: string) =>
+  z.string().transform((value, ctx) => {
+    if (HOST_PORT.test(value)) return `http://${value}${path}`;
+    try {
+      if (['http:', 'https:'].includes(new URL(value).protocol)) return value;
+    } catch {
+      // Neither; reported below.
+    }
+    ctx.addIssue({ code: 'custom', message: 'Must be host:port or an http(s) URL' });
+    return z.NEVER;
+  });
+
+/** Where one consumer of events lives (step 4, Phase 5 question 2). */
+const EventDestination = serviceAddress('/events');
 
 /**
  * One variable per destination an event is routed to (`EVENT_ROUTES`). A
@@ -246,6 +250,43 @@ export function loadDemoClientConfig(
   return {
     baseUrl: (data.DEMO_API_URL ?? `http://127.0.0.1:${data.PORT}`).replace(/\/$/, ''),
     subject: data.DEMO_SUBJECT,
+    tokenMintSecret: data.TOKEN_MINT_SECRET,
+  };
+}
+
+/**
+ * What the coverage cron job needs (step 4, open question 6): it talks HTTP
+ * to the API over the private network, as its own principal, minting a token
+ * each run. No database: it opens review items the way any caller would.
+ */
+export interface CoverageJobConfig {
+  readonly nodeEnv: NodeEnv;
+  readonly logLevel: LogLevel;
+  readonly baseUrl: string;
+  readonly subject: string;
+  readonly tokenMintSecret: string;
+}
+
+const CoverageJobEnvSchema = z.object({
+  NODE_ENV: databaseFields.NODE_ENV,
+  LOG_LEVEL: databaseFields.LOG_LEVEL,
+  TOKEN_MINT_SECRET: Secret,
+  PORT: z.coerce.number().int().min(1).max(65535).default(3000),
+  /** The API: `host:port` from the Blueprint, or a URL. Locally, `PORT`. */
+  ROPA_API_URL: serviceAddress('').optional(),
+  /** Must be in the API's `PRINCIPALS`, with the `service:schedule` role. */
+  COVERAGE_JOB_SUBJECT: z.string().min(1).default('svc:schedule'),
+});
+
+export function loadCoverageJobConfig(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): CoverageJobConfig {
+  const data = parseEnv(CoverageJobEnvSchema, env);
+  return {
+    nodeEnv: data.NODE_ENV,
+    logLevel: data.LOG_LEVEL,
+    baseUrl: (data.ROPA_API_URL ?? `http://127.0.0.1:${data.PORT}`).replace(/\/$/, ''),
+    subject: data.COVERAGE_JOB_SUBJECT,
     tokenMintSecret: data.TOKEN_MINT_SECRET,
   };
 }

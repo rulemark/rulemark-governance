@@ -5197,7 +5197,8 @@
                 "admin",
                 "service:monitor",
                 "service:snapshot",
-                "service:dsar"
+                "service:dsar",
+                "service:schedule"
               ]
             }
           },
@@ -5283,7 +5284,8 @@
                 "admin",
                 "service:monitor",
                 "service:snapshot",
-                "service:dsar"
+                "service:dsar",
+                "service:schedule"
               ]
             }
           },
@@ -13860,6 +13862,15 @@
             "schema": {
               "type": "string",
               "format": "date"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "required": false,
+            "description": "Items whose details.key is this: a coverage finding’s key (§5.5), whatever their status.",
+            "schema": {
+              "type": "string"
             }
           }
         ],

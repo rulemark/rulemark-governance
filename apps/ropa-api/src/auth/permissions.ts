@@ -26,8 +26,19 @@ export const PRINCIPAL_ROLE_PERMISSIONS: Readonly<Record<PrincipalRole, readonly
   approver: [...VIEWER, 'activity:approve'],
   admin: PERMISSIONS,
   'service:monitor': ['view:impact', 'view:subprocessors', 'review:read', 'review:create'],
-  'service:snapshot': ['record:read', 'system:write', 'view:coverage', 'review:create'],
+  // review:read so it can skip a finding that already has an item (step 4).
+  'service:snapshot': [
+    'record:read',
+    'system:write',
+    'view:coverage',
+    'review:read',
+    'review:create',
+  ],
   'service:dsar': ['record:read', 'view:datamap'],
+  // The coverage cron job opens items and never closes them: resolving says
+  // why a finding went away, and only the person who fixed it knows (step 4,
+  // open question 6).
+  'service:schedule': ['view:coverage', 'review:read', 'review:create'],
 };
 
 /** What a token's roles add up to. Roles combine; nothing subtracts. */

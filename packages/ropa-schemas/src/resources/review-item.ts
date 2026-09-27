@@ -1,7 +1,17 @@
 import { z } from 'zod';
 
 import { REVIEW_REASONS, REVIEW_SOURCES, REVIEW_STATUSES, REVIEW_TARGET_TYPES } from '../enums.js';
-import { Code, Identifier, IsoDate, IsoDateTime, Name, Ref, Text, Uuid } from '../primitives.js';
+import {
+  Code,
+  Identifier,
+  IsoDate,
+  IsoDateTime,
+  MAX_TEXT,
+  Name,
+  Ref,
+  Text,
+  Uuid,
+} from '../primitives.js';
 
 /**
  * DM §3.11, API §2 (workflow). A review item carries a finding to a person: the
@@ -73,6 +83,17 @@ export const ReviewItemsQuery = z
     targetType: fields.targetType.optional(),
     target: Identifier.optional().describe('Needs targetType: a slug alone could be either.'),
     dueBefore: IsoDate.optional().describe('Items due before this date.'),
+    /**
+     * A coverage finding's key, as whoever opened the item stored it in
+     * `details.key` (§5.5): how the cron job and the Snapshot tell a finding
+     * already carried to a person from a new one (step 4).
+     */
+    key: z
+      .string()
+      .min(1)
+      .max(MAX_TEXT)
+      .optional()
+      .describe('Items whose details.key is this: a coverage finding’s key (§5.5).'),
   })
   .superRefine((query, ctx) => {
     // `mailcrest` could be a party's slug or a system's, so the type says which.

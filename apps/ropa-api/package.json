@@ -32,7 +32,8 @@
     "db:seed": "node dist/demo/replay.js",
     "openapi:write": "node dist/api/openapi/write.js",
     "coverage": "vitest run --coverage",
-    "demo:data": "node dist/demo/seed.js"
+    "demo:data": "node dist/demo/seed.js",
+    "job:coverage": "node dist/jobs/coverage.js"
   },
   "devDependencies": {
     "@apidevtools/swagger-parser": "^13.0.0",

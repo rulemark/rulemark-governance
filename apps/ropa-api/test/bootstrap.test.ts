@@ -1,3 +1,4 @@
+import { execFile } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -6,6 +7,8 @@ import { eventOutbox } from '../src/db/schema/index.js';
 import { TEST_DATABASE_URL } from './db/harness.js';
 import { startReceiver } from './scripted-receiver.js';
 import {
+  APP_ROOT,
+  JOB_SOURCE_ARGS,
   SOURCE_ARGS,
   exitOf,
   freePort,
@@ -91,4 +94,66 @@ describe('event delivery in the service', () => {
       await pool.end();
     }
   }, 20_000);
+});
+
+/**
+ * The coverage cron job's process (step 4, Phase 6): what Render runs each
+ * night, and the exit code it judges the run by.
+ */
+describe('the coverage job', () => {
+  const SECRET = 'the-mint-secret-nobody-should-guess';
+
+  function runJob(env: Record<string, string>): Promise<{ code: number; output: string }> {
+    return new Promise((resolve) => {
+      execFile(
+        process.execPath,
+        JOB_SOURCE_ARGS,
+        { cwd: APP_ROOT, env: { ...process.env, NODE_ENV: 'test', LOG_LEVEL: 'info', ...env } },
+        (error, stdout, stderr) => {
+          resolve({ code: error ? Number(error.code ?? 1) : 0, output: stdout + stderr });
+        },
+      );
+    });
+  }
+
+  async function serviceKnowing(subjects: object[]): Promise<number> {
+    const port = await freePort();
+    const service = startService(SOURCE_ARGS, {
+      PORT: String(port),
+      PRINCIPALS: JSON.stringify(subjects),
+    });
+    running = service;
+    await waitForHealth(port, service);
+    return port;
+  }
+
+  it('runs once against the service and exits 0', async () => {
+    const port = await serviceKnowing([
+      { sub: 'svc:schedule', name: 'Coverage job', roles: ['service:schedule'] },
+    ]);
+    const { code, output } = await runJob({
+      TOKEN_MINT_SECRET: SECRET,
+      ROPA_API_URL: `127.0.0.1:${port}`,
+    });
+    expect(code, output).toBe(0);
+    expect(output).toContain('"msg":"coverage job finished"');
+  }, 30_000);
+
+  it('exits 1 naming PRINCIPALS when its subject is unknown', async () => {
+    const port = await serviceKnowing([
+      { sub: 'priya.raman', name: 'Priya Raman', roles: ['editor'] },
+    ]);
+    const { code, output } = await runJob({
+      TOKEN_MINT_SECRET: SECRET,
+      ROPA_API_URL: `127.0.0.1:${port}`,
+    });
+    expect(code).toBe(1);
+    expect(output).toMatch(/svc:schedule.*PRINCIPALS/);
+  }, 30_000);
+
+  it('refuses to start on invalid configuration, naming the variable', async () => {
+    const { code, output } = await runJob({ TOKEN_MINT_SECRET: 'short' });
+    expect(code).toBe(1);
+    expect(output).toMatch(/TOKEN_MINT_SECRET/);
+  }, 30_000);
 });

@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   DIST_ARGS,
   DIST_ENTRY,
+  DIST_JOB,
   DIST_MIGRATE,
   exitOf,
   freePort,
@@ -97,5 +98,14 @@ describe('the built migrator, as the pre-deploy command runs it', () => {
     });
     running = migrator;
     expect(await exitOf(migrator), migrator.stderr()).toBe(0);
+  }, 20_000);
+});
+
+describe('the built coverage job, as the cron job runs it', () => {
+  it('loads from dist, and refuses to run without its secret, naming it', async () => {
+    const job = startService([DIST_JOB], { NODE_ENV: 'production', TOKEN_MINT_SECRET: '' });
+    running = job;
+    expect(await exitOf(job)).toBe(1);
+    expect(job.stderr()).toMatch(/TOKEN_MINT_SECRET/);
   }, 20_000);
 });

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { ReviewItem, ReviewItemInput } from '@rulemark/ropa-schemas';
 import { inArray, like, or, sql } from 'drizzle-orm';
 import type { Server } from 'node:http';
@@ -538,6 +539,32 @@ describe('GET /review-items', () => {
     expect(found).toContain(queue.mailcrest.code);
     expect(found).not.toContain(queue.glitchlog.code);
     expect(found).not.toContain(queue.cvParser.code);
+  });
+
+  it('finds the items carrying a coverage finding’s key, whatever their status (step 4)', async () => {
+    const key = `unmapped_system:${randomUUID()}`;
+    const finding = (details: Record<string, unknown>) =>
+      ch6({
+        targetType: 'system',
+        target: `${PREFIX}cv-parser`,
+        source: 'schedule',
+        reason: 'unmapped_system',
+        details,
+        dueAt: undefined,
+      });
+    const dismissed = await open('admin', finding({ key, severity: 'medium' }));
+    await call('editor', 'post', `/v1/review-items/${dismissed.code}/dismiss`).send({
+      resolutionNote: 'The parser is being retired this week',
+    });
+    const reopened = await open('admin', finding({ key }));
+    await open('admin', finding({ key: `${key}:other` }));
+    await open('admin', finding({ note: `${key}` }));
+
+    expect((await list(`key=${encodeURIComponent(key)}`)).sort()).toEqual(
+      [dismissed.code, reopened.code].sort(),
+    );
+    expect(await list(`key=${encodeURIComponent(key)}&status=open`)).toEqual([reopened.code]);
+    expect(await list(`key=${encodeURIComponent(`unmapped_system:${randomUUID()}`)}`)).toEqual([]);
   });
 
   it('refuses a filter value outside the vocabulary', async () => {

@@ -4,9 +4,11 @@ import { config as loadDotenv } from 'dotenv';
 import {
   ConfigError,
   loadConfig,
+  loadCoverageJobConfig,
   loadDatabaseConfig,
   loadDemoClientConfig,
   type Config,
+  type CoverageJobConfig,
   type DatabaseConfig,
   type DemoClientConfig,
 } from './config.js';
@@ -59,4 +61,9 @@ export function loadDatabaseConfigOrExit(): DatabaseConfig {
 /** `demo:data`: a service to talk to, and the secret to mint a token with. */
 export function loadDemoClientConfigOrExit(): DemoClientConfig {
   return orExit(() => loadDemoClientConfig());
+}
+
+/** The coverage cron job: the API's address, and the secret to mint with. */
+export function loadCoverageJobConfigOrExit(): CoverageJobConfig {
+  return orExit(() => loadCoverageJobConfig());
 }

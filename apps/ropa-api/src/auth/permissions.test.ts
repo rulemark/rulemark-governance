@@ -63,6 +63,16 @@ describe('the permission map (§1.9)', () => {
     expect(snapshot).not.toContain('record:write');
   });
 
+  it('lets the snapshot read review items, so it can skip a finding already carried (step 4)', () => {
+    expect(permissionsFor(['service:snapshot'])).toContain('review:read');
+  });
+
+  it('holds the coverage job to coverage and opening items: it opens, never decides (step 4)', () => {
+    expect(permissionsFor(['service:schedule']).sort()).toEqual(
+      ['review:create', 'review:read', 'view:coverage'].sort(),
+    );
+  });
+
   it('holds the DSAR tracker to reading and the data map', () => {
     expect(permissionsFor(['service:dsar']).sort()).toEqual(['record:read', 'view:datamap'].sort());
   });

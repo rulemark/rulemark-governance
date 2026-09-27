@@ -594,6 +594,10 @@ export function buildOpenApiDocument(): JsonObject {
             type: 'string',
             format: 'date',
           }),
+          queryParam(
+            'key',
+            'Items whose details.key is this: a coverage finding’s key (§5.5), whatever their status.',
+          ),
         ],
         responses: {
           '200': {

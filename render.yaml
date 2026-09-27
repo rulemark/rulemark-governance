@@ -137,6 +137,47 @@ projects:
               # PORT is deliberately absent. Render assigns it and the service
               # reads it; setting it here is how you make the health check fail.
 
+          # The coverage cron job (ropa-api.md §5.5; step 4, Phase 6): nightly,
+          # it asks ropa-api what the record and the architecture disagree on,
+          # and opens a review item for each finding no person has yet. It
+          # opens and never decides. Same code and build as ropa-api, its own
+          # start command; billed by the second it runs ($1/month minimum).
+          #
+          # Its principal, svc:schedule with the service:schedule role, must be
+          # added to ropa-api's PRINCIPALS in the dashboard by hand (Phase 6
+          # question 2); until then each run fails, naming it.
+          - type: cron
+            name: coverage-job
+            runtime: node
+            region: frankfurt # beside ropa-api, on its private network
+            plan: 0.5c-512mb
+            branch: main
+            schedule: '0 2 * * *' # 02:00 UTC
+            buildCommand: npm ci --include=dev && npm run build -w apps/ropa-api
+            startCommand: npm run job:coverage -w apps/ropa-api
+            autoDeployTrigger: checksPass
+            buildFilter:
+              paths:
+                - apps/ropa-api/**
+                - packages/ropa-schemas/**
+                - package.json
+                - package-lock.json
+            envVars:
+              - key: NODE_ENV
+                value: production
+              # Over the private network: http://<hostport>, never the public URL.
+              - key: ROPA_API_URL
+                fromService:
+                  type: web
+                  name: ropa-api
+                  property: hostport
+              # Minted into a fresh token each run; the secret never leaves Render.
+              - key: TOKEN_MINT_SECRET
+                fromService:
+                  type: web
+                  name: ropa-api
+                  envVarKey: TOKEN_MINT_SECRET
+
           # A stand-in for the audit log (service #1): receives every event
           # ropa-api delivers, logs it, and ignores an id it has seen. Private:
           # reachable only from this environment's private network, because

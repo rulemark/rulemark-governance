@@ -4,7 +4,7 @@ import {
   ReviewItemInput,
   ReviewItemsQuery,
 } from '@rulemark/ropa-schemas';
-import { and, asc, eq, gt, isNotNull, lt, type SQL } from 'drizzle-orm';
+import { and, asc, eq, gt, isNotNull, lt, sql, type SQL } from 'drizzle-orm';
 import { Router, type Request } from 'express';
 import type { z } from 'zod';
 
@@ -72,6 +72,8 @@ async function filtersOf(tx: Transaction, req: Request): Promise<SQL[]> {
   if (query.source !== undefined) conditions.push(eq(reviewItem.source, query.source));
   if (query.reason !== undefined) conditions.push(eq(reviewItem.reason, query.reason));
   if (query.dueBefore !== undefined) conditions.push(lt(reviewItem.dueAt, query.dueBefore));
+  // A coverage finding's key, as its opener stored it (§5.5; step 4, Phase 6 question 1).
+  if (query.key !== undefined) conditions.push(sql`${reviewItem.details}->>'key' = ${query.key}`);
 
   if (query.targetType !== undefined) {
     const column = targetColumn(query.targetType);

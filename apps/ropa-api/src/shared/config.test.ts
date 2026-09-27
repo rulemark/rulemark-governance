@@ -5,6 +5,7 @@ import {
   ConfigError,
   EVENT_DESTINATION_VARIABLES,
   loadConfig,
+  loadCoverageJobConfig,
   loadDatabaseConfig,
   loadDemoClientConfig,
 } from './config.js';
@@ -326,6 +327,39 @@ describe('loadDemoClientConfig: demo:data talks HTTP and needs no database', () 
     expect(() => loadDemoClientConfig({})).toThrow(/TOKEN_MINT_SECRET/);
     expect(() => loadDemoClientConfig({ TOKEN_MINT_SECRET, DEMO_API_URL: 'ropa' })).toThrow(
       /DEMO_API_URL/,
+    );
+  });
+});
+
+describe('loadCoverageJobConfig: the cron job talks HTTP and needs no database', () => {
+  const TOKEN_MINT_SECRET = 'the-mint-secret-nobody-should-guess';
+
+  it('needs the mint secret, and defaults to svc:schedule on the local service', () => {
+    expect(loadCoverageJobConfig({ TOKEN_MINT_SECRET })).toEqual({
+      nodeEnv: 'development',
+      logLevel: 'info',
+      baseUrl: 'http://127.0.0.1:3000',
+      subject: 'svc:schedule',
+      tokenMintSecret: TOKEN_MINT_SECRET,
+    });
+  });
+
+  it('reaches the API at a host:port, as the Blueprint wires it, or a URL', () => {
+    expect(
+      loadCoverageJobConfig({ TOKEN_MINT_SECRET, ROPA_API_URL: 'ropa-api-k3x9:10000' }).baseUrl,
+    ).toBe('http://ropa-api-k3x9:10000');
+    expect(
+      loadCoverageJobConfig({ TOKEN_MINT_SECRET, ROPA_API_URL: 'https://ropa.example/' }).baseUrl,
+    ).toBe('https://ropa.example');
+    expect(loadCoverageJobConfig({ TOKEN_MINT_SECRET, PORT: '4100' }).baseUrl).toBe(
+      'http://127.0.0.1:4100',
+    );
+  });
+
+  it('refuses a missing secret or an address that is not one', () => {
+    expect(() => loadCoverageJobConfig({})).toThrow(/TOKEN_MINT_SECRET/);
+    expect(() => loadCoverageJobConfig({ TOKEN_MINT_SECRET, ROPA_API_URL: 'ropa-api' })).toThrow(
+      /ROPA_API_URL/,
     );
   });
 });

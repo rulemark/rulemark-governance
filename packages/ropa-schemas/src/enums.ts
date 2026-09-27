@@ -121,6 +121,7 @@ export const PRINCIPAL_ROLES = list(
   'service:monitor',
   'service:snapshot',
   'service:dsar',
+  'service:schedule',
 );
 
 // --- workflow, history and events ---

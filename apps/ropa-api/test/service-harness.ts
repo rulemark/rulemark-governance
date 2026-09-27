@@ -20,6 +20,13 @@ export const DIST_ENTRY = fileURLToPath(new URL('../dist/index.js', import.meta.
 /** The migrator Render's pre-deploy command runs. */
 export const DIST_MIGRATE = fileURLToPath(new URL('../dist/db/migrate.js', import.meta.url));
 
+/** The coverage cron job, built, as its Render start command runs it. */
+export const DIST_JOB = fileURLToPath(new URL('../dist/jobs/coverage.js', import.meta.url));
+
+/** The coverage cron job's entry point (step 4, Phase 6). */
+const JOB_SOURCE_ENTRY = fileURLToPath(new URL('../src/jobs/coverage.ts', import.meta.url));
+export const JOB_SOURCE_ARGS = ['--import', 'tsx', '--conditions=development', JOB_SOURCE_ENTRY];
+
 /** The sources, through tsx, with workspace packages resolved to their sources. */
 export const SOURCE_ARGS = ['--import', 'tsx', '--conditions=development', SOURCE_ENTRY];
 
