@@ -349,3 +349,38 @@
     macOS: it exited 0 on its own without a dispatcher, and with one, a
     `SIGTERM` found no server to close. Nothing to do with Phase 5; on Render
     `PORT` is assigned.
+- **Phase 6's questions (2026-09-27),** raised when building, not in planning.
+  - **`GET /review-items?key=`**, matching `details->>'key'` and combining
+    with the other filters. The job asks once per finding and skips when
+    any item it gets back is open or dismissed; the Snapshot will reuse it.
+    Rejected: listing every open and dismissed item on each run and matching
+    in the job (a growing read, and logic the Snapshot would repeat), and
+    `key` as a column with a partial unique index on open items (a
+    migration and a revisited decision, guarding a race nothing can cause
+    yet: the Snapshot isn't built, and Render doesn't overlap a cron job's
+    runs). Recorded under "Known gaps" for when the Snapshot exists.
+  - **`svc:schedule` is added to `PRINCIPALS` by hand**, like every other
+    subject: a new caller is data, like a new user, and DM F5 (principals
+    in a table) is where that model improves. The job reports a `401` from
+    minting as "`svc:schedule` isn't in `PRINCIPALS`", and the step is in
+    Phase 7's checklist and the README. Rejected: `PRINCIPALS` as a plain
+    value in `render.yaml` (reverses a deliberate choice, and every
+    environment would share one list), and the job's subject built into
+    the code (a second source of subjects that configuration can't remove).
+- **Phase 6: the coverage cron job (2026-09-27).**
+  - **Tested against the API on the replayed story, over real HTTP,** as it
+    runs on Render: open, skip, reopen after a resolution, stand by a
+    dismissal, never close. 12 mutations; the one missed at first (a job
+    that ignored the key and matched any open item) passed because the test
+    database held only the job's own items. An unrelated open item fixed it.
+  - **A viewer is the natural "can read, can't open" caller:** the test for
+    a finding that fails to open runs the job as one, so the failure is a
+    real `403`, not a stub.
+  - **Addresses share one parser.** `ROPA_API_URL` takes `host:port` or a
+    URL like the event destinations, so the Blueprint wires the API into
+    the job the same way it wires the receiver into the API.
+  - **A supertest request is thenable:** returned from an `async` helper it
+    is awaited, so sent, before the caller can `.send()` a body. Test
+    helpers that build requests stay synchronous.
+  - **`svc:schedule` is in `.env.example`'s `PRINCIPALS`,** so a clone can
+    run the job locally; Render's is edited by hand (question 2).

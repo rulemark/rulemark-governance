@@ -157,8 +157,9 @@ Demo-scale authentication: short-lived JSON Web Tokens and role-based permission
 | `approver` | viewer + `activity:approve` |
 | `admin` | everything, including `record:delete` and `taxonomy:write` |
 | `service:monitor` | `view:impact`, `view:subprocessors`, `review:read`, `review:create` |
-| `service:snapshot` | `record:read`, `system:write`, `view:coverage`, `review:create` |
+| `service:snapshot` | `record:read`, `system:write`, `view:coverage`, `review:read`, `review:create` |
 | `service:dsar` | `record:read`, `view:datamap` |
+| `service:schedule` | `view:coverage`, `review:read`, `review:create`: the coverage cron job (§5.5), which opens items and never closes them |
 
 Two deliberate splits:
 - **Editing is not approving.** `record:write` changes a draft; `activity:approve` puts it live or retires it. That's segregation of duties, and with `If-Match` required on activate (§1.8) the approver is provably approving the version they reviewed. In the story, Tomás drafts and Priya approves.
@@ -204,7 +205,7 @@ Two deliberate splits:
 
 | Endpoint | Purpose |
 |---|---|
-| `GET/POST /review-items` · `GET /review-items/{ref}` | Open and read review items (filters: `status`, `source`, `reason`, `targetType`, `target`, `dueBefore`; `target` needs `targetType`, because a slug alone could be a party's or a system's). Who opened an item comes from the token (`openedBy`) |
+| `GET/POST /review-items` · `GET /review-items/{ref}` | Open and read review items (filters: `status`, `source`, `reason`, `targetType`, `target`, `dueBefore`, `key`; `target` needs `targetType`, because a slug alone could be a party's or a system's; `key` matches `details.key`, a coverage finding's key, §5.5). Who opened an item comes from the token (`openedBy`) |
 | `POST /review-items/{ref}/resolve` · `POST /review-items/{ref}/dismiss` | Close with a required `resolutionNote`. Only `open` items can be closed (`409` otherwise, §1.8) |
 
 **Views** (read models, DM §7)
@@ -588,7 +589,15 @@ Advisory findings, never blocking (§1.5):
 
 Response: `{ "generatedAt", "findings": [ { "key", "type", "severity", "targetType", "target": Ref, "details" } ] }`, most severe first. Severity is fixed per type, and the schema holds each type to its own. `details` is typed per finding (the engagement, party, country, client and terms involved). Only live activities and engagements in force count. `?asOf=` is refused (`422 not_supported`): coverage is a question about today.
 
-**`key`** is built from the finding's cause (`region_violation:<engagementId>:<clientId>:IN`), so the same cause gives the same key on every run and two causes on one activity give two keys. `targetType` and `target` are what a review item for the finding points at. Coverage doesn't open review items itself. A scheduled job (a natural fit for a **Render cron job**) or the Snapshot calls it and opens review items for new findings: it stores the finding's `key` in the item's `details` and opens one only for a key with no open item. Every finding type is also a review-item `reason`.
+**`key`** is built from the finding's cause (`region_violation:<engagementId>:<clientId>:IN`), so the same cause gives the same key on every run and two causes on one activity give two keys. `targetType` and `target` are what a review item for the finding points at. Coverage doesn't open review items itself. A scheduled job or the Snapshot calls it and opens review items for new findings: it stores the finding's `key` in the item's `details`, and finds the items already carrying a key with `GET /review-items?key=`. Every finding type is also a review-item `reason`.
+
+**The coverage cron job, as built (step 4).** A Render cron job, `coverage-job`, runs nightly at 02:00 UTC (`src/jobs/`, same build as the service, `npm run job:coverage`). It reaches the API over the private network as `svc:schedule` (role `service:schedule`), minting a token each run with the secret the Blueprint passes it, and **opens, never decides**:
+- For each finding, it asks `GET /review-items?key=`. An **open or dismissed** item means skip: a person has it, or decided. A resolved item doesn't block, since a finding that recurs means the fix didn't hold.
+- Otherwise it opens an item: `source: schedule`, the finding's `type` as `reason`, its target, and `details` of `key`, `severity` and the finding's own details. No `dueAt`: choosing a deadline would be deciding.
+- It never resolves or dismisses, and its role can't. The person who fixed a finding closes the item and says why.
+- A finding it can't carry is logged and the rest still run; the run exits non-zero, so Render marks it failed. `svc:schedule` is added to `PRINCIPALS` by hand like every subject; until it is, each run fails saying so.
+
+On the story it opens one item, Aurelia's region violation on P1, and a second run opens nothing.
 
 ## 6. Events
 
@@ -662,7 +671,7 @@ Replaying the story writes twelve: P1 going live (the offering, Northwind, Fjord
 
 **Decided during build step 3 (2026-09-26)**, for the steps that follow:
 - **Review items emit `review_item.changed`, not revisions** (§6). `/changes` reads revisions, so it won't replay them. ~~Step 4 should take them from the outbox~~ **Settled when planning step 4:** they get an append-only history table of their own, `review_item_event`, which `/changes` reads, ordered by `occurredAt` since they have no `version`; the outbox stays a delivery queue that can be purged. The dispatcher's ordering query must allow for outbox rows with no `revision_id`.
-- **A Render cron job opens review items from coverage findings**, in step 4 (settled when step 3 closed). It calls `GET /coverage`, opens a review item with `source: schedule` for each finding whose `key` has no open item (§5.5; the key goes in `details`), and is the only way `review_overdue` will ever be acted on, since nothing else notices time passing. It needs a new `render.yaml` resource, its own principal and token (`review:read`, `review:create`), and a route to the API over the private network. The Snapshot takes `unmapped_system` with `source: snapshot` when it exists; the shared `key` keeps the two from opening duplicates. `service:snapshot` has `review:create` but not `review:read`, so it can't dedupe yet: add it when either caller is built.
+- **A Render cron job opens review items from coverage findings**, in step 4 (settled when step 3 closed). It calls `GET /coverage`, opens a review item with `source: schedule` for each finding whose `key` has no open item (§5.5; the key goes in `details`), and is the only way `review_overdue` will ever be acted on, since nothing else notices time passing. It needs a new `render.yaml` resource, its own principal and token (`review:read`, `review:create`), and a route to the API over the private network. The Snapshot takes `unmapped_system` with `source: snapshot` when it exists; the shared `key` keeps the two from opening duplicates. `service:snapshot` has `review:create` but not `review:read`, so it can't dedupe yet: add it when either caller is built. **Done in step 4:** the cron job is built (§5.5), `service:snapshot` has `review:read`, and both find a key's items with `GET /review-items?key=`.
 - **`asOf` for the step 3 views needs no new view logic either.** Impact and the data map are pure functions over activity snapshots (`partyImpact`, `dataMap`), like the step 2 views; step 4 feeds them snapshots, and the agreements and terms they read, as of the date. Coverage alone stays current-only: it refuses `asOf` with `422 not_supported`, not `not_yet_supported`, because "where do the record and the architecture disagree" is a question about today.
 - **Review-item history lived only in the outbox**, which DB §7's cleanup purges after 30 days. Settled when planning step 4: `review_item_event` (above).
 

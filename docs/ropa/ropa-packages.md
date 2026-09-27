@@ -227,7 +227,7 @@ projects:
     environments:
       - name: Production
         databases: [ropa-db]
-        services: [ropa-api, audit-log]
+        services: [ropa-api, audit-log, coverage-job]
 ```
 
 Three things learned by deploying, which this sketch originally got wrong:
@@ -272,6 +272,7 @@ Notes:
 - Documentation-only commits redeploy nothing.
 - Manual deploys always run, whatever the filters say.
 - **`audit-log` is a private service** (`type: pserv`, step 4): reachable only from the environment's private network, with no public URL. `ropa-api` learns its address from the Blueprint (`EVENT_DESTINATION_AUDIT_LOG`, `fromService` with `property: hostport`), the same wiring the frontend sketch uses. Its filter is `apps/audit-log/**` and `packages/ropa-schemas/**`, so a change to the event contract redeploys the consumer as well as the producer.
+- **`coverage-job` is a cron job** (`type: cron`, step 4): the same build as `ropa-api` with its own start command (`npm run job:coverage`), nightly at 02:00 UTC. It reaches the API over the private network (`ROPA_API_URL` from `hostport`) and takes the mint secret from `ropa-api` (`envVarKey: TOKEN_MINT_SECRET`), so neither is copied by hand.
 - Whether the frontend calls the API over Render's **private network** (server-side rendering) or from the browser (which needs a public URL and CORS) is a decision for when we pick the framework. The Blueprint sketch above assumes server-side calls.
 
 ## 9. How a frontend uses this

@@ -118,6 +118,26 @@
   - DB §7 and API §6 as built; DM §3.13; `ropa-packages.md` (layout, the
     `events` module, the private service); README (Deployment, Layout,
     Events)
+- Phase 5 committed (`2261454`, docs `7af5f45`), not pushed: the user holds
+  the push; the live check comes with it
+- Phase 6 (the coverage cron job) started. Two questions the plan left
+  open, asked and decided: `GET /review-items?key=`; `svc:schedule` added
+  to `PRINCIPALS` by hand
+- Phase 6 built, test-first:
+  - Package: `service:schedule`; `ReviewItemsQuery.key`
+  - Permissions: `service:schedule`, and `review:read` for the Snapshot
+  - `GET /review-items?key=` (`details->>'key'`); OpenAPI; `openapi.json`
+    regenerated
+  - `loadCoverageJobConfig`; `src/jobs/coverage-job.ts` and `coverage.ts`;
+    `npm run job:coverage`
+  - `test/db/coverage-job.test.ts` (9 tests), the job's process in
+    `bootstrap.test.ts` (runs, unknown subject, bad config) and from `dist/`
+  - `render.yaml`: `coverage-job` (`type: cron`, 02:00 UTC), its API address
+    and mint secret from `ropa-api`
+  - 12 mutations of the job, 2 of the key filter, 1 of the entry point: all
+    caught, one after a new fixture
+  - Run locally from `dist/`: three findings opened, then skipped
+  - API §1.9, §2, §5.5 and §8; `ropa-packages.md`; README; `.env.example`
 
 ## Test Results
 | Test | Command | Expected | Actual | Status |
@@ -128,6 +148,7 @@
 | Phase 3 | `npm run check` | all pass | 994 pass (735 api, 254 schemas, 5 dist) | ✅ |
 | Phase 4 | `npm run check` | all pass | 1021 pass (762 api, 254 schemas, 5 dist) | ✅ |
 | Phase 5 | `npm run check` | all pass | 1088 pass (805 api, 261 schemas, 14 audit-log, 8 dist) | ✅ |
+| Phase 6 | `npm run check` | all pass | 1108 pass (823 api, 262 schemas, 14 audit-log, 9 dist) | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -140,7 +161,7 @@
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Build step 4, Phases 1–4 complete and pushed; Phase 5 (the dispatcher) built, its live check waiting for the push |
+| Where am I? | Build step 4, Phases 1–4 complete and pushed; Phases 5 and 6 built, their live checks waiting for the push (Phase 7) |
 | Where am I going? | The dispatcher and the audit-log receiver (Phase 5), the coverage cron job (Phase 6), then the final deploy and the README tour (Phase 7) |
 | What's the goal? | The record's past answerable (Ch8) and its changes heard: events delivered, findings carried to a person on a schedule |
 | What have I learned? | See findings.md, and `plan-archive/4/findings.md` for step 3 |

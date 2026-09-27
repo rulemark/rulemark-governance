@@ -11,7 +11,7 @@ Build step 4 from `docs/ropa/ropa-api.md` §8. **Enough for Ch8, the audit log,
 and a finding reaching a person on its own.**
 
 ## Current Phase
-Phase 5 (the dispatcher) built; its live check waits for the push. Phases 1–4 complete
+Phase 6 (the coverage cron job) built; Phase 5 built and committed. Both live checks wait for the push (Phase 7). Phases 1–4 complete
 
 ## Definition of done for step 4
 - `GET /report?view=all&asOf=2026-03-01` on the seeded record answers Chapter 8:
@@ -105,19 +105,22 @@ Reference: DB §7; API §6 (delivery guarantees); Phase 5 questions in "Decision
 
 ### Phase 6: The coverage cron job
 Reference: API §8 ("Decided during build step 3"), §5.5
-- [ ] Principal `svc:schedule`, new principal role `service:schedule`: `view:coverage`, `review:read`, `review:create`, and deliberately not `review:resolve`
-- [ ] Mints a fresh token each run (`POST /v1/tokens`); `TOKEN_MINT_SECRET` passed from `ropa-api` by the Blueprint (`fromService`), so it never leaves Render
-- [ ] Calls `GET /coverage`, opens a review item with `source: schedule` for each finding whose `key` has no **open or dismissed** item (a dismissal is a person's decision; a resolved item doesn't block, since a recurring finding means the fix didn't hold); the key goes in `details`
-- [ ] Never resolves or dismisses: a disappearing finding is closed by the person who fixed it, with a note saying why
-- [ ] Code in `apps/ropa-api/src/jobs/`, same build, its own start command
-- [ ] Reaches the API over Render's private network (`fromService`, `hostport`)
-- [ ] A `cron` resource in `render.yaml`, nightly at 02:00 UTC; verified with the dashboard's "Trigger run"
-- [ ] `service:snapshot` gains `review:read`, so the Snapshot can dedupe the same way
+- [x] Principal `svc:schedule`, new principal role `service:schedule`: `view:coverage`, `review:read`, `review:create`, and deliberately not `review:resolve`
+- [x] Mints a fresh token each run (`POST /v1/tokens`); `TOKEN_MINT_SECRET` passed from `ropa-api` by the Blueprint (`fromService`), so it never leaves Render; `svc:schedule` added to `PRINCIPALS` in the dashboard, a `401` naming it (Phase 6 question 2)
+- [x] `GET /review-items?key=`: items whose `details.key` is the finding's (Phase 6 question 1)
+- [x] Calls `GET /coverage`, opens a review item with `source: schedule` for each finding whose `key` has no **open or dismissed** item (a dismissal is a person's decision; a resolved item doesn't block, since a recurring finding means the fix didn't hold); the key goes in `details`
+- [x] Never resolves or dismisses: a disappearing finding is closed by the person who fixed it, with a note saying why
+- [x] Code in `apps/ropa-api/src/jobs/`, same build, its own start command
+- [x] Reaches the API over Render's private network (`fromService`, `hostport`)
+- [x] A `cron` resource in `render.yaml`, nightly at 02:00 UTC; verified with the dashboard's "Trigger run"
+- [x] `service:snapshot` gains `review:read`, so the Snapshot can dedupe the same way
+- **Built:** `src/jobs/coverage-job.ts` (`runCoverageJob`) and `src/jobs/coverage.ts` (`npm run job:coverage`); `loadCoverageJobConfig` (`ROPA_API_URL`: `host:port` or a URL, the same parsing as event destinations; `COVERAGE_JOB_SUBJECT`, default `svc:schedule`). Items carry `details: { key, severity, …the finding's }` and no `dueAt`. A `coverage-job` cron resource in `render.yaml`. Locally, against the development database: three `unmapped_system` findings opened, then skipped on the second run
 - **Done when:** on Render, the job opens Aurelia's region violation once, and a second run opens nothing
-- **Status:** pending
+- **Status:** built; to commit, then the live check (Trigger run, twice) after the push and the `PRINCIPALS` edit
 
 ### Phase 7: Deploy and verify
 *Phases 1–4 are already deployed, code first, each verified (see `progress.md`); Ch8's `asOf` and `/changes` answer on the live service.*
+- [ ] Before the cron job's first run: add `svc:schedule` (`service:schedule`) to `PRINCIPALS` in `ropa-api`'s dashboard
 - [ ] Push code commits on their own, docs separately
 - [ ] Ch8 answered on the live, seeded service; the cron job's run visible in Render
 - [ ] README tour: the regulator's question, `/changes`, and the cron job
@@ -159,6 +162,7 @@ Reference: API §8 ("Decided during build step 3"), §5.5
 | **The dispatcher is tested against real Postgres and real HTTP.** A unique destination per test isolates its rows from every other file's committed events (unconfigured destinations are ignored); `now` is a parameter, so the retry schedule is tested by advancing a clock, not by sleeping; a local receiver is scripted to succeed, fail or time out; real transactions on the test's own connections make double sends, ordering and at-least-once observable. The runner's loop and shutdown are tested without a database | Step 4, open question 7 |
 | **`subprocessors.changed`, as built (Phase 4 questions, 2026-09-27):** (1) the planned list is the list once every start and end date recorded has arrived; each entry's `effectiveFrom` is the first day, from the save's own day, on which the saved record shows it as planned. (2) The offering event mirrors `GET /subprocessors?offering=`: standard entries and opt-in module entries, each marked with its `module` (null, or the activity). (3) Client events go to every client holding an agreement for the offering that has not ended, a future-signed one included, and carry the terms that client signed | Step 4, Phase 4 |
 | **The dispatcher, as built (Phase 5 questions, 2026-09-27):** (1) a batch is claimed with a lease in a short transaction (`next_attempt_at` pushed forward, `attempts + 1`) and sent with no transaction open, each result written as it lands; the lease outlasts the batch. (2) One optional variable per destination named in routing (`EVENT_DESTINATION_AUDIT_LOG`, `EVENT_DESTINATION_MONITOR`), not a JSON map: `host:port` (what `fromService` gives) becomes `http://host:port/events`, a URL is used as given. (3) The envelope's frame is a Zod schema in `@rulemark/ropa-schemas` (per-event `data` schemas wait for the Monitor); the receiver is `node:http` and pino, validates against it (`400` otherwise), and redeploys when `packages/**` changes. (4) A failing event is retried forever, never skipped: each failure logged at `warn`, from the 24th attempt at `error`; a stuck event holds only its own record's later events, for that destination | Step 4, Phase 5 |
+| **The coverage job, as built (Phase 6 questions, 2026-09-27):** (1) `GET /review-items?key=` matches `details->>'key'`; the job asks once per finding and skips when an open or dismissed item comes back. (2) `svc:schedule` is added to `PRINCIPALS` in the dashboard by hand, like every subject; a `401` from minting names it | Step 4, Phase 6 |
 | The seeded-story acceptance tests share one replay per file (`governance-views.test.ts`); pure-view tests share `test/fixtures/story-snapshots.ts` | Step 3 |
 | **The views read a `RecordReader`**, live or as of a date, and get snapshots either way; a slug is matched as the record spelled it at *T*; an `asOf` read loads the whole record at *T* once | Step 4, Phase 1 |
 
@@ -169,6 +173,7 @@ Reference: API §8 ("Decided during build step 3"), §5.5
 - `mechanism: adequacy` is not checked against the countries that have an adequacy decision.
 - Data categories aren't linked to subject categories within an activity.
 - Review items have no `openedAt` separate from `createdAt`, so they can't be backdated by the seed.
+- Nothing stops two open review items for one finding `key` if the job and the Snapshot open it at the same moment: a `key` column with a partial unique index on open items would (Phase 6 question 1).
 
 ## Errors encountered
 | Error | Attempt | Resolution |
