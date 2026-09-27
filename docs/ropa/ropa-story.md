@@ -1,6 +1,6 @@
 # The Hireloop Story: RoPA in Practice
 
-> A narrative walkthrough of the RoPA service (with the future Subprocessor Monitor and DSAR tracker) used to sanity-check design decisions in `ropa-design.md` and to define our synthetic seed data. All companies and people are fictional, except Render, whose role is generic (hosting provider) and makes no claims about its real subprocessors.
+> A narrative walkthrough of the RoPA service (with the future Subprocessor Monitor and DSAR tracker, and, in Part II, the Architecture Snapshot) used to sanity-check design decisions in `ropa-design.md` and to define our synthetic seed data. All companies and people are fictional, except Render, whose role is generic (hosting provider) and makes no claims about its real subprocessors.
 
 ---
 
@@ -17,6 +17,7 @@
 | **Marc Lentz** | Vendor-risk analyst at Aurelia Bank (a prospect that becomes a client in Chapter 4). |
 | **Lena Vogel** | A candidate who applied to Northwind via Hireloop. |
 | **Kees de Vries** | A former Hireloop employee. |
+| **Sanne Okafor** | Hireloop's SOC 2 auditor (Part II, Chapter 15). |
 
 **Clients (controllers of candidate data)**
 
@@ -48,6 +49,8 @@
 | `retention-sweep` | Cron job | Processes (deletes) candidate data |
 | `marketing-site` | Static site | Lead forms (posted to Mailcrest) |
 | `cv-parser` | Background worker | *Added in Chapter 5* |
+
+From Chapter 10, Rulemark Governance runs in the same workspace, in a project of its own: `ropa-api`, `audit-log`, `coverage-job`, `snapshot-web`, `snapshot-capture` and `ropa-db` (Part II).
 
 ---
 
@@ -315,6 +318,135 @@ Each box now answers *what runs here*, *whose data*, *which activity*, and *wher
 
 ---
 
+# Part II: The Architecture Snapshot
+
+> Part I follows the record. Part II follows the infrastructure, from the day Hireloop installs Rulemark Governance to the auditor's visit. Its chapters run **alongside** Part I, dated to fit its timeline. It is told at a high level on purpose: its job is to find what we don't know yet. Each chapter ends with the **gaps** it exposed, gathered at the end of Part II by where they land. Design decisions it refers to are in `docs/snapshot/snapshot-design.md`.
+
+## Chapter 10: Install day (3 February 2026)
+
+After the spreadsheet (Chapter 1), Priya wants the record tied to the architecture so it can't drift that far again. Hireloop chooses **Rulemark Governance**, self-hosted: it runs in Hireloop's own Render workspace, so Hireloop's record and its Render key never leave Hireloop (decision 2).
+
+Tomás clicks **Deploy to Render** on Rulemark's public repository. The Blueprint creates a project of its own, `rulemark-governance`, in Frankfurt: `ropa-api`, `audit-log`, the `coverage-job` cron job, the Snapshot's `snapshot-web` and `snapshot-capture` cron job, and `ropa-db`. Render asks for the values the Blueprint leaves to him:
+
+- **The users** (`PRINCIPALS`): Priya (editor and approver), Tomás (editor), Ines and Jonas (viewers).
+- **A Render API key** for the Snapshot. Render keys are personal, so it's *Tomás's* key, with everything Tomás can do in every workspace he belongs to.
+- **A read-only Git token** for `hireloop-platform`, the private repository holding Hireloop's own `render.yaml`, so the Snapshot can see how Hireloop's services are wired (decision 5).
+- The workspaces to document: Hireloop's only one.
+
+The record starts empty. Priya's first act is to record Hireloop itself: the `self` party, with her as DPO.
+
+> **Gaps:**
+> - **How does Priya use it?** There's no user interface yet (`ropa-web` is a placeholder), and signing in means minting a token with a shared secret in Swagger UI. The whole story assumes Priya "records" things. *Product.*
+> - **Whose key is it?** A personal key dies with its owner's account: if Tomás leaves, the Snapshot stops seeing anything. Does Render offer a member role that can read but not change, for a dedicated key? Unknown. *Snapshot, Render.*
+> - **Adding a user** means editing `PRINCIPALS` in the dashboard and redeploying (the roadmap's F5). *RoPA API.*
+> - **First run.** The demo seed must never run on a customer's install, the `self` party has to exist before much else works, and the Snapshot needs a `Render` party to be the hosting party of every system it creates (decision 7). Nothing guides this order. *Product.*
+> - **Upgrades.** Render advises `autoDeployTrigger: off` for button deploys, so how does Hireloop get Rulemark's next release, with its migrations? *Distribution.*
+> - **Cost.** Four paid services, a cron job and a database for a 58-person company: is that acceptable, and can it shrink? *Distribution.*
+
+---
+
+## Chapter 11: The first night (4 February 2026)
+
+At 01:30 the Snapshot captures for the first time. It finds two Blueprints and **twelve resources**:
+
+- Hireloop's, from `hireloop-platform`: `hireloop-app`, `hireloop-api`, `hireloop-db`, `hireloop-kv` and `retention-sweep`.
+- `marketing-site`, a static site **in no Blueprint**: someone made it by hand. The Snapshot's first drift finding.
+- Rulemark's own six, from `rulemark-governance`.
+
+It creates a RoPA system for each (decision 7): kind, region, hosting party Render, the Render resource id. At 02:00 the coverage job asks `/coverage`. The record has no activities yet, so **every system is `unmapped_system`**, and the job opens **twelve review items**. Priya's first morning with Rulemark starts with twelve tasks, one for each thing Rulemark just found, its own services included.
+
+> **Gaps:**
+> - **Day-one flood.** Is a review item per system right before the record exists, or does onboarding need a baseline: capture first, raise items only once Priya says the record is in place? *Snapshot, coverage job.*
+> - **Where Hireloop's vendors show.** Mailcrest, Glitchlog, Scribe AI and Peoplehub are called from code, not declared in `render.yaml`, so the Snapshot sees none of them. Arrows to vendors can only come from RoPA. *Snapshot document.*
+> - **The Git token expires** (fine-grained tokens last a year at most), and the key's owner can change. A capture that silently loses a source still produces a document, just a thinner one. Who notices? *Snapshot.*
+
+---
+
+## Chapter 12: The record meets the architecture (10–16 February 2026)
+
+While Priya writes C1–C4 and P1 (Chapters 2 and 3), every activity lists the systems it runs on, now picked from what the Snapshot found rather than typed from memory. The morning after, coverage has **no findings left for those systems**. But the review items are still open: the coverage job opens and never decides, so Priya closes eleven items by hand, writing the same resolution note each time.
+
+One system group is left: **Rulemark's own**. Priya stops. The record of processing is itself processing: it holds staff names (activity owners, the actor on every revision), her own contact details as DPO, and vendors' contacts, and the audit log keeps who changed what. She records **C5 Privacy compliance record-keeping**: controller, Art. 6(1)(c) (Art. 30 is a legal obligation), Render as processor, systems `ropa-api`, `ropa-db`, `audit-log`, `coverage-job`, `snapshot-web` and `snapshot-capture`. The tool that keeps the record is in the record.
+
+> **Gaps:**
+> - **Closing what resolved itself.** A finding that disappears because the record was fixed leaves its item open. Should an item say "the finding is gone" so a person can close it in one step, or should that be the coverage job's one decision? *Coverage job, RoPA API.*
+> - **C5 isn't in the seed or the story's appendix.** Adding it changes the demo record, and its systems exist only in Part II. *Story, seed.*
+> - **Stand-ins collide with "documents itself."** In our demo, the real `ropa-api` is meant to play `hireloop-api` (decision 1), yet as Rulemark's own service it belongs in C5 (decision 5). One resource can't be both. *Snapshot design.*
+
+---
+
+## Chapter 13: A worker nobody mentioned (30 March – 14 April 2026)
+
+Chapter 5, seen from the infrastructure. On 30 March Tomás merges a pull request adding a background worker, `cv-parser`, to `hireloop-platform`'s `render.yaml`, and Render deploys it. AI parsing sits behind a feature flag, off for everyone.
+
+That night the Snapshot sees a new resource, a new edge from the Blueprint (`cv-parser` → `hireloop-db`) and no edge to Scribe AI, which is called from code. It creates the system, and sends `architecture.changed` to the audit log. At 02:00 coverage reports `cv-parser` as unmapped, and the job opens the review item Priya reads the next morning. She drafts P3 and the DPIA support pack (2 April); P3 goes live on 14 April.
+
+> **Gaps:**
+> - **Found after the fact.** The Snapshot sees what is deployed, not what is planned: Priya hears about `cv-parser` after it runs, and nothing tells her whether CVs already reached Scribe AI. The flag was what kept this lawful, and no one can see a flag. Could Rulemark look at a pull request's `render.yaml` before it merges (Render's Blueprint validation endpoint takes a file), so the question reaches Priya before the worker exists? *Snapshot, new capability.*
+> - **The story's own dates.** Part I has the Snapshot find `cv-parser` and Priya prepare the DPIA support pack before P3 goes live; it never says when the worker was deployed. Part II needs it deployed before the pack, which only works with the flag. *Story.*
+
+---
+
+## Chapter 14: A Friday shortcut (19 June 2026)
+
+Jonas wants hiring-funnel dashboards for a board meeting on Monday. On Friday afternoon an analyst deploys `hireloop-insights`, an open-source BI tool, **by hand**, as a public web service in Render's **Oregon** region, where the free instance was quickest to try. To reach the database from outside Frankfurt, Tomás adds Oregon's outbound IPs to `hireloop-db`'s **IP allow list**.
+
+The Snapshot sees it at 01:30 on Saturday: a resource in no Blueprint, public, in the US, and `hireloop-db` newly reachable from outside Render's private network. It records the drift and sends it to the audit log. It creates the system `hireloop-insights`, and on Monday Priya finds the review item. Then she understands what it means: Hireloop is running **its own analytics on its clients' candidate data**. That's a purpose of Hireloop's, not of Northwind's. As a processor, Hireloop may only act on its clients' instructions (Art. 28(10)), and the data now sits in the US, Aurelia's included, with no transfer recorded.
+
+The dashboards come down. The allow list is restored.
+
+> **Gaps:**
+> - **Drift has no owner.** The opened allow list reached the audit log and nobody else: decision 11 keeps drift out of review items, so no person was asked to act. Changes to the exposure of a system holding special categories may need to become someone's task. *Snapshot design (revisit decision 11).*
+> - **Regions of systems aren't checked.** `/coverage`'s `region_violation` checks where engagements process data, not where Hireloop's own systems run. A US system used for Aurelia's candidates breaks her EEA-only clause, and today only the `unmapped_system` item hints at it, once someone maps the system to P1. *RoPA API (coverage).*
+> - **Nine hours of exposure.** A nightly capture means a Friday change is seen on Saturday. Render webhooks (Pro and up) could trigger a capture on a deploy or a configuration change. *Snapshot (webhooks were left for later).*
+> - **A capture sees a public database, not who connected.** The Snapshot can't tell whether data actually left; that's for Render's logs and Hireloop's investigation. The document should say what it can't know. *Snapshot document.*
+
+---
+
+## Chapter 15: The auditor, and the regulator again (September 2026)
+
+Hireloop's SOC 2 auditor, **Sanne Okafor**, asks for the architecture: every system, where it runs, which are reachable from the internet, what changed during the audit period, and evidence that changes were reviewed. The same week, the Dutch authority's request arrives (Chapter 8).
+
+Jonas opens `snapshot-web`: the diagram grouped by trust boundary, each system carrying its activities (linking to the report's `#p3`), the catalog, June's drift and its resolution in the history. For Sanne, Priya exports the Markdown.
+
+The authority wants the record as it stood on 1 March. Priya has it (`/report?asOf=2026-03-01`). She'd like to show the architecture on that day too, before `cv-parser` existed.
+
+> **Gaps:**
+> - **The architecture as of a date.** The Snapshot keeps its history (decision 10), but nothing lets the document be read as of a date, the way `/report?asOf=` does. *Snapshot.*
+> - **Sharing with outsiders.** Sanne needs read access: a principal in `PRINCIPALS`, a redeploy, and a token that expires in eight hours. Or a Markdown file, which proves nothing about when it was generated or whether it was edited. *Snapshot, RoPA API.*
+> - **Chapter 9's diagram can't be drawn from the model.** Its arrows say which *system* sends data to which vendor (`cv-parser` → Scribe AI, `hireloop-app` → Mailcrest). The data model links activities to systems and activities to engagements, never an engagement to a system. The arrows to vendors have nowhere to come from. *RoPA data model.*
+> - **"Evidence that changes were reviewed."** The history shows June's drift, and a review item shows `hireloop-insights` was looked at, but nothing ties the two together. *Snapshot, RoPA API.*
+
+---
+
+## What Part II revealed
+
+| # | Gap | Chapter | Lands in |
+|---|---|---|---|
+| 1 | No user interface: Priya can't use the product without Swagger UI and a shared secret | 10 | Product (`ropa-web`) |
+| 2 | The Snapshot runs on a person's Render key; a read-only member role is unverified | 10 | Snapshot, Render |
+| 3 | Adding a user means an environment variable and a redeploy | 10, 15 | RoPA API (F5) |
+| 4 | First run: no guided order for the `self` party, the `Render` party and the absent seed | 10 | Product |
+| 5 | Upgrades for button deploys, and the cost of the suite for a small company | 10 | Distribution |
+| 6 | A review item per system on day one, before the record exists | 11 | Snapshot, coverage job |
+| 7 | Vendors called from code never appear in a capture; their arrows must come from RoPA | 11 | Snapshot document |
+| 8 | A source that stops working (expired token, departed key owner) thins the document silently | 11 | Snapshot |
+| 9 | Items whose finding has gone stay open until closed one by one | 12 | Coverage job, RoPA API |
+| 10 | Rulemark's own processing needs an activity (C5) the seed doesn't have | 12 | Story, seed |
+| 11 | In the demo, one real resource can't both stand in for Hireloop's and be Rulemark's own | 12 | Snapshot design |
+| 12 | A new service is found after it deploys; a pull-request check could find it before | 13 | Snapshot, new capability |
+| 13 | Part I never dates `cv-parser`'s deploy | 13 | Story |
+| 14 | Drift reaches the audit log but no person | 14 | Snapshot design (decision 11) |
+| 15 | Coverage doesn't check the regions of Hireloop's own systems against clients' allowed regions | 14 | RoPA API (coverage) |
+| 16 | A nightly capture leaves a day's gap; webhooks could close it | 14 | Snapshot |
+| 17 | The document should say what a capture can't know | 14 | Snapshot document |
+| 18 | The architecture can't be read as of a date | 15 | Snapshot |
+| 19 | No way to share with an outside auditor, or to prove an export is genuine | 15 | Snapshot, RoPA API |
+| 20 | No link between an engagement and the systems that send it data, so the vendor arrows can't be drawn | 15 | RoPA data model |
+| 21 | Drift and the review that followed it aren't linked | 15 | Snapshot, RoPA API |
+
+---
+
 ## What the story tests
 
 | Scene | Decision tested | Endpoints exercised |
@@ -368,3 +500,5 @@ Each box now answers *what runs here*, *whose data*, *which activity*, and *wher
 **Agreements:** `agr-standard-dpa-v3` (general, 30d), `agr-aurelia-dpa` (specific, 60d, EU-only), plus vendor DPAs for Render, Mailcrest, Glitchlog, Scribe AI, Peoplehub.
 
 **Timeline (for versioning):** 2026-01 Aurelia questionnaire → 2026-02-10 record created → 2026-03-16 Aurelia signs (client, agreement, Mailcrest EU region, Glitchlog exclusion, P2) → 2026-04-14 P3 + Scribe added → 2026-06-03 Mailcrest change detected → 2026-07-03 Helpdesk Partners effective → 2026-09 regulator request.
+
+**Part II timeline:** 2026-02-03 Rulemark Governance installed → 2026-02-04 first capture (12 systems, 12 review items) → 2026-02-10–16 systems linked, C5 recorded → 2026-03-30 `cv-parser` deployed behind a flag → 2026-06-19 `hireloop-insights` made by hand → 2026-09 SOC 2 audit.
