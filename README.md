@@ -169,6 +169,7 @@ Hireloop demo record.
 | [docs/ropa/ropa-api.md](docs/ropa/ropa-api.md)                           | HTTP API: conventions, endpoints, views, auth        |
 | [docs/ropa/ropa-database.md](docs/ropa/ropa-database.md)                 | Postgres schema, migrations, seeds                   |
 | [docs/ropa/ropa-packages.md](docs/ropa/ropa-packages.md)                 | Shared packages and deployment topology              |
+| [docs/program/roadmap.md](docs/program/roadmap.md)                       | What exists, what comes next, and known gaps         |
 | [docs/program/workspace-skeleton.md](docs/program/workspace-skeleton.md) | Repository layout and tooling                        |
 
 ## Deployment
