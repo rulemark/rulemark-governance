@@ -13,7 +13,7 @@ The first step of the interface, the roadmap's next priority
 (`docs/program/roadmap.md`, "Next: the interface, and what clients see").
 
 ## Current Phase
-Phase 2 (the app), not started. Phase 1 (the component package) is complete, committed and not pushed
+Phase 2 (the app), not started. Phases 1 and 1b (the component package, the Rulemark theme and foundations) are complete, committed and not pushed Phase 1 (the component package) is complete, committed and not pushed
 
 ## The stack (decided by the user, 2026-09-27)
 | Concern | Choice |
@@ -77,10 +77,45 @@ the user wants soon.
       checked by breaking the code; CI installs Chromium
 - **Status:** complete
 
+### Phase 1b: The Rulemark theme
+The user's brand files, added after Phase 1 in `packages/ui/ux/`: the logo and
+wordmark SVGs and `rulemark-colors.css` (color tokens v1: `--rm-*` primitives
+and semantic tokens, light and dark, `data-theme` with an OS fallback, and
+Tailwind utilities). They're to be the global theme, in place of shadcn's
+neutral.
+- [x] Settle open questions 7–9
+- [x] `globals.css` reconciled with `rulemark-colors.css` (now
+      `src/styles/`): shadcn's names bridged onto `--rm-*`, `field` for the
+      field background, shadcn's `.dark` gone; the button restyled to the
+      spec's states; `Lockup`, `Wordmark` and `Icon` components; the SVGs in
+      `src/brand/`, exported as `@rulemark/ui/brand/*`; `ux/` removed
+- [x] Tests: the theme chosen four ways (default, OS dark, `data-theme` both
+      ways), the bridge and utilities in both themes, the base styles, the
+      button's states, the logos against their files; 133 in the package,
+      each part checked by breaking it (thirteen breaks)
+- [x] `rulemark-foundations.css` (foundations v1, added by the user: Geist,
+      the type scale, spacing and layout tokens, named radii, base styles)
+      imported after the colours; the scaffold's self-referencing
+      `--font-sans` removed from `globals.css`; open questions 10–12
+- [x] shadcn's radius steps at the spec's values; the button at the spec's
+      control sizes, label text and control radius; `cn` configured with the
+      foundations' names (`@rulemark/ui/lib/utils`), and a lint rule sending
+      `shadcn add`'s `from 'cn'` there
+- [x] Tests: the font stacks, every type step, the base styles, the layout
+      tokens, the radii, `cn` against every name in the file, the button's
+      sizes; 233 in the package; ten more breaks, each failing its tests
+- **Status:** complete
+
 ### Phase 2: The app
 - [ ] `apps/ropa-web` on Next.js 16, App Router, its own `components.json`
       pointing at `@rulemark/ui` with the same style, icon library and base
       colour; Tailwind reading the package's `globals.css`
+- [ ] Geist through the `geist` package and `next/font` (`GeistSans.variable`
+      and `GeistMono.variable` on `<html>`, open question 12), not the
+      scaffold's `next/font/google` with `variable: '--font-sans'`
+- [ ] next-themes with `attribute="data-theme"` (open question 7); the
+      favicon from `@rulemark/ui/brand/rulemark-icon.svg`; the lockup in the
+      layout shell
 - [ ] TanStack Query provider, a layout shell, a health route
 - [ ] The environment validated at startup with Zod, failing fast, as the
       other apps do (`ROPA_API_URL`)
@@ -154,6 +189,33 @@ the user wants soon.
    starter instance). Or stay local until step 2, when there's sign-in and
    something worth showing. *Phase 5.*
 
+7. ~~**Dark mode's switch.**~~ **Resolved (2026-09-27):** the Rulemark file's: `data-theme` on `<html>`, the OS's `prefers-color-scheme` when it's unset; next-themes with `attribute="data-theme"`; shadcn's `.dark` block and variant go. Tests cover the attribute both ways and the OS fallback. See `findings.md`. Was: shadcn keys dark on a `.dark` class (next-themes
+   `attribute="class"`, open question 1); `rulemark-colors.css` on
+   `data-theme` on `<html>`, falling back to the OS's `prefers-color-scheme`
+   when unset. *Phase 1b.*
+8. ~~**One vocabulary or two.**~~ **Resolved (2026-09-27):** shadcn's names kept and defined from `--rm-*` (a bridge), Rulemark's names for app code; on the clashes shadcn's meaning keeps the name: `input` is the field border (`--rm-input-border`), Rulemark's field background is renamed `field`, and `secondary` is a soft fill (`--rm-neutral-subtle`). Components are restyled where the Rulemark spec says what shadcn can't: the button's variants take Rulemark's states. See `findings.md`. Was: **One vocabulary or two.** shadcn's components use its names (`muted`,
+   `accent`, `destructive`, `popover`, `input`...); the Rulemark file has its
+   own (`surface`, `fg-muted`, `danger`, `success`...). Five names collide:
+   `primary`, `secondary`, `border`, `ring`, and `input`, which means the field
+   border in shadcn and the field background in Rulemark. Bridge shadcn's
+   names onto `--rm-*`, and/or restyle components to Rulemark's states
+   (`primary-hover`, `secondary-border`, `ghost-hover`). *Phase 1b.*
+9. ~~**Where the files live.**~~ **Resolved (2026-09-27):** the colour file moves to `src/styles/rulemark-colors.css`, edited for question 8 with a header naming the changes from v1 (the `--rm-*` values untouched), imported by `globals.css`; the logos become components in the package (`Lockup`, `Wordmark`, `Icon`), inline SVG in the brand's exact colours, switched by the `dark` variant, with an accessible name; the SVG files stay available for what a component can't reach (the favicon, exports, email). See `findings.md`. Was: **Where the files live.** `ux/rulemark-colors.css` imported as is, or its
+   tokens moved into `src/styles/`; how the app gets the SVGs. *Phase 1b.*
+
+10. ~~**Radius.**~~ **Resolved (2026-09-27):** shadcn's steps set to the spec's values (`sm` 4px, `md` 6px, `lg` 8px, `xl` 12px, `2xl` 16px), so generated buttons, inputs and cards are on spec untouched; restyled components use the named radii (`rounded-control`, `rounded-popover`, `rounded-card`, `rounded-dialog`...). See `findings.md`. Was: shadcn's scale comes from `--radius` (0.625rem: `lg` 10px, `xl` 14px),
+   used as `rounded-lg` 44 times (controls, popovers), `rounded-md` 29 (menu
+   items), `rounded-xl` 9 (cards, dialogs); the spec names 8px controls, 10px
+   popovers, 12px cards, 16px dialogs. *Phase 1b.*
+11. ~~**Control sizes.**~~ **Resolved (2026-09-27):** the spec's: the button's default is `h-control px-control-x text-label` (36px), `sm` `h-control-sm text-label-sm` (32px), `lg` `h-control-lg` (44px), icon buttons `size-control-sm`/`size-control`/`size-control-lg`; `xs` stays 24px with `text-label-sm`, below the spec; inputs and selects follow when added. See `findings.md`. Was: **Control sizes.** Nova's button is 32px by default (28 small, 24 extra
+    small, 36 large) and its inputs 32px; the spec's controls are 36px (32
+    small, 44 large) with 14px side padding, and label text. Restyle to the
+    spec, or keep Nova's compact sizes. *Phase 1b.*
+12. ~~**Loading Geist.**~~ **Resolved (2026-09-27):** the `geist` package through `next/font` in the app (Phase 2), setting `--font-geist-sans` and `--font-geist-mono` on `<html>`, as the stack expects; the package only drops the scaffold's self-referencing `--font-sans` and tests the stack. See `findings.md`. Was: **Loading Geist.** The spec's stack looks for `--font-geist-sans` (the
+    `geist` package through `next/font`); the scaffold's `next/font/google`
+    with `variable: '--font-sans'` would overwrite the stack; Fontsource or a
+    Google Fonts link are the other routes. *Phase 1b, built in Phase 2.*
+
 ## Decisions carried forward
 | Decision | Where it came from |
 |---|---|
@@ -164,11 +226,17 @@ the user wants soon.
 | Packages stay source-only, with a `development` export condition; rebuild before `tsc` reads them without it | RoPA step 1 |
 | npm workspaces, one ESLint flat config and one Prettier config at the root; no task runner until CI gets slow | `workspace-skeleton.md` §3.3 |
 | Code is pushed separately from docs, code first; **nothing is pushed without the user's go-ahead** | RoPA steps; 2026-09-27 |
-| **The component package (open question 1):** `packages/ui` is `@rulemark/ui`, source-only, compiled by the app through `transpilePackages`; shadcn on **Base UI**, style **Nova**, base colour **neutral**, **Lucide** icons, CSS variables; dark mode from the start with next-themes (`attribute="class"`, system default). Both `components.json` files share style, icon library and base colour | Interface step 1 |
+| **The component package (open question 1):** `packages/ui` is `@rulemark/ui`, source-only, compiled by the app through `transpilePackages`; shadcn on **Base UI**, style **Nova**, base colour **neutral**, **Lucide** icons, CSS variables; dark mode from the start with next-themes (system default; its `attribute` is now `data-theme`, open question 7). Both `components.json` files share style, icon library and base colour | Interface step 1 |
 | **Where data is fetched (open question 2):** Server Components prefetch on the server (to `ropa-api` directly, with the token) and hydrate TanStack Query; client components read the same query keys, refetching through `/api/ropa`; writes are mutations through the proxy that invalidate. One set of query keys and query functions for both sides | Interface step 1 |
 | **The API client (open question 3):** `@rulemark/ropa-client` is built now, its core plus the calls the first page uses, and grows with each screen; `ropa-packages.md` §5.1's `actor` option goes (the token decides) | Interface step 1 |
 | **Auth in the skeleton (open question 4):** reads go through anonymously, writes are refused until step 2. **Step 2: Stytch** for sign-in, and users, roles and permissions in the database, replacing `PRINCIPALS` | Interface step 1 |
 | **Testing layout (open question 5):** Vitest browser mode (Chromium) for components, Node for the client and logic; Playwright smoke-tests the real web app against the real API with the story replayed, locally and in CI; later steps add their own journeys | Interface step 1 |
+| **Dark mode's switch (open question 7):** `data-theme` on `<html>` (`light` or `dark`), falling back to the OS's preference when unset, as `rulemark-colors.css` defines it; next-themes writes the attribute (`attribute="data-theme"`, system default); no `.dark` class | Interface step 1, Phase 1b |
+| **Colour names (open question 8):** two vocabularies, one palette. shadcn's names (`background`, `muted`, `accent`, `destructive`, `popover`, `input`, `sidebar-*`...) are defined from `--rm-*`, so generated components take the Rulemark colours unchanged; app code uses Rulemark's names (`surface`, `fg-muted`, `danger`, `success`...). Clashes go to shadcn's meaning: `input` = the field border, Rulemark's field background = **`field`**, `secondary` = a soft fill. Components are restyled to Rulemark's spec where it says more (the button's hover, active, border and danger states); each `shadcn add` gets a look for that | Interface step 1, Phase 1b |
+| **Brand files (open question 9):** one colour file, `packages/ui/src/styles/rulemark-colors.css`, the user's v1 with question 8's edits named in its header; logo components (`Lockup`, `Wordmark`, `Icon`) drawn inline and switched by the `dark` variant, right on first paint; the SVG files kept for the favicon, exports and email | Interface step 1, Phase 1b |
+| **Radius (open question 10):** shadcn's radius steps carry the foundations' values (`sm` 4, `md` 6, `lg` 8, `xl` 12, `2xl` 16px) instead of multiples of `--radius`; components restyled to the spec use the named radii | Interface step 1, Phase 1b |
+| **Control sizes (open question 11):** controls take the foundations' heights (36px default, 32 small, 44 large) and label text, not Nova's (32, 28, 36); the button now, inputs and selects as they're added; the button's `xs` (24px) stays as a size below the spec | Interface step 1, Phase 1b |
+| **Loading Geist (open question 12):** the app loads Geist and Geist Mono with the `geist` package through `next/font`, which self-hosts, preloads and size-matches the fallback, and sets the `--font-geist-*` variables the foundations' stacks read; no Google Fonts request from the browser | Interface step 1, Phase 1b (built in Phase 2) |
 | **Deploy in step 1 (open question 6):** `ropa-web` joins the Blueprint as a web service; about $7 a month, accepted 2026-09-27 | Interface step 1 |
 
 ## Errors encountered

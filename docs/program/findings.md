@@ -226,6 +226,181 @@
   change would rebuild `ropa-api` on Render. `packages/ui/**` goes in its
   `ignoredPaths` with the rest of the Blueprint work in Phase 5.
 
+- **Dark mode's switch (open question 7, 2026-09-27).** The Rulemark file's
+  mechanism, not shadcn's: `data-theme="light"` or `"dark"` on `<html>`, and
+  with neither, the OS's `prefers-color-scheme` through a media query, with a
+  `dark:` variant that follows the same rules. It renders the right theme
+  before any script runs and doesn't depend on next-themes, which supports it
+  as is: `attribute="data-theme"` writes the resolved theme (`light` or
+  `dark`) there, so a manual toggle still wins. shadcn's `.dark` block and
+  `@custom-variant dark (&:is(.dark *))` go, and `shadcn/tailwind.css` follows
+  along, since it writes its dark styles through `@variant dark`. The tests
+  cover both attribute values and the OS fallback (emulated through the
+  Playwright provider). Rejected: rewriting the Rulemark file to a `.dark`
+  class (light until a script runs, and the OS fallback lost).
+
+- **Colour names (open question 8, 2026-09-27).** Across all 61 base-nova
+  components, the colours used are shadcn's names: `destructive` 101 times,
+  `muted` and `muted-foreground` 131, `foreground` 61, `ring` 53, `input` 51,
+  `primary` 38, `accent` 49, `border` 25, `popover` 37, `background` 19, the
+  `sidebar-*` family, and `secondary` and `card` a handful; no `chart-*` in a
+  component. So shadcn's names stay, as a bridge onto the Rulemark tokens:
+  `background` = canvas, `card` = surface, `popover` = surface-raised,
+  `muted` = surface-hover with `muted-foreground` = fg-muted, `accent` =
+  surface-hover, `destructive` = danger, `sidebar-*` = the `nav-*` tokens;
+  `primary`, `border` and `ring` mean the same in both. Two names clash in
+  meaning. `input` is a field's border (`border-input`, 14 times) and a dark
+  tint behind it (`bg-input/30`) in shadcn, a field's background in Rulemark:
+  shadcn keeps it (= `--rm-input-border`) and Rulemark's background becomes
+  `field`. `secondary` is a borderless soft fill in shadcn, and a near-white
+  meant to go with `secondary-border` in Rulemark: shadcn keeps it (=
+  `--rm-neutral-subtle`), and Rulemark's secondary button is the button's
+  `outline` variant. The Rulemark file sets states shadcn can't reach by
+  mapping names: shadcn's button hovers by fading (`hover:bg-primary/80`),
+  which lightens the green where Rulemark's `primary-hover` darkens it. So the
+  button's variants are restyled to Rulemark's states, tested in both themes,
+  and each later `shadcn add` gets a look for the same. `chart-*` has no
+  Rulemark counterpart yet: shadcn's greys stay until charts arrive.
+  Rejected: shadcn's names only, with no restyling (the button's hover
+  against the spec), and Rulemark's names only, with a rewrite after every
+  `shadcn add` (each shadcn update fighting the rewrite, and a missed name
+  silently uncoloured).
+
+- **Brand files (open question 9, 2026-09-27).** The colour file lives once,
+  in `src/styles/`, as it builds: v1 with the three `@theme` edits of
+  question 8 (`input` → `field`, and `input` and `secondary` left to the
+  bridge), listed in its header, so a v2 merges as a diff of values. Rejected:
+  `ux/` untouched with overrides in `globals.css` (two definitions, the later
+  silently winning, and comments that no longer describe the build). The
+  seven SVGs are four shapes in brand colours: on light, text `#101112` and
+  the mark `green-700`; on dark, text white and the mark `green-400`; plus the
+  icon tile, a padded `-on-green` and an all-white wordmark. As components,
+  they switch with the theme's own `dark` variant, so a logo is right on first
+  paint in every theme, OS fallback included, with no script. Rejected:
+  images picked by the app (JavaScript that tracks the theme, or the wrong
+  logo until it runs). The base layers of both files combine: Rulemark's
+  canvas, selection and focus outline, and shadcn's default border colour;
+  components' own focus rings override the outline where they have one.
+
+- **Phase 1b: the bridge is one `:root` block.** shadcn's variables are
+  defined once, as `var(--rm-*)`: every Rulemark token switches on `:root`
+  (the media query and `[data-theme]` both), so the bridge follows without a
+  dark block of its own. Components read seven of them directly (`--primary`,
+  `--foreground`, `--secondary`, `--muted`, `--radius`, `--sidebar-border`,
+  `--sidebar-accent`), which is why the raw variables stay rather than only
+  the utilities.
+- **Phase 1b: the button, restyled.** Default, outline, ghost, destructive
+  and link take the spec's states; outline is Rulemark's secondary button,
+  its background read as `bg-(--rm-secondary)` since `secondary` is shadcn's;
+  destructive is danger-subtle at rest and solid danger on hover (the spec's
+  danger, danger-fg and danger-hover, the way GitHub's danger button
+  behaves); disabled is `disabled`/`disabled-fg`, not `opacity-50`; focus is
+  the base layer's Rulemark outline (2px, ring colour, offset 2) instead of
+  shadcn's ring, so a button focuses like a link. shadcn's `secondary`
+  variant (a soft fill the spec has no button for) is unchanged.
+- **Phase 1b: `transition-all` animates the focus outline.** A focused
+  button's outline read 3px at half colour straight after Tab: the width and
+  colour transition in from the browser's defaults. Tests of any
+  transitioned style poll (`expect.poll`).
+- **Phase 1b: a hover outlives its test.** The pointer stays where a test
+  left it, over whatever the next test renders in the same place. A second
+  custom command parks it in the page's far corner after every test
+  (`unhover` just hovers the middle of `<body>`).
+- **Phase 1b: an undefined custom property compares equal.** `var(--x)` with
+  `--x` undefined inherits the parent's colour, so two misspelled tokens
+  would pass a comparison. The test helper throws on an undefined property.
+- **Phase 1b: the logos are generated from the files and tested against
+  them.** A script copied each file's shapes into `logo.tsx`, after checking
+  that each light and on-dark pair shares its geometry; the tests parse the
+  SVG files (`?raw`) and compare the view box, every shape's geometry, and
+  the fill the browser paints, under each of the four ways a theme is
+  chosen. A new file from the brand fails them until the component follows.
+  The letters' ink, `#101112`, has no Rulemark token (the nearest,
+  `neutral-975`, is `#10100C`), so it's written as an arbitrary value.
+- **Phase 1b: watch `shadcn add` for CSS.** Some components (the sidebar,
+  charts) write CSS variables into `globals.css` when added, and would put
+  shadcn's oklch values, and perhaps a `.dark` block, back. Check the diff of
+  `globals.css` after every `shadcn add`, as well as the component.
+- **Phase 1b: API tests can reach another process.** Fifteen test files in
+  `ropa-api` start the app with `.listen(0)`, on `::`, and supertest connects
+  to `127.0.0.1`. When the OS hands out a port another process holds on
+  `127.0.0.1` alone (on this machine a VS Code helper at 52173, which answers
+  `{"type":"error","error":{"type":"authentication_error",...}}`), macOS
+  routes the request there and the file fails with a 401 the API never
+  sends. The shared harnesses already bind `127.0.0.1`; binding these fifteen
+  the same way would close it. Offered to the user as its own change.
+
+- **Radius (open question 10, 2026-09-27).** Across the 61 base-nova
+  components: `rounded-lg` 44 times (buttons, inputs, selects, popovers,
+  menus), `rounded-md` 29 (menu items), `rounded-xl` 9 (cards, dialogs),
+  `rounded-4xl` for pill badges. From `--radius: 0.625rem` those are 10, 8
+  and 14px; the foundations name 8px controls, 10px popovers, 12px cards,
+  16px dialogs, 6px badges and 4px for the smallest things. shadcn's steps
+  now carry the spec's values (`sm` 4, `md` 6, `lg` 8, `xl` 12, `2xl` 16px),
+  so a generated control or card is on spec untouched; popovers (8px, spec
+  10) and dialogs (12px, spec 16) stay near it until restyled with
+  `rounded-popover` and `rounded-dialog`. Restyled components use the names.
+  Rejected: shadcn's scale left as is (most components 2px off until each is
+  restyled).
+
+- **Control sizes (open question 11, 2026-09-27).** Nova's button is 24,
+  28, 32 and 36px (`xs`, `sm`, default, `lg`), its inputs 32px; the
+  foundations make controls 36px by default, 32 small and 44 large, with 14px
+  side padding, `text-label` (14/20, 500, which is Nova's `text-sm
+  font-medium` under the spec's name) and `text-label-sm` for small buttons.
+  The spec's sizes win, so a button beside a field, or beside anything the
+  app builds with `h-control`, lines up; the cost is 4px of Nova's density,
+  and the 14px body text and 44px rows keep the interface dense. `xs` (24px)
+  stays for tight spots, a size the spec doesn't name. Rejected: Nova's sizes
+  with the tokens for app layouts only (a 36px field beside a 32px button),
+  and changing the spec to 32px (the user's call; 36 stands).
+
+- **Loading Geist (open question 12, 2026-09-27).** The foundations' stacks
+  begin `var(--font-geist-sans, "Geist")` and `var(--font-geist-mono, ...)`:
+  the variables the `geist` package (1.7.2, peer `next >= 13.2`) sets through
+  `next/font`, which serves the files from the app's own origin, preloads
+  them, and size-matches the fallback so text doesn't shift. The app does
+  that in Phase 2. The scaffold's `next/font/google` with `variable:
+  '--font-sans'` would have replaced the whole stack with one family, and
+  `globals.css`'s `--font-sans: var(--font-sans)` (defined as itself, and
+  later than the foundations) would have voided it: both go. Rejected:
+  Fontsource in the package (Geist in the component tests too, but no
+  preload or fallback sizing) and a Google Fonts link (every browser calling
+  Google, from a self-hosted tool about data protection).
+
+- **API tests: `listen(0, host)` isn't listening on the next line.** With a
+  host, Node looks it up and binds asynchronously, so `address()` is null
+  until `listening`; two files read the port at once and failed, and
+  supertest, finding no address, calls `listen(0)` itself, on every
+  interface. `listenOnLoopback()` (`apps/ropa-api/test/listen.ts`) binds
+  127.0.0.1 and awaits `listening`; a lint rule flags `listen(0)` and
+  `listen(0, host)` without a callback in tests.
+- **Phase 1b: `cn` has to know the theme.** tailwind-merge's rules, which
+  `cn` follows, recognise Tailwind's own scale names only: `text-label`
+  passes for a text colour, so `cn('text-label', 'text-primary-fg')` drops the
+  size, and `h-control` doesn't conflict with `h-12`, so a caller's override
+  depends on CSS order. `lib/utils.ts` now exports
+  `createCn({ extend: { theme: { text, spacing, radius, container } } })`
+  (from `cn/config`) with the foundations' names, and a test reads every
+  name from `rulemark-foundations.css` and checks `cn` resolves it, so a v2
+  with a new token fails until the list follows. `cn build` (its Vite and
+  Next plugins) can read `@theme` from the CSS, but generates a tables file
+  the code must import: no simpler.
+- **Phase 1b: `shadcn add` imports `cn` from the package.** Even with a
+  configured `lib/utils.ts`, the CLI writes `import { cn } from "cn"`. A lint
+  rule (`no-restricted-imports`, `packages/ui/src` and `apps/ropa-web`)
+  points it to `@rulemark/ui/lib/utils`; it caught the logos at once. The
+  package imports itself by that name, which Vite and TypeScript resolve.
+  After `shadcn add`: `npm run format`, fix the `cn` import, check
+  `globals.css`, and restyle to the spec where it says more.
+- **Phase 1b: the foundations, built.** Imported after the colours; `@theme
+  static`, so every token is a CSS variable even when unused, which the
+  tests' probes rely on. The type-scale probe throws on an undefined token,
+  like the colour helper. The button is `text-label` (the size, line height
+  and weight in one; `font-medium` goes), `rounded-control`, and
+  `h-control*` with `px-control-x` for `sm`, default and `lg`; `xs` keeps its
+  24px, 8px padding and smaller radius, in `text-label-sm`.
+
 ## Issues encountered
 | Issue | Resolution |
 |---|---|
