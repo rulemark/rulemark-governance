@@ -11,7 +11,7 @@ one aggregate: one version, one revision, the same rules and events.
 Build step 5 from `docs/ropa/ropa-api.md` §8, the last in its build order.
 
 ## Current Phase
-Phase 3 (writing engagements), not started. Phases 1 (the CSV report) and 2 (reading engagements) complete, committed, not pushed
+Phase 4 (deploy and verify), in progress. Phases 1–3 complete and committed
 
 ## Definition of done for step 5
 - `GET /report?format=csv` answers `text/csv`, one row per activity ×
@@ -63,34 +63,34 @@ Reference: API §3.5; DM §3.2, §3.3, §3.8
 
 ### Phase 3: Writing engagements
 Reference: API §3.5, §1.8; DB §6.1
-- [ ] `POST`, `PUT` and `DELETE`, each a read-modify-save of the whole
+- [x] `POST`, `PUT` and `DELETE`, each a read-modify-save of the whole
       activity through the existing save (`inputFromSnapshot`, the activity's
       `PUT` path), so versioning, validation, revisions, `record.changed` and
       `subprocessors.changed` (`afterRevision`) come for free
-- [ ] `If-Match` and `ETag` are the activity's version (§3.5); writing needs
+- [x] `If-Match` and `ETag` are the activity's version (§3.5); writing needs
       `record:write` (open question 3); `If-Match` on `POST` as well, a
       `DELETE`'s `changeNote` in an optional body, and each write answering
       with the engagement: `201` with `Location`, `200`, `204` (open
       question 4)
-- [ ] The activity validated as a whole after the change: structural checks
+- [x] The activity validated as a whole after the change: structural checks
       always, role rules when it is `active`
-- [ ] An engagement's party must be a `vendor` or `other`, a scope's client
+- [x] An engagement's party must be a `vendor` or `other`, a scope's client
       a `client`: structural validation in the activity save, so every write
       path gets it (`422` naming the field); the seeded story passes it
       first (open question 5)
-- [ ] API §3.5 updated: the actor comes from the token (not `X-Actor`, which
+- [x] API §3.5 updated: the actor comes from the token (not `X-Actor`, which
       it still says), and it is for anyone changing one vendor, not the
       Monitor and the Snapshot (open question 3)
 - **Done when:** Ch6's onward transfer, added through the sub-resource on a
   replayed story, writes the same revision and events as the whole-activity
   `PUT`; a stale `If-Match` answers `412`
-- **Status:** pending
+- **Status:** complete (2026-09-27). 1174 tests pass; 13 deliberate breaks each failed a test
 
 ### Phase 4: Deploy and verify
 - [ ] Push code commits on their own, docs separately
 - [ ] On the live, seeded service: the CSV as of 1 March; an engagement read
 - [ ] README tour: the CSV download, and one engagement edited on its own
-- **Status:** pending
+- **Status:** in_progress
 
 ## Open questions
 1. ~~**The CSV's shape.**~~ **Resolved (2026-09-27):** one table, a row per activity × engagement, `activityRole` and the union of both roles' columns, lists joined with `; `, `asOf` and `generatedAt` on every row, the scope and date in the filename. See `findings.md`. Was: "One row per activity × engagement" (§5.1) leaves the

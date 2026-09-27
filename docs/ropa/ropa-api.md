@@ -364,9 +364,9 @@ stateDiagram-v2
 - `DELETE`: only for activities that have never been active (`409` otherwise). Everything else is retired, so history stays intact.
 - **Role change** (DM §3.0): retire the old activity, then `POST` a new one with `"supersedes": "C4"`. The new activity gets a new code (`P4`).
 
-### 3.5 Engagement sub-resource (convenience, built later)
+### 3.5 Engagement sub-resource (convenience, built in step 5)
 
-Editing one vendor on an activity shouldn't require sending the whole activity. That's common for the Monitor (adding the onward transfer in Ch6) and the Snapshot. So engagements also have their own endpoints:
+Editing one vendor on an activity shouldn't require sending the whole activity. That's for anyone changing one vendor: Priya recording Mailcrest's onward transfer in Ch6, say. Writing needs `record:write`, as any change to an activity does, and no service role holds it: the Monitor and the Snapshot open review items, and a person records the change (step 5, open question 3). So engagements also have their own endpoints:
 
 | Endpoint | Purpose |
 |---|---|
@@ -380,10 +380,14 @@ Editing one vendor on an activity shouldn't require sending the whole activity. 
 - **Concurrency uses the activity's version.** `If-Match` carries the *activity's* version, and the response's `ETag` is the activity's new version. A change to one engagement and a change to another field of the same activity therefore can't overwrite each other silently.
 - **Every write is an activity revision.** It writes a full snapshot of the activity and emits `record.changed` for the activity, exactly like a `PUT /activities/{ref}`.
 - **Same validation.** The activity is validated as a whole after the change: structural checks always, and role rules if the activity is `active`.
-- **Same conventions.** `changeNote` goes in the body, and `X-Actor` is required. Engagements are identified by `id` only (they have no code or slug, DM §3.0).
+- **Same conventions.** `changeNote` goes in the body, a `DELETE`'s in an optional `{ "changeNote": … }` body; the actor comes from the token (§1.9). Engagements are identified by `id` only (they have no code or slug, DM §3.0).
 - Nested transfers and client scope entries are replaced as part of the engagement. They don't get endpoints of their own.
 
 **As built (step 5, reading):** `GET /activities/{ref}/engagements` answers `{ data, nextCursor: null }`, never paged, with the engagements exactly as `GET /activities/{ref}` holds them (an `Engagement` is a `ControllerEngagement` or a `ProcessorEngagement`, told apart by `role`; only the latter has `clientScope`). `GET /activities/{ref}/engagements/{id}` answers one. Both carry the activity's version as `ETag`, read in one repeatable-read transaction with the engagements, and need `record:read`, as reading the activity does. `{ref}` is the activity's id, code or slug; `{id}` is an engagement id only, and an id the activity doesn't hold, another activity's included, is `404` ("Activity P1 holds no engagement …").
+
+**As built (step 5, writing):** `POST`, `PUT` and `DELETE` are each a read-modify-save of the whole activity: the stored activity as its `PUT` body (`inputFromSnapshot`), one engagement added, replaced or removed, then the activity's own save. Every write needs `If-Match`, `POST` included, and a stale one answers `412` before anything is said about the body. `POST` answers `201` with the engagement and `Location: /v1/activities/{code}/engagements/{id}`, and refuses a body `id` (`not_allowed`): the server gives one. `PUT` answers `200` with the engagement, keeping its id; a body `id` must be the path's (`id_mismatch`), and nested transfers and scope entries keep theirs only when sent back with them. `DELETE` answers `204`. Each carries the activity's new version as `ETag`. Errors in the engagement written point into the body sent (`/transfers/0/mechanism`, `/party`); anything wrong elsewhere in the activity, such as a scoped client's agreement that has ended since its last save, keeps its activity path under `/activity` (`/activity/engagements/2/clientScope/clients/0/client`). Chapter 6 through `PUT /activities/P1/engagements/{id}` writes the same revision and events as the whole-activity `PUT`.
+
+**Party kinds (step 5):** every activity save now checks that an engagement's party is a `vendor` or `other`, and a client scope's client (activity or engagement level) a `client`: `422 wrong_party_kind` at the field ("Must be a party of kind vendor or other, not client"). The whole-activity `PUT`, `POST /activities` and the sub-resource all get it.
 
 ## 4. Other records
 
@@ -684,8 +688,8 @@ Replaying the story writes twelve: P1 going live (the offering, Northwind, Fjord
 
 **Decided during build step 4 (2026-09-27)**, for the steps that follow:
 - **Engagement writes need no event logic of their own.** `subprocessors.changed` is written by the activity save's `afterRevision` hook whenever a list changes, so a sub-resource write that goes through the same save (§3.5) emits it exactly as a whole-activity `PUT` does.
-- **The sub-resource's actor comes from the token** (§1.9), like every write since step 1; §3.5 still says `X-Actor` is required, which step 5 corrects.
-- **Services open review items; people decide.** The coverage cron job's role holds no `review:resolve`, and no service role holds `record:write`. Who may write through the sub-resource, which §3.5 describes as for the Monitor and the Snapshot, is step 5's to settle against that.
+- **The sub-resource's actor comes from the token** (§1.9), like every write since step 1. ~~§3.5 still says `X-Actor` is required~~ **Corrected in step 5.**
+- **Services open review items; people decide.** The coverage cron job's role holds no `review:resolve`, and no service role holds `record:write`. Who may write through the sub-resource, which §3.5 describes as for the Monitor and the Snapshot, is step 5's to settle against that. **Settled in step 5:** `record:write`, people only; §3.5 is rewritten.
 - **The event envelope is a contract in the package** (`@rulemark/ropa-schemas/events`); each event's `data` schema waits for the Monitor, its first consumer that needs one.
 
 ## 9. Open questions

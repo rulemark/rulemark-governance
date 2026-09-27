@@ -127,7 +127,7 @@ Rows that only exist inside another record (`engagement`, `transfer`, `retention
 | Column | Type | Required | Notes |
 |---|---|---|---|
 | activity_id | FK → processing_activity | yes | |
-| party_id | FK → party | yes | A party of kind `vendor` or `other` |
+| party_id | FK → party | yes | A party of kind `vendor` or `other` (checked on every activity save since step 5) |
 | role | enum `processor` \| `subprocessor` \| `recipient` \| `joint_controller` | yes | Allowed values depend on the activity role (§5) |
 | service_description | text | yes | "Transactional email", "Error tracking" |
 | processing_countries | text[] (ISO 3166) | yes (≥ 1) | **Where the data is processed or accessed**, which is not the vendor's HQ. Render = `DE`; Glitchlog = `US` |

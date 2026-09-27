@@ -115,6 +115,27 @@
   never in SQL. The `404` names the activity and the id. Before the route
   existed, the `404` tests passed on Express's "No route" answer; they check
   the problem's `detail` so they can't.
+- **Error paths for engagement writes (Phase 3 question, 2026-09-27).**
+  Body-relative: errors in the engagement written point into the body sent
+  (`/transfers/0/mechanism`); anything wrong elsewhere in the activity (rare:
+  something gone stale since its last save, like a scoped client's agreement
+  ending) keeps its activity path under `/activity`, so the two can't be
+  confused. `/changeNote` is the body's either way. Rejected: the activity's
+  paths as-is (`/engagements/3/…`, an index the caller never sent, and an
+  activity-level `/clientScope/…` indistinguishable from the engagement's).
+- **Engagement writes, as built (Phase 3, 2026-09-27).** The version is
+  checked before the body is read, so a stale caller hears `412` rather than
+  errors about a state it never saw; the save checks again under its lock.
+  `POST` refuses a body `id` (`not_allowed`); `PUT` accepts the path's own id
+  and refuses another (`id_mismatch`). `Location` uses the activity's code.
+  The party-kind check is `wrong_party_kind`, reported alongside any other
+  error at the same path (a vendor named as a client also has no agreement).
+  The `EngagementInput` in OpenAPI is a plain union for documentation; the
+  server checks the body as part of the whole activity, which knows its role.
+- **Tests that pass on the first run can't tell right from wrong**: the `403`
+  test used the monitor, who lacks `record:read` too, so it would have passed
+  with writes needing only `record:read`. A viewer (read, no write) does
+  tell them apart. Same for the stale-before-content order.
 
 ## Issues encountered
 | Issue | Resolution |

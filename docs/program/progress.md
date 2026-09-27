@@ -35,6 +35,20 @@
   P3's Scribe AI under P1 `404`, a monitor token `403`. Four deliberate
   breaks (permission, the foreign-id `404`, the `ETag`, the list shape) each
   failed a test. API §3.5 documents the reads
+- **Phase 3 (writing engagements) complete.** Asked one new question first
+  (error paths; body-relative chosen). `domain/activity/engagements.ts`
+  (`changeEngagement`) reads the stored activity as its `PUT` body, adds,
+  replaces or removes one engagement, parses it as `ActivityInput` and saves
+  it through `replaceActivity`; errors are relocated into the body or under
+  `/activity`. `POST`, `PUT` and `DELETE` routes in `api/routes/engagements.ts`.
+  The party-kind check (`partiesOfTheRightKind` in `rules.ts`) runs on every
+  activity save; the replayed story passes it. `EngagementInput` and
+  `RemoveEngagementInput` in the schemas package, documented in OpenAPI.
+  `test/db/engagement-ch6.test.ts` replays the story without P1's Ch6 edit and
+  shows the sub-resource and the whole-activity `PUT` write the same revision
+  and events. 13 deliberate breaks each failed a test; two tests were
+  tightened first (the viewer for `403`, stale-before-content). API §3.5
+  rewritten
 
 ## Test Results
 | Test | Command | Expected | Actual | Status |
@@ -42,6 +56,7 @@
 | Inherited from step 4 | `npm run check` | 1108 tests pass | 1108 pass (823 api, 262 schemas, 14 audit-log, 9 dist) | ✅ |
 | Phase 1 | `npm run check` | all pass | 1137 pass (852 api, 262 schemas, 14 audit-log, 9 dist) | ✅ |
 | Phase 2 | `npm run check` | all pass | 1149 pass (864 api, 262 schemas, 14 audit-log, 9 dist) | ✅ |
+| Phase 3 | `npm run check` | all pass | 1174 pass (889 api, 262 schemas, 14 audit-log, 9 dist) | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -51,8 +66,8 @@
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Build step 5, Phase 3 (writing engagements), not started; Phases 1–2 complete, not pushed |
+| Where am I? | Build step 5, Phase 4 (deploy and verify); Phases 1–3 complete |
 | Where am I going? | The CSV report, reading engagements, writing engagements, then deploy |
 | What's the goal? | The record easy to use: a spreadsheet export, and one vendor changed on its own while the activity stays one aggregate |
 | What have I learned? | See findings.md, and `plan-archive/5/findings.md` for step 4 |
-| What have I done? | Step 5 Phases 1–2: the CSV report, reading engagements. Steps 1–4 complete and deployed: records and activities, the subprocessor list and report, governance views, history (`asOf`, `/changes`), event delivery and the coverage cron job |
+| What have I done? | Step 5 Phases 1–3: the CSV report, reading and writing engagements, the party-kind check. Steps 1–4 complete and deployed: records and activities, the subprocessor list and report, governance views, history (`asOf`, `/changes`), event delivery and the coverage cron job |
