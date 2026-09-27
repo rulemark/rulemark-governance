@@ -12,6 +12,7 @@ import { party, processingActivity, reviewItem, system } from '../../src/db/sche
 import { openReviewItem } from '../../src/domain/review-items.js';
 import { loadConfig } from '../../src/shared/config.js';
 import { TEST_DATABASE_URL } from './harness.js';
+import { listenOnLoopback } from '../listen.js';
 
 /**
  * Review items (`ropa-api.md` §2 workflow, §1.8), over HTTP against a real
@@ -122,7 +123,9 @@ async function seedWorld(): Promise<void> {
 beforeAll(async () => {
   pool = createPool(TEST_DATABASE_URL, 5);
   db = createDb(pool);
-  server = createApp({ config: loadConfig(ENV), router: recordsRouter(db) }).listen(0);
+  server = await listenOnLoopback(
+    createApp({ config: loadConfig(ENV), router: recordsRouter(db) }),
+  );
   tokens.monitor = await mint('svc:monitor');
   tokens.editor = await mint('priya.raman');
   tokens.admin = await mint('root');

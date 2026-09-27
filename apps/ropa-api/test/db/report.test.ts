@@ -26,6 +26,7 @@ import { createActivity, replaceActivity } from '../../src/domain/activity/save.
 import { loadConfig } from '../../src/shared/config.js';
 import { csvLines, csvRows, reportLines } from '../fixtures/csv.js';
 import { TEST_DATABASE_URL } from './harness.js';
+import { listenOnLoopback } from '../listen.js';
 
 /**
  * `GET /v1/report` (`ropa-api.md` §5.1) over the Chapter 2–5 record, in JSON
@@ -283,7 +284,9 @@ async function seed(): Promise<void> {
 beforeAll(async () => {
   pool = createPool(TEST_DATABASE_URL, 5);
   db = createDb(pool);
-  server = createApp({ config: loadConfig(ENV), router: recordsRouter(db) }).listen(0);
+  server = await listenOnLoopback(
+    createApp({ config: loadConfig(ENV), router: recordsRouter(db) }),
+  );
   await cleanup();
   await seed();
 });

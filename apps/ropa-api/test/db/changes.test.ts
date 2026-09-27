@@ -13,6 +13,7 @@ import { updateAggregate } from '../../src/domain/aggregate.js';
 import { partyAggregate } from '../../src/domain/aggregates.js';
 import { loadConfig } from '../../src/shared/config.js';
 import { TEST_DATABASE_URL } from './harness.js';
+import { listenOnLoopback } from '../listen.js';
 
 /**
  * `GET /changes` (`ropa-api.md` §2): "what changed since March" (Ch8), over
@@ -51,7 +52,9 @@ const as = (who: keyof typeof tokens, method: 'get' | 'post', path: string) =>
 beforeAll(async () => {
   pool = createPool(TEST_DATABASE_URL, 5);
   db = createDb(pool);
-  server = createApp({ config: loadConfig(ENV), router: recordsRouter(db) }).listen(0);
+  server = await listenOnLoopback(
+    createApp({ config: loadConfig(ENV), router: recordsRouter(db) }),
+  );
   await resetDatabase(db);
   await replayStory(db);
   tokens.priya = await mint('priya.raman');

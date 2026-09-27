@@ -6,7 +6,12 @@ export default defineConfig({
   resolve: { conditions: ['development'] },
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts', 'test/bootstrap.test.ts', 'test/db/**/*.test.ts'],
+    include: [
+      'src/**/*.test.ts',
+      'test/bootstrap.test.ts',
+      'test/listen.test.ts',
+      'test/db/**/*.test.ts',
+    ],
     restoreMocks: true,
     // Applies the migrations once for the whole run.
     globalSetup: ['test/db/global-setup.ts'],

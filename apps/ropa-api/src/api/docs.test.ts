@@ -7,6 +7,7 @@ import { loadConfig } from '../shared/config.js';
 import { createApp } from './app.js';
 import { buildOpenApiDocument } from './openapi/document.js';
 import { recordsRouter } from './resources/index.js';
+import { listenOnLoopback } from '../../test/listen.js';
 
 const config = loadConfig({
   LOG_LEVEL: 'silent',
@@ -26,7 +27,7 @@ const pool = createPool(config.databaseUrl, 2);
 const app = createApp({ config, router: recordsRouter(createDb(pool)) });
 
 /** One server for the file; see the note in test/db/endpoints.test.ts. */
-const server = app.listen(0);
+const server = await listenOnLoopback(app);
 
 afterAll(async () => {
   await new Promise<void>((resolve) =>

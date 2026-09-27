@@ -6,6 +6,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { loadConfig } from '../shared/config.js';
 import { createApp } from './app.js';
 import { requires } from './middleware/authorize.js';
+import { listenOnLoopback } from '../../test/listen.js';
 
 const BASE_ENV = {
   LOG_LEVEL: 'silent',
@@ -27,26 +28,26 @@ const BASE_ENV = {
  * document — and each `request(app)` binds an ephemeral port, so churning
  * dozens of them makes the suite slower and noisier than it needs to be.
  */
-const servers = new Map<string, Server>();
+const servers = new Map<string, Promise<Server>>();
 
 /**
  * One listening server per configuration, reused across the file. `request(app)`
  * starts and stops an ephemeral server per call; hundreds of those in quick
  * succession is slow and a source of confusing failures.
  */
-function appWith(overrides: Record<string, string> = {}): Server {
+function appWith(overrides: Record<string, string> = {}): Promise<Server> {
   const key = JSON.stringify(overrides);
   const existing = servers.get(key);
   if (existing !== undefined) return existing;
 
-  const server = buildAppWith(overrides).listen(0);
+  const server = listenOnLoopback(buildAppWith(overrides));
   servers.set(key, server);
   return server;
 }
 
 afterAll(async () => {
   await Promise.all(
-    [...servers.values()].map(
+    (await Promise.all(servers.values())).map(
       (server) =>
         new Promise<void>((resolve) => {
           server.close(() => {
@@ -91,7 +92,7 @@ const PROBLEM_JSON = /^application\/problem\+json/;
 
 describe('POST /v1/tokens', () => {
   it('mints a token for a known subject, with its roles and permissions', async () => {
-    const response = await request(appWith())
+    const response = await request(await appWith())
       .post('/v1/tokens')
       .send({ subject: 'priya.raman', secret: BASE_ENV.TOKEN_MINT_SECRET });
 
@@ -108,14 +109,14 @@ describe('POST /v1/tokens', () => {
   });
 
   it('needs no token of its own, or nobody could ever start', async () => {
-    const response = await request(appWith())
+    const response = await request(await appWith())
       .post('/v1/tokens')
       .send({ subject: 'reader', secret: BASE_ENV.TOKEN_MINT_SECRET });
     expect(response.status).toBe(200);
   });
 
   it('refuses the wrong secret with 401', async () => {
-    const response = await request(appWith())
+    const response = await request(await appWith())
       .post('/v1/tokens')
       .send({ subject: 'priya.raman', secret: 'wrong' });
     expect(response.status).toBe(401);
@@ -123,17 +124,17 @@ describe('POST /v1/tokens', () => {
   });
 
   it('refuses an unknown subject with 401', async () => {
-    const response = await request(appWith())
+    const response = await request(await appWith())
       .post('/v1/tokens')
       .send({ subject: 'mallory', secret: BASE_ENV.TOKEN_MINT_SECRET });
     expect(response.status).toBe(401);
   });
 
   it('does not say which of the two was wrong', async () => {
-    const unknownSubject = await request(appWith())
+    const unknownSubject = await request(await appWith())
       .post('/v1/tokens')
       .send({ subject: 'mallory', secret: BASE_ENV.TOKEN_MINT_SECRET });
-    const wrongSecret = await request(appWith())
+    const wrongSecret = await request(await appWith())
       .post('/v1/tokens')
       .send({ subject: 'priya.raman', secret: 'wrong' });
 
@@ -143,7 +144,7 @@ describe('POST /v1/tokens', () => {
 
   it('never echoes back the secret it was given, or the real one', async () => {
     const attempted = 'hunter2-guessed-secret';
-    const response = await request(appWith())
+    const response = await request(await appWith())
       .post('/v1/tokens')
       .send({ subject: 'priya.raman', secret: attempted });
 
@@ -152,7 +153,9 @@ describe('POST /v1/tokens', () => {
   });
 
   it('rejects a malformed body with 422 and field errors', async () => {
-    const response = await request(appWith()).post('/v1/tokens').send({ subject: 'priya.raman' });
+    const response = await request(await appWith())
+      .post('/v1/tokens')
+      .send({ subject: 'priya.raman' });
     expect(response.status).toBe(422);
     expect(response.body.errors?.[0]?.path).toBe('/secret');
   });
@@ -160,8 +163,9 @@ describe('POST /v1/tokens', () => {
   it('is rate limited, so the secret cannot be guessed at speed', async () => {
     // Its own app: this deliberately exhausts the limiter, which would then
     // refuse the other tests sharing a configuration.
-    const app = buildAppWith({}).listen(0);
-    servers.set(`rate-limit-${Date.now()}`, app);
+    const listening = listenOnLoopback(buildAppWith({}));
+    servers.set(`rate-limit-${Date.now()}`, listening);
+    const app = await listening;
     const attempts = [];
     for (let i = 0; i < 25; i += 1) {
       attempts.push(
@@ -176,7 +180,7 @@ describe('POST /v1/tokens', () => {
 
 describe('GET /v1/me', () => {
   it('describes an authenticated caller', async () => {
-    const app = appWith();
+    const app = await appWith();
     const token = await mint(app, 'priya.raman');
 
     const response = await request(app).get('/v1/me').set('Authorization', `Bearer ${token}`);
@@ -190,7 +194,7 @@ describe('GET /v1/me', () => {
   });
 
   it('describes an anonymous caller as a viewer (§1.9)', async () => {
-    const response = await request(appWith()).get('/v1/me');
+    const response = await request(await appWith()).get('/v1/me');
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({ authenticated: false, subject: null, roles: ['viewer'] });
     expect(response.body.permissions).toContain('record:read');
@@ -200,12 +204,12 @@ describe('GET /v1/me', () => {
 
 describe('reading', () => {
   it('is public by default, and the caller is a viewer', async () => {
-    const response = await request(appWith()).get('/v1/parties');
+    const response = await request(await appWith()).get('/v1/parties');
     expect(response.status).toBe(200);
   });
 
   it('needs a token when REQUIRE_AUTH_FOR_READS is set', async () => {
-    const app = appWith({ REQUIRE_AUTH_FOR_READS: 'true' });
+    const app = await appWith({ REQUIRE_AUTH_FOR_READS: 'true' });
 
     expect((await request(app).get('/v1/parties')).status).toBe(401);
 
@@ -216,7 +220,7 @@ describe('reading', () => {
   });
 
   it('leaves the health check and token minting open even then', async () => {
-    const app = appWith({ REQUIRE_AUTH_FOR_READS: 'true' });
+    const app = await appWith({ REQUIRE_AUTH_FOR_READS: 'true' });
     expect((await request(app).get('/healthz')).status).toBe(200);
     expect(
       (
@@ -231,12 +235,14 @@ describe('reading', () => {
 describe('writing', () => {
   it('refuses an anonymous write with 401, not 403', async () => {
     // 403 would imply we know who is asking.
-    const response = await request(appWith()).post('/v1/parties').send({});
+    const response = await request(await appWith())
+      .post('/v1/parties')
+      .send({});
     expect(response.status).toBe(401);
   });
 
   it('accepts a write from an editor', async () => {
-    const app = appWith();
+    const app = await appWith();
     const token = await mint(app, 'tomas.herrera');
     const response = await request(app)
       .post('/v1/parties')
@@ -246,7 +252,7 @@ describe('writing', () => {
   });
 
   it('refuses a viewer with 403 naming the permission (§1.9)', async () => {
-    const app = appWith();
+    const app = await appWith();
     const token = await mint(app, 'reader');
 
     const response = await request(app)
@@ -260,7 +266,7 @@ describe('writing', () => {
   });
 
   it('refuses an editor the approval they did not earn', async () => {
-    const app = appWith();
+    const app = await appWith();
     const token = await mint(app, 'tomas.herrera');
 
     const response = await request(app)
@@ -273,7 +279,7 @@ describe('writing', () => {
   });
 
   it('lets the approver approve', async () => {
-    const app = appWith();
+    const app = await appWith();
     const token = await mint(app, 'priya.raman');
     const response = await request(app)
       .post('/v1/activities/P3/activate')
@@ -283,7 +289,7 @@ describe('writing', () => {
   });
 
   it('refuses everyone but an admin the delete', async () => {
-    const app = appWith();
+    const app = await appWith();
     for (const subject of ['priya.raman', 'tomas.herrera', 'reader']) {
       const token = await mint(app, subject);
       const response = await request(app)
@@ -295,7 +301,7 @@ describe('writing', () => {
   });
 
   it('holds a service token to its own narrow role', async () => {
-    const app = appWith();
+    const app = await appWith();
     const token = await mint(app, 'svc:monitor');
 
     // The Monitor may open review items, and nothing else.
@@ -309,10 +315,10 @@ describe('writing', () => {
 
 describe('bad tokens', () => {
   it('refuses a token signed with another secret', async () => {
-    const other = appWith({ JWT_SECRET: 'a-different-secret-entirely-here' });
+    const other = await appWith({ JWT_SECRET: 'a-different-secret-entirely-here' });
     const token = await mint(other, 'priya.raman');
 
-    const response = await request(appWith())
+    const response = await request(await appWith())
       .post('/v1/parties')
       .set('Authorization', `Bearer ${token}`)
       .send({});
@@ -321,7 +327,9 @@ describe('bad tokens', () => {
 
   it('refuses a malformed Authorization header', async () => {
     for (const header of ['Bearer', 'Bearer   ', 'Basic abc', 'abc']) {
-      const response = await request(appWith()).get('/v1/me').set('Authorization', header);
+      const response = await request(await appWith())
+        .get('/v1/me')
+        .set('Authorization', header);
       expect(response.status, `${header} -> ${JSON.stringify(response.body)}`).toBe(401);
     }
   });
@@ -329,7 +337,7 @@ describe('bad tokens', () => {
   it('refuses a bad token even on a public read, rather than falling back to viewer', async () => {
     // A caller who sent a token meant to be authenticated; silently
     // downgrading them would hide an expired session.
-    const response = await request(appWith())
+    const response = await request(await appWith())
       .get('/v1/parties')
       .set('Authorization', 'Bearer not-a-real-token');
     expect(response.status).toBe(401);

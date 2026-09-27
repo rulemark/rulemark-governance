@@ -34,6 +34,7 @@ import { Problem } from '../../src/shared/problems.js';
 import { loadConfig } from '../../src/shared/config.js';
 import { csvLines, csvRows, reportLines } from '../fixtures/csv.js';
 import { TEST_DATABASE_URL } from './harness.js';
+import { listenOnLoopback } from '../listen.js';
 
 /**
  * The views as they stood on a date (`ropa-api.md` §5, DB §6.3), over the
@@ -59,7 +60,9 @@ let token = '';
 beforeAll(async () => {
   pool = createPool(TEST_DATABASE_URL, 5);
   db = createDb(pool);
-  server = createApp({ config: loadConfig(ENV), router: recordsRouter(db) }).listen(0);
+  server = await listenOnLoopback(
+    createApp({ config: loadConfig(ENV), router: recordsRouter(db) }),
+  );
   await resetDatabase(db);
   await replayStory(db);
   const minted = await request(server)

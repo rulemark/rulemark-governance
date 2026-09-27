@@ -20,6 +20,7 @@ import {
 import { ActivitySnapshot } from '../../src/domain/snapshots.js';
 import { loadConfig } from '../../src/shared/config.js';
 import { TEST_DATABASE_URL } from './harness.js';
+import { listenOnLoopback } from '../listen.js';
 
 /**
  * The activity endpoints and lifecycle (`ropa-api.md` §2, §3), over HTTP
@@ -135,7 +136,9 @@ async function seedWorld(): Promise<void> {
 beforeAll(async () => {
   pool = createPool(TEST_DATABASE_URL, 5);
   db = createDb(pool);
-  server = createApp({ config: loadConfig(ENV), router: recordsRouter(db) }).listen(0);
+  server = await listenOnLoopback(
+    createApp({ config: loadConfig(ENV), router: recordsRouter(db) }),
+  );
   await cleanup();
   await seedWorld();
   tokens.editor = await mint('tomas.herrera');

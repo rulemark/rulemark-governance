@@ -9,6 +9,7 @@ import { loadDemoData, mintToken, type Outcome } from '../../src/demo/load-over-
 import { resetDatabase } from '../../src/demo/replay-story.js';
 import { loadConfig } from '../../src/shared/config.js';
 import { TEST_DATABASE_URL } from './harness.js';
+import { listenOnLoopback } from '../listen.js';
 
 /**
  * `demo:data` (the carried-over item): the story loaded over HTTP, as any
@@ -36,7 +37,9 @@ beforeAll(async () => {
   pool = createPool(TEST_DATABASE_URL, 5);
   db = createDb(pool);
   await resetDatabase(db);
-  server = createApp({ config: loadConfig(ENV), router: recordsRouter(db) }).listen(0);
+  server = await listenOnLoopback(
+    createApp({ config: loadConfig(ENV), router: recordsRouter(db) }),
+  );
   baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   const token = await mintToken(baseUrl, 'svc:seed', SECRET);
   first = await loadDemoData(baseUrl, token);

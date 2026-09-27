@@ -11,6 +11,7 @@ import { dataCategory, securityMeasure, subjectCategory } from '../../src/db/sch
 import { PartySnapshot } from '../../src/domain/snapshots.js';
 import { loadConfig } from '../../src/shared/config.js';
 import { TEST_DATABASE_URL } from './harness.js';
+import { listenOnLoopback } from '../listen.js';
 
 /**
  * The record endpoints, driven over HTTP against a real database.
@@ -74,7 +75,7 @@ beforeAll(async () => {
   pool = createPool(TEST_DATABASE_URL, 5);
   db = createDb(pool);
   app = createApp({ config: loadConfig(ENV), router: recordsRouter(db) });
-  server = app.listen(0);
+  server = await listenOnLoopback(app);
   await cleanup();
   token = await mint('priya.raman');
   readerToken = await mint('reader');

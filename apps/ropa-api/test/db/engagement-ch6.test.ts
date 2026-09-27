@@ -10,6 +10,7 @@ import { createDb, createPool, type Database } from '../../src/db/client.js';
 import { resetDatabase, storyTimeline } from '../../src/demo/replay-story.js';
 import { loadConfig } from '../../src/shared/config.js';
 import { TEST_DATABASE_URL } from './harness.js';
+import { listenOnLoopback } from '../listen.js';
 
 /**
  * Chapter 6 through the engagement sub-resource (`ropa-api.md` §3.5, the
@@ -43,7 +44,9 @@ let token = '';
 beforeAll(async () => {
   pool = createPool(TEST_DATABASE_URL, 5);
   db = createDb(pool);
-  server = createApp({ config: loadConfig(ENV), router: recordsRouter(db) }).listen(0);
+  server = await listenOnLoopback(
+    createApp({ config: loadConfig(ENV), router: recordsRouter(db) }),
+  );
   await resetDatabase(db);
   for (const step of storyTimeline().filter((step) => step.label !== `P1 ${CH6}`)) {
     await db.transaction((tx) => step.run(tx));

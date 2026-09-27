@@ -10,6 +10,7 @@ import { createDb, createPool, type Database } from '../../src/db/client.js';
 import { replayStory, resetDatabase } from '../../src/demo/replay-story.js';
 import { loadConfig } from '../../src/shared/config.js';
 import { TEST_DATABASE_URL } from './harness.js';
+import { listenOnLoopback } from '../listen.js';
 
 /**
  * The engagement sub-resource (`ropa-api.md` §3.5): an activity's engagements,
@@ -47,7 +48,9 @@ async function mint(subject: string): Promise<string> {
 beforeAll(async () => {
   pool = createPool(TEST_DATABASE_URL, 5);
   db = createDb(pool);
-  server = createApp({ config: loadConfig(ENV), router: recordsRouter(db) }).listen(0);
+  server = await listenOnLoopback(
+    createApp({ config: loadConfig(ENV), router: recordsRouter(db) }),
+  );
   await resetDatabase(db);
   await replayStory(db);
   tokens.priya = await mint('priya.raman');

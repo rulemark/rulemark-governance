@@ -9,6 +9,7 @@ import { createDb, createPool, type Database } from '../../src/db/client.js';
 import { replayStory, resetDatabase } from '../../src/demo/replay-story.js';
 import { loadConfig } from '../../src/shared/config.js';
 import { TEST_DATABASE_URL } from './harness.js';
+import { listenOnLoopback } from '../listen.js';
 
 /**
  * Build step 3's views over the seeded record, asked as the services that need
@@ -48,7 +49,9 @@ const as = (who: keyof typeof tokens, path: string) =>
 beforeAll(async () => {
   pool = createPool(TEST_DATABASE_URL, 5);
   db = createDb(pool);
-  server = createApp({ config: loadConfig(ENV), router: recordsRouter(db) }).listen(0);
+  server = await listenOnLoopback(
+    createApp({ config: loadConfig(ENV), router: recordsRouter(db) }),
+  );
   await resetDatabase(db);
   await replayStory(db);
   tokens.monitor = await mint('svc:monitor');

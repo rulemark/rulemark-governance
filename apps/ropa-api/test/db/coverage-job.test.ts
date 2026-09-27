@@ -12,6 +12,7 @@ import { runCoverageJob, type CoverageJobResult } from '../../src/jobs/coverage-
 import { loadConfig } from '../../src/shared/config.js';
 import { createLogger } from '../../src/shared/logger.js';
 import { TEST_DATABASE_URL } from './harness.js';
+import { listenOnLoopback } from '../listen.js';
 
 /**
  * The coverage cron job (step 4, Phase 6), against the API on the replayed
@@ -60,7 +61,9 @@ async function itemsWithKey(key: string): Promise<ReviewItem[]> {
 beforeAll(async () => {
   pool = createPool(TEST_DATABASE_URL, 5);
   db = createDb(pool);
-  server = createApp({ config: loadConfig(ENV), router: recordsRouter(db) }).listen(0);
+  server = await listenOnLoopback(
+    createApp({ config: loadConfig(ENV), router: recordsRouter(db) }),
+  );
   baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   await resetDatabase(db);
   await replayStory(db);

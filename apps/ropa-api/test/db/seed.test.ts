@@ -12,6 +12,7 @@ import type { ActivitySnapshot } from '../../src/domain/snapshots.js';
 import { replayStory, resetDatabase } from '../../src/demo/replay-story.js';
 import { loadConfig } from '../../src/shared/config.js';
 import { TEST_DATABASE_URL } from './harness.js';
+import { listenOnLoopback } from '../listen.js';
 
 /**
  * `db:seed` (`ropa-database.md` §9): the Hireloop story replayed through the
@@ -36,7 +37,9 @@ let firstRun: Awaited<ReturnType<typeof replayStory>>;
 beforeAll(async () => {
   pool = createPool(TEST_DATABASE_URL, 5);
   db = createDb(pool);
-  server = createApp({ config: loadConfig(ENV), router: recordsRouter(db) }).listen(0);
+  server = await listenOnLoopback(
+    createApp({ config: loadConfig(ENV), router: recordsRouter(db) }),
+  );
   await resetDatabase(db);
   firstRun = await replayStory(db);
 });
