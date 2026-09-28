@@ -1,9 +1,19 @@
 name: CI
 
+# Not for a change that's only documentation: nothing here reads Markdown
+# (Prettier skips it), and Render's build filters ignore docs, so such a push
+# deploys nothing either. GitHub compares every file in the push, so a push
+# with code and docs together still runs.
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
   pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
 
 # Least privilege: nothing here writes to the repository.
 permissions:
