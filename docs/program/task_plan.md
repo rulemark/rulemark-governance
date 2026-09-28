@@ -13,7 +13,7 @@ The first step of the interface, the roadmap's next priority
 (`docs/program/roadmap.md`, "Next: the interface, and what clients see").
 
 ## Current Phase
-Phase 5 (deploy and docs), not started. Phases 1 to 4 are complete, pushed (the user pushes: auto mode blocks Claude's pushes) and live in `ropa-api` since 2026-09-28 (`e44ff25`, after a failed deploy fixed in `render.yaml`); `ropa-web` isn't on Render yet
+All five phases complete. `ropa-web` is live on Render since 2026-09-28 (`47afe42`), verified by behaviour: the page lists C1–C4 and P1–P3, and the browser's reads go through the rewrite over the private network. The docs commit is local, waiting for the user's push (auto mode blocks Claude's pushes). Step 1 is done once it's pushed; step 2 (access) is next
 
 ## The stack (decided by the user, 2026-09-27)
 | Concern | Choice |
@@ -180,7 +180,7 @@ neutral.
 - **Status:** complete
 
 ### Phase 5: Deploy and docs
-- [ ] `ropa-web` in `render.yaml`: a web service (about $7 a month, accepted),
+- [x] `ropa-web` in `render.yaml`: a web service (about $7 a month, accepted),
       its own build filter (`apps/ropa-web/**`, `packages/**`,
       `package*.json`), `ROPA_API_URL` from `ropa-api`'s `hostport`. **The
       rewrite compiles `ROPA_API_URL` in at build time**: check the
@@ -189,13 +189,19 @@ neutral.
       (compiles the RoPA packages first; never the root build), start
       `npm run start -w apps/ropa-web`, health check `/healthz`. The user
       pushes, code first; a Blueprint sync creating a service may need a
-      Manual Sync; verified by behaviour (the live page lists the activities)
+      Manual Sync; verified by behaviour (the live page lists the activities).
+      Render's build and start checked first on a scratch worktree: the
+      `host:port` address compiled in, `PORT` read, Node 24 from `.nvmrc`.
+      The user pushed it and the sync created the service
 - [x] `packages/ui/**` in the API's `ignoredPaths` (done in `e44ff25`)
-- [ ] Docs: `workspace-skeleton.md`, `ropa-packages.md` §5 (the client as
+- [x] Docs: `workspace-skeleton.md`, `ropa-packages.md` §5 (the client as
       built, `actor` gone) and §8.1 (a rewrite in step 1, the mechanism
       revisited with step 2's sign-in), the README's getting-started
-      (`npm run dev`, `npm run test:e2e`, the web app)
-- **Status:** pending
+      (`npm run dev`, `npm run test:e2e`, the web app). Also §8.2 (the
+      real `ropa-web`), §5.3 (`RopaResponseError` stands apart from
+      `RopaError`, as built), §10's framework question resolved, and the
+      README's live link and deployment notes
+- **Status:** complete
 
 ## Open questions
 1. ~~**The component package.**~~ **Resolved (2026-09-27):** `@rulemark/ui`, source-only (Next's `transpilePackages`); Base UI primitives; the Nova style; the neutral base colour, with dark mode from the start (next-themes); Lucide icons. See `findings.md`. Was: Its name (`@rulemark/ui`, where shadcn's docs

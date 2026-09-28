@@ -179,6 +179,25 @@
 - Live: uptime 109 s, `/v1/activities` lists C1–C4 and P1–P3, a 404 answers
   as `problem+json`: the `.ts`-import schemas run in production
 
+### Phase 5: Deploy and docs (complete, deployed 2026-09-28)
+- Before writing the service, ran Render's commands on a scratch worktree
+  (no `.env`): `NODE_ENV=production npm ci --include=dev && npm run build -w
+  apps/ropa-web` with `ROPA_API_URL=ropa-api-build:10000` built, and the
+  routes manifest held `http://ropa-api-build:10000/v1/:path*`. `next start`
+  against a stub on another address: the server's prefetch reached the stub,
+  the browser's path went to the build's address (`ENOTFOUND`, a 500).
+  `next start` reads `PORT` and binds every interface; `.nvmrc` pins 24
+- `ropa-web` in `render.yaml` (`47afe42`): `0.5c-512mb` in Frankfurt, its
+  workspace's build, `/healthz`, `checksPass`, the app, packages and
+  lockfile as its filter, `ROPA_API_URL` from `ropa-api`'s `hostport`, with
+  a comment that changing it needs a rebuild
+- The user pushed it and the Blueprint sync created the service
+- Verified live: `/healthz` 200; the home page's HTML has the seven rows;
+  `/api/ropa/v1/activities` 200 with an `ETag`, and 304 on `If-None-Match`;
+  an anonymous POST gets the API's 401 problem; `/api/ropa/healthz` 404
+- Docs: `ropa-packages.md` v0.5 (§1, §2, §5 as built, §8.1, §8.2, §9, §10),
+  `workspace-skeleton.md` v1.1, the README
+
 ## Test Results
 | Test | Command | Expected | Actual | Status |
 |---|---|---|---|---|
@@ -215,6 +234,9 @@
 | Push | CI on `a9a0200` | `check` and `e2e` pass | both pass; `e2e` 6 passed on GitHub | ✅ |
 | Deploy | Render build of `ropa-api` | builds | failed (root build ran `next build`); fixed in `e44ff25` | ❌→✅ |
 | Live | `ropa-api` after the Manual Deploy | a new instance, the record served | uptime 109 s; seven activities; a 404 problem | ✅ |
+| Phase 5: Render's build | Render's commands on a scratch worktree, `host:port` address | builds; the address in the rewrite | built; `http://ropa-api-build:10000/v1/:path*` in the routes manifest | ✅ |
+| Phase 5: build vs runtime | `next start` with another address | learn which each path uses | prefetch: runtime's; rewrite: build's | ✅ |
+| Phase 5: live | `https://ropa-web.onrender.com` | the page, the rewrite, a refused write | seven rows in the HTML; 200 with `ETag`, then 304; POST 401 problem; non-`/v1` 404 | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -239,8 +261,8 @@
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Interface step 1 (the workspace skeleton), Phase 5 (deploy and docs) not started; Phases 1 to 4 done, pushed, and live in `ropa-api` (2026-09-28) |
-| Where am I going? | Deploy `ropa-web` on Render and the docs |
+| Where am I? | Interface step 1 (the workspace skeleton) complete: `ropa-web` live (2026-09-28), docs committed locally, waiting for the push |
+| Where am I going? | Interface step 2: access (Stytch sign-in, users and roles in the database, how the browser's requests carry identity) |
 | What's the goal? | A Next.js app and a shadcn component package in the workspace, reading the record through a rewrite to the API, tested from the first commit, deployed as `ropa-web` |
 | What have I learned? | See findings.md |
-| What have I done? | The RoPA API is built and deployed (steps 1–5); interface step 1's Phases 1–4: `@rulemark/ui` with the Rulemark theme, `apps/ropa-web` on Next.js, `@rulemark/ropa-client`'s core, the home page through a rewrite, the Playwright smoke test in CI |
+| What have I done? | The RoPA API is built and deployed (steps 1–5); interface step 1's Phases 1–4: `@rulemark/ui` with the Rulemark theme, `apps/ropa-web` on Next.js, `@rulemark/ropa-client`'s core, the home page through a rewrite, the Playwright smoke test in CI; Phase 5: `ropa-web` deployed and verified, the docs |

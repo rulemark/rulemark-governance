@@ -1,4 +1,4 @@
-# RoPA Packages & Monorepo (v0.4)
+# RoPA Packages & Monorepo (v0.5)
 
 > How the RoPA service, its shared schemas and its API client are organised so a future frontend can reuse the same types, validation and calls. Builds on `ropa-api.md` (**API §n**) and `ropa-database.md` (**DB §n**). Stack: Node.js + TypeScript, Zod 4, npm workspaces.
 
@@ -13,7 +13,7 @@
 | 5 | Changelogs | Hand-written until the first publish; add Changesets when publishing starts (§6.4) |
 | 6 | OpenAPI document | Shipped **inside the client package**, not as a separate package (§5.4) |
 | 8 | Browser → API path | The browser calls **the frontend's own origin**; Next.js proxies to the API over Render's private network (§8.1). No CORS. The API is also **public** for Swagger UI, the client package and other consumers |
-| 7 | Frontend location | **In this monorepo**, as `apps/ropa-web`. Its framework is still undecided (e.g. Next.js with SSR). It deploys as its own Render service (§8). The packages work in both a browser and Node, so SSR is already covered (§9) |
+| 7 | Frontend location | **In this monorepo**, as `apps/ropa-web`: Next.js (App Router), TanStack Query, Tailwind and shadcn/ui components from `packages/ui` (`@rulemark/ui`), since interface step 1. It deploys as its own Render service, `ropa-web` (§8.2). The packages work in both a browser and Node, so server rendering is covered (§9) |
 
 **Why the name carries the service.** The scope is per-organisation, not per-project, and this is the first of several governance services. `@rulemark/ropa-*` leaves room for `@rulemark/monitor-*` and the rest without renaming anything.
 
@@ -27,10 +27,11 @@ service-ropa/                     # repository root, npm workspaces
 ├── design/                       # these documents
 ├── packages/
 │   ├── ropa-schemas/             # @rulemark/ropa-schemas — wire schemas, types, enums, rule helpers
-│   └── ropa-client/              # @rulemark/ropa-client — typed API client + openapi.json
+│   ├── ropa-client/              # @rulemark/ropa-client — typed API client + openapi.json
+│   └── ui/                       # @rulemark/ui — the web app's components and theme (not RoPA-specific)
 └── apps/
     ├── ropa-api/                 # the service: Express, Drizzle, domain, migrations, seeds (DB §11)
-    ├── ropa-web/                 # the frontend (framework TBD); consumes both packages
+    ├── ropa-web/                 # the frontend (Next.js); consumes both packages and @rulemark/ui
     └── audit-log/                # a stand-in for the audit log: receives RoPA's events (API §6)
 ```
 
@@ -93,14 +94,24 @@ The **server stays authoritative**. Rules that need other records (a client's ag
 
 ### 5.1 Shape
 
+**Built as the interface needs it** (interface step 1): the core, and only the calls a screen uses. Step 1's home page uses one, `activities.list`; each later screen adds its own. What exists today:
+
 ```ts
 const ropa = createRopaClient({
-  baseUrl: 'https://ropa.example.com',
-  actor: 'priya.raman',      // X-Actor until auth exists (API §1.6)
-  validate: true,            // default: parse responses with the shared schemas
-  fetch,                     // injectable, for tests and SSR
+  baseUrl: 'https://ropa.example.com', // or '/api/ropa' in the browser (§8.1)
+  token: async () => session.token,    // optional: a string or a provider, asked on every call
+  validate: true,                      // default: parse responses with the shared schemas
+  fetch,                               // injectable, for tests and server rendering
 });
 
+const page = await ropa.activities.list({ role: 'processor' }, { signal }); // → { data, nextCursor }
+```
+
+There is **no `actor` option**. It predates authentication: the subject written into each revision is the token's (API §1.9), so a client can't claim to be someone else.
+
+The rest of this section is the target the calls grow towards:
+
+```ts
 const activity = await ropa.activities.get('P3');            // → Activity, including `version`
 await ropa.activities.update('P3', next, {
   ifMatch: activity.version,                                  // API §1.8
@@ -118,17 +129,17 @@ Namespaces mirror the endpoint map (API §2): `activities`, `parties`, `agreemen
 
 ### 5.2 What it handles for the caller
 
-| Concern | Behaviour |
-|---|---|
-| Identifiers | Any identifier works in path parameters, exactly as the API allows (API §1.2) |
-| Concurrency | `ifMatch` is sent as `If-Match`; the response `ETag` is surfaced as `version`. Omitting it on a write is a **compile-time** error, so nobody forgets it |
-| Change notes | `changeNote` is an option on writes, placed into the body |
-| Paging | `list()` returns one page (`data` + `nextCursor`); `iterate()` is an async iterator that follows the cursor |
-| Errors | `problem+json` becomes a typed error (§5.3) |
-| Validation | Responses are parsed with the shared schemas by default; `validate: false` skips it |
-| Retries | Only for `GET` on network errors, `429` and `5xx`, with backoff. **Never** for writes, which are not idempotent |
-| Cancellation | Every call takes an `AbortSignal` and an optional timeout |
-| Auth | `token` (a string or an async provider) becomes `Authorization: Bearer` (API §1.9). `ropa.tokens.mint()` and `ropa.me()` are typed like any other call |
+| Concern | Behaviour | Built |
+|---|---|---|
+| Identifiers | Any identifier works in path parameters, exactly as the API allows (API §1.2) | With the first single-item call |
+| Concurrency | `ifMatch` is sent as `If-Match`; the response `ETag` is surfaced as `version`. Omitting it on a write is a **compile-time** error, so nobody forgets it | With the first single read and the first write (interface steps 3 and 4) |
+| Change notes | `changeNote` is an option on writes, placed into the body | With the first write |
+| Paging | `list()` returns one page (`data` + `nextCursor`); `iterate()` is an async iterator that follows the cursor | `list()` yes; `iterate()` when a screen needs it |
+| Errors | `problem+json` becomes a typed error (§5.3); a body that isn't a problem gets one made from the status | Yes |
+| Validation | Responses are parsed with the shared schemas by default; `validate: false` skips it | Yes |
+| Retries | **Not in the client.** The web app's TanStack Query retries, in the browser only, and only what might pass on a second try (network errors, `429`, `5xx`); the server's prefetch never retries, so a slow API can't hold the page back. **Never** for writes, which are not idempotent | In the app |
+| Cancellation | Every call takes an `AbortSignal` (TanStack Query passes its own). A timeout is the caller's, as `AbortSignal.timeout()` | Yes |
+| Auth | `token` (a string or a provider, asked on every call) becomes `Authorization: Bearer` (API §1.9). `ropa.tokens.mint()` and `ropa.me()` are typed like any other call | `token` yes; the calls with sign-in (interface step 2) |
 
 ### 5.3 Errors
 
@@ -137,11 +148,12 @@ RopaError                      // base: status, problem details, raw response
 ├── RopaValidationError        // 422 — .errors[] is field-level, ready to attach to form inputs
 ├── RopaConflictError          // 409 — slug taken, still referenced, invalid state transition
 ├── RopaPreconditionError      // 412 / 428 — stale or missing version (API §1.8)
-├── RopaNotFoundError          // 404
-└── RopaResponseError          // the body did not match the schema (only when validate: true)
+└── RopaNotFoundError          // 404
+
+RopaResponseError              // the body did not match the schema (only when validate: true)
 ```
 
-`RopaResponseError` is the early-warning system: it fires the moment the deployed service stops matching the package the caller has.
+`RopaResponseError` is the early-warning system: it fires the moment the deployed service stops matching the package the caller has. It stands apart from `RopaError` because the API answered successfully; only its shape is wrong, so nothing should retry it or show it as a problem the user caused.
 
 ### 5.4 The OpenAPI document
 
@@ -194,8 +206,8 @@ Note that **adding an enum value is minor for the server but can break a consume
 
 ```mermaid
 flowchart LR
-    B(["Browser"]) -->|"same origin: /api/ropa/*"| W["ropa-web (Next.js)<br/>proxy + SSR"]
-    W -->|"private network + Bearer token"| A["ropa-api (Express)"]
+    B(["Browser"]) -->|"same origin: /api/ropa/v1/*"| W["ropa-web (Next.js)<br/>rewrite + server rendering"]
+    W -->|"private network (a token from step 2)"| A["ropa-api (Express)"]
     Ext(["Swagger UI · @rulemark/ropa-client · other consumers"]) -->|"public URL + Bearer token"| A
     A --> DB[("Render Postgres")]
 ```
@@ -203,10 +215,11 @@ flowchart LR
 The API service is public **and** reachable on Render's internal hostname, so both paths work at once.
 
 - **No CORS.** Browser requests go to the frontend's own origin and are proxied, so no cross-origin request is ever made. The API sets no CORS headers.
-- **The token stays server-side.** The browser never holds an API token. The Next server attaches it (API §1.9), which is the standard backend-for-frontend split.
-- **The actor can't be forged.** Because the proxy adds the token, the subject written into every revision comes from the server, not from something the browser can set.
-- **From rewrites to a route handler.** A `next.config` rewrite is a static pass-through, which is fine before auth. To attach a per-user token it becomes a catch-all Route Handler at the same path (`/api/ropa/[...path]`). Both must pass `If-Match`, `ETag` and `Authorization` straight through.
-- **Two client instances in `apps/ropa-web`:** one for the browser with a relative base URL (`/api/ropa`) and one for server-side rendering with the internal hostname. `fetch` accepts a relative URL in the browser but not in Node, so the base URL can't be shared. The token option differs too: server-side instances carry one, browser instances don't.
+- **The token stays server-side (the design; interface step 2 decides).** The browser never holds an API token. The Next server attaches it (API §1.9), which is the standard backend-for-frontend split. Step 1 has no tokens at all: reads are anonymous and writes are refused.
+- **The actor can't be forged.** The subject written into every revision comes from a verified token, whether the proxy adds it or the browser carries one the API checks; never from something the browser can simply set.
+- **Step 1 is a rewrite** (interface step 1, the user's choice after a Route Handler was built and tested). `/api/ropa/v1/:path*` goes to `ROPA_API_URL/v1/:path*`, declared in `next.config.ts` (`src/lib/rewrites.ts`). With no credentials to attach yet, a static pass-through is enough: `ETag`, `If-None-Match` and 304s, problems, and the API's own 401 for an anonymous write all pass through untouched. Only `/v1` is reachable, not the API's health check or docs. **Next compiles the destination into the build** (`.next/routes-manifest.json`), so `next build` needs `ROPA_API_URL`, and changing the address means a rebuild, not only a restart.
+- **The mechanism is revisited with sign-in** (interface step 2). Either the browser's token passes through the rewrite for the API to verify, or a catch-all Route Handler (`/api/ropa/[...path]`) or Next's `proxy.ts` attaches a token the server holds. Whichever it is must pass `If-Match`, `ETag` and `Authorization` straight through.
+- **Two client instances in `apps/ropa-web`:** one for the browser with a relative base URL (`/api/ropa`, `src/lib/ropa-browser.ts`) and one for server rendering with the internal address (`ROPA_API_URL`, read at runtime, `src/lib/ropa-server.ts`). `fetch` accepts a relative URL in the browser but not in Node, so the base URL can't be shared. Server Components prefetch a page's queries with the server's instance and hydrate TanStack Query, and the browser refetches the same query keys through the rewrite. From step 2 the token differs too: server-side instances carry one, browser instances don't.
 
 ### 8.2 Services on Render
 
@@ -227,7 +240,7 @@ projects:
     environments:
       - name: Production
         databases: [ropa-db]
-        services: [ropa-api, audit-log, coverage-job]
+        services: [ropa-api, audit-log, coverage-job, ropa-web]
 ```
 
 Three things learned by deploying, which this sketch originally got wrong:
@@ -242,20 +255,23 @@ Three things learned by deploying, which this sketch originally got wrong:
 - **The build must install devDependencies explicitly.** `NODE_ENV=production`
   makes npm omit them, and the build runs `tsc`, which is one.
 
-The frontend is a second service in the same Blueprint, with its own filter:
+The frontend is a second web service in the same Blueprint, `ropa-web` (interface step 1), with its own filter:
 
 ```yaml
   - type: web
     name: ropa-web
     runtime: node
-    plan: starter
-    buildCommand: npm ci && npm run build -w apps/ropa-web
-    startCommand: npm start -w apps/ropa-web
+    region: frankfurt
+    plan: 0.5c-512mb
+    buildCommand: npm ci --include=dev && npm run build -w apps/ropa-web
+    startCommand: npm run start -w apps/ropa-web
+    healthCheckPath: /healthz
+    autoDeployTrigger: checksPass
     envVars:
-      - key: ROPA_API_URL
-        fromService: { type: web, name: ropa-api, property: hostport }   # private network
-      - key: ROPA_SERVICE_TOKEN_SECRET # the proxy mints tokens for the signed-in user
-        fromService: { type: web, name: ropa-api, envVarKey: TOKEN_MINT_SECRET }
+      - key: NODE_ENV
+        value: production
+      - key: ROPA_API_URL   # private network; compiled into the rewrite at build time (§8.1)
+        fromService: { type: web, name: ropa-api, property: hostport }
     buildFilter:
       paths:
         - apps/ropa-web/**
@@ -273,15 +289,19 @@ Notes:
 - Manual deploys always run, whatever the filters say.
 - **`audit-log` is a private service** (`type: pserv`, step 4): reachable only from the environment's private network, with no public URL. `ropa-api` learns its address from the Blueprint (`EVENT_DESTINATION_AUDIT_LOG`, `fromService` with `property: hostport`), the same wiring the frontend sketch uses. Its filter is `apps/audit-log/**` and `packages/ropa-schemas/**`, so a change to the event contract redeploys the consumer as well as the producer.
 - **`coverage-job` is a cron job** (`type: cron`, step 4): the same build as `ropa-api` with its own start command (`npm run job:coverage`), nightly at 02:00 UTC. It reaches the API over the private network (`ROPA_API_URL` from `hostport`) and takes the mint secret from `ropa-api` (`envVarKey: TOKEN_MINT_SECRET`), so neither is copied by hand.
-- Whether the frontend calls the API over Render's **private network** (server-side rendering) or from the browser (which needs a public URL and CORS) is a decision for when we pick the framework. The Blueprint sketch above assumes server-side calls.
+- **`ropa-web` reaches the API only over the private network**, both for server rendering and for the browser's reads through the rewrite (§8.1). Render gives a `fromService` value to the build as well as to the running service, which the rewrite needs. Changing `ROPA_API_URL` therefore needs **Save, rebuild, and deploy**; **Save and deploy** reuses the old build, so the browser would keep the old address while the server used the new one.
+- **Each service builds its own workspace** (`npm run build -w apps/<service>`), never the root build, which runs every workspace's, the web app's `next build` included. `ropa-api` briefly used the root build and its deploy failed on the missing `ROPA_API_URL`.
+- **No token yet.** Step 1's `ropa-web` is anonymous: reads pass through and writes get the API's 401. Sign-in (interface step 2) adds whatever the chosen mechanism needs, perhaps the mint secret from `ropa-api` as the cron job has it.
 
 ## 9. How a frontend uses this
+
+A write, as interface step 4 will make one; `activities.update` is part of §5.1's target and not built yet:
 
 ```tsx
 import { ActivityInput, validateActivityShape, type Activity } from '@rulemark/ropa-schemas';
 import { createRopaClient, RopaValidationError } from '@rulemark/ropa-client';
 
-const ropa = createRopaClient({ baseUrl: import.meta.env.VITE_ROPA_URL, actor: currentUser.id });
+const ropa = createRopaClient({ baseUrl: '/api/ropa' }); // the browser's instance (§8.1)
 
 // Same rules as the server, before anything is sent
 const errors = validateActivityShape(form);
@@ -299,6 +319,8 @@ The frontend gets types, validation, and calls from one place, and a stale deplo
 
 **Resolved (2026-09-19):** scope `@rulemark` (§1); changelogs hand-written for now (§1); OpenAPI stays in the client (§5.4); the frontend lives in this monorepo as `apps/ropa-web` (§1, §2, §8).
 
+**Resolved (interface step 1, 2026-09-27):** the frontend framework. Next.js 16 with the App Router; Server Components call the API directly over the private network to prefetch, and the browser reads through the same-origin rewrite (§8.1). The reasoning is in interface step 1's findings (`docs/program/`, archived under `plan-archive/` when the step closes).
+
 **Still open**
 1. **npm scope availability.** `@rulemark` has to be registered on npm as an organisation or user scope; it may already be taken by someone else. To check when we get to publishing. Fallback: unscoped `rulemark-ropa-schemas` / `rulemark-ropa-client`.
-2. **Frontend framework details.** The call path is settled (§8.1: same-origin proxy, no CORS, public API for other consumers). What remains is the framework version and whether any page calls the API directly during server-side rendering rather than through the proxy.
+2. ~~**Frontend framework details.**~~ Resolved above.

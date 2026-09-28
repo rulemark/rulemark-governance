@@ -566,6 +566,19 @@
   version kept serving, as Render does). Anything that changes the root
   build must be checked against `render.yaml` as well as CI.
 
+- **Phase 5: Render gives `fromService` values to the build.** The rewrite
+  needs `ROPA_API_URL` during `next build`, and the live `/api/ropa/v1/*`
+  answering proves Render provided it there, not only at runtime. The two
+  paths read it at different times: the server's prefetch at runtime, the
+  browser's rewrite at build time (checked by building against one address
+  and starting against another). Render's **Save and deploy** reuses the
+  last build, so a changed address would reach the prefetch and not the
+  browser; it needs **Save, rebuild, and deploy**. Noted on the variable in
+  `render.yaml`, in the README and in `ropa-packages.md` §8.2.
+- **Phase 5: `ropa-web` is public.** Its page shows what `ropa-api`'s
+  anonymous reads already show on the public internet, so it exposes nothing
+  new. Step 2 makes reads authenticated (story III.1), for both.
+
 ## Issues encountered
 | Issue | Resolution |
 |---|---|

@@ -1,4 +1,4 @@
-# Workspace Skeleton (v1.0, implemented)
+# Workspace Skeleton (v1.1, implemented)
 
 > The repository layout, root configuration and tooling for the monorepo, and the plan for moving git to the new root. Builds on `ropa-packages.md` (**PKG §n**) and `ropa-database.md` (**DB §n**). This document is program-level: once the move is done it lives at `docs/program/workspace-skeleton.md`.
 
@@ -41,11 +41,13 @@ rulemark-governance/                  # repository root (today: Personal/Recipes
 │                                     # ropa-api, ropa-database, ropa-packages
 ├── packages/
 │   ├── ropa-schemas/                 # @rulemark/ropa-schemas
-│   └── ropa-client/                  # @rulemark/ropa-client
+│   ├── ropa-client/                  # @rulemark/ropa-client
+│   └── ui/                           # @rulemark/ui: shadcn/ui components, the Rulemark theme
 └── apps/
     ├── ropa-api/                     # the service (DB §11 layout lives here)
-    └── ropa-web/                     # the frontend (framework TBD)
-        # later: monitor-api, dsar-api, snapshot-api, audit-api, redactor
+    ├── ropa-web/                     # the frontend: Next.js, TanStack Query, Tailwind (§8)
+    └── audit-log/                    # a stand-in for the audit log: receives RoPA's events
+        # later: monitor-api, dsar-api, snapshot-api, redactor
 ```
 
 **Naming:** workspaces are flat and prefixed by service (`ropa-api`, `monitor-api`), so npm's `apps/*` and `packages/*` globs stay simple. Directory names match package names minus the scope: `packages/ropa-schemas` is `@rulemark/ropa-schemas`.
@@ -67,16 +69,19 @@ rulemark-governance/                  # repository root (today: Personal/Recipes
     "lint":       "eslint .",
     "format":     "prettier --write .",
     "test":       "npm run test --workspaces --if-present",
-    "dev":        "npm run dev -w apps/ropa-api",
+    "dev":        "concurrently … \"npm run dev -w apps/ropa-api\" \"npm run dev -w apps/ropa-web\"",
     "db:migrate": "npm run db:migrate -w apps/ropa-api",
     "db:seed":    "npm run db:seed -w apps/ropa-api",
     "openapi:write": "npm run openapi:write -w apps/ropa-api",
-    "check":      "npm run typecheck && npm run lint && npm run test"
+    "test:e2e":   "npm run test:e2e -w apps/ropa-web",
+    "check":      "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run test:dist"
   }
 }
 ```
 
-Each workspace owns its own `build`, `dev` and `test`. The root only delegates, so adding a service means adding a directory.
+Each workspace owns its own `build`, `dev` and `test`. The root only delegates, so adding a service means adding a directory. `dev` runs the API (:3000) and the web app (:3001) together with `concurrently`, a process runner rather than a task runner: one Ctrl-C stops both, and either failing stops the other.
+
+**Render never runs the root `build`.** It builds every workspace, the web app's `next build` included, which needs `ROPA_API_URL`; each service's `buildCommand` builds its own workspace (`npm run build -w apps/<service>`). A change to the root build gets checked against `render.yaml` as well as CI.
 
 ### 3.2 `tsconfig.base.json`
 
@@ -91,27 +96,35 @@ Strict, modern, extended by every workspace: `strict: true`, `noUncheckedIndexed
 | TypeScript | **5.x** (pinned) | TypeScript 7 is released, but `typescript-eslint` still requires `<6.1`. Revisit once it supports 7 |
 | Build (packages) | **`tsc`** | ESM + type declarations into `dist/`, with a `development` export condition serving sources to `tsx` and Vitest. A bundler waits for the first publish (PKG §7) |
 | Dev runner (API) | **tsx** watch | No build step while developing (added with the API) |
-| Tests | **Vitest** | Same runner everywhere; works with TypeScript and ESM without ceremony |
+| Frontend | **Next.js** (App Router), **TanStack Query**, **Tailwind CSS** v4, **shadcn/ui** in `packages/ui` | Chosen for the interface (interface step 1). `@rulemark/ui` ships sources, compiled by the app (`transpilePackages`) |
+| Tests | **Vitest** | Same runner everywhere; works with TypeScript and ESM without ceremony. Components run in its **browser mode** (Chromium, Playwright as the provider); everything else in Node |
+| End-to-end tests | **Playwright** | One smoke test so far: the built web app in front of the built API with the story replayed, locally and in CI |
 | Lint / format | **ESLint flat config + Prettier** | One config at the root |
 | Commits | **Conventional Commits** (`feat:`, `fix:`, `chore:`) | Already the style in the existing history, and it feeds changelogs when we publish (PKG §6.4) |
-| Task orchestration | None for now | Four workspaces don't need Turborepo. Worth revisiting if CI gets slow |
+| Task orchestration | None for now | Six workspaces don't need Turborepo. Worth revisiting if CI gets slow |
 
 ### 3.4 Environment and secrets
 
 - `.env.example` at the root lists every variable with a safe placeholder: `DATABASE_URL`, `JWT_SECRET`, `TOKEN_MINT_SECRET`, `PRINCIPALS`, `REQUIRE_AUTH_FOR_READS`, `AUTH_DISABLED`, `ROPA_API_URL`.
-- Apps load `.env` only in development; on Render everything comes from the service's environment.
+- Apps load `.env` only in development; on Render everything comes from the service's environment. The web app reads the root `.env` whenever it exists, a local `next build` included, since the file is never deployed; a variable already set always wins.
 - Each app validates its environment at startup with a Zod schema and **fails fast** with a clear message. A missing `JWT_SECRET` should stop the process, not surface later as a 500.
 - Shared values (like the database URL) go in a Render **environment group**; generated secrets use `generateValue: true` (PKG §8.2).
 - `.env` is git-ignored. Only `.env.example` is committed.
 
 ### 3.5 CI (`.github/workflows/ci.yml`)
 
-One workflow on push and pull request:
-1. Checkout, set up Node 24, `npm ci`.
-2. `npm run typecheck`, `npm run lint`.
+One workflow on push and pull request, skipped when a push changes only documentation (`docs/**`, `**/*.md`). Two jobs:
+
+**`check`**
+1. Checkout, set up Node 24, `npm ci`, Chromium for Vitest's browser mode.
+2. `npm run typecheck`, `npm run lint`, `npm run format:check`.
 3. `npm run test` with a **Postgres 18 service container** (DB §10).
-4. `npm run build`.
+4. `npm run build`, with `ROPA_API_URL` set (the web app's rewrite is compiled into its build), then `npm run test:dist` against the built packages.
 5. **Drift checks:** `drizzle-kit generate` must produce no new file (DB §8.1), and `openapi:write` must leave `packages/ropa-client/openapi.json` unchanged (PKG §7).
+
+**`e2e`** (interface step 1): its own Postgres service; Playwright builds and starts the API on the story, then the web app in front of it, and Chromium runs the smoke test. The report and traces are kept for a week when it fails.
+
+Render deploys a service only once both pass (`autoDeployTrigger: checksPass`).
 
 ## 4. Moving git to the new root
 
@@ -137,7 +150,7 @@ The README should get a new machine running in three commands, and CI runs the s
 npm ci
 docker compose up -d db      # Postgres 18 locally
 npm run db:migrate && npm run db:seed
-npm run dev                  # API on :3000, docs at /api-docs
+npm run dev                  # API on :3000 (docs at /api-docs), web app on :3001
 ```
 
 `docker-compose.yml` at the root holds only Postgres. Everything else runs on the host.
@@ -161,5 +174,7 @@ Deliberately **not** done yet:
 - **Drift checks in CI.** The two steps are in `ci.yml`, commented out until there are migrations and an OpenAPI document to compare.
 - **`tsup`, `tsx`, framework dependencies.** They arrive with the code that needs them.
 - **The local folder rename** (`render` → `rulemark-governance`) and creating the GitHub repository.
+
+**Interface step 1 (2026-09-27)** filled `apps/ropa-web`, which was created empty here: Next.js on `@rulemark/ui` (`packages/ui`, shadcn/ui on Base UI with the Rulemark theme), reading the record through a rewrite to the API (PKG §8.1) and `@rulemark/ropa-client`'s first call; Vitest in the browser for components, one Playwright smoke test, both in CI. It's deployed as `ropa-web` beside `ropa-api` (PKG §8.2).
 
 **Markdown is excluded from Prettier** (`.prettierignore`). Its table padding turned the design documents into an 1,800-line whitespace diff and would reflow a whole table on every edit.
