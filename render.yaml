@@ -216,3 +216,54 @@ projects:
                 value: production
               # PORT is assigned by Render; ropa-api learns it through
               # `hostport` above.
+
+          # The RoPA interface (interface step 1): a Next.js app that renders
+          # the record on the server and lets the browser read it through its
+          # own origin, /api/ropa/v1/*, passed to ropa-api over the private
+          # network (ropa-packages.md §8.1). No CORS, no token in the browser.
+          # Public, as ropa-api's anonymous reads already are; writes are
+          # refused with the API's 401 until sign-in (step 2).
+          - type: web
+            name: ropa-web
+            runtime: node
+            region: frankfurt # beside ropa-api, on its private network
+            plan: 0.5c-512mb
+            branch: main
+
+            # Its own workspace, never the root build. The workspace script
+            # compiles @rulemark/ropa-client (and ropa-schemas by reference)
+            # first; @rulemark/ui ships sources, compiled by `next build`.
+            buildCommand: npm ci --include=dev && npm run build -w apps/ropa-web
+            # `next start` reads PORT, which Render assigns.
+            startCommand: npm run start -w apps/ropa-web
+            # Shallow: answers whether ropa-api is up or not.
+            healthCheckPath: /healthz
+            autoDeployTrigger: checksPass
+
+            # All three packages are the app's: the schemas and the client it
+            # reads with, the components it renders.
+            buildFilter:
+              paths:
+                - apps/ropa-web/**
+                - packages/**
+                - package.json
+                - package-lock.json
+              ignoredPaths:
+                - docs/**
+
+            envVars:
+              - key: NODE_ENV
+                value: production
+
+              # Read twice, at different times. The server's prefetch reads it
+              # at runtime. The browser's path, the /api/ropa rewrite, is
+              # compiled into the build: `next build` writes this address into
+              # .next/routes-manifest.json and `next start` never reads it
+              # again. So a change to it needs "Save, rebuild, and deploy",
+              # not "Save and deploy", or the browser keeps the old address
+              # while the page's first render uses the new one.
+              - key: ROPA_API_URL
+                fromService:
+                  type: web
+                  name: ropa-api
+                  property: hostport
