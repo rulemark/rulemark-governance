@@ -7,7 +7,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "dev": "NEXT_TELEMETRY_DISABLED=1 next dev --port 3001",
-    "build": "NEXT_TELEMETRY_DISABLED=1 next build",
+    "build": "tsc --build ../../packages/ropa-client && NEXT_TELEMETRY_DISABLED=1 next build",
     "start": "NEXT_TELEMETRY_DISABLED=1 next start",
     "typecheck:tests": "NEXT_TELEMETRY_DISABLED=1 next typegen && tsc -p tsconfig.json",
     "test": "vitest run",

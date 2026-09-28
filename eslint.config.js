@@ -40,12 +40,12 @@ export default tseslint.config(
       ],
     },
   },
-  // Test servers on a random port start through listenOnLoopback()
-  // (apps/ropa-api/test/listen.ts), which binds 127.0.0.1 and waits until it's
-  // listening. A bare `listen(0)` binds every interface, where macOS can hand
-  // out a port another process holds on 127.0.0.1 and the test's requests
-  // reach that process; `listen(0, host)` without a callback isn't listening
-  // yet on the next line. A callback, as in the service harnesses, is fine.
+  // Test servers on a random port bind 127.0.0.1 and wait until they're
+  // listening: in the API, through listenOnLoopback() (test/listen.ts);
+  // elsewhere, with a callback. A bare `listen(0)` binds every interface,
+  // where macOS can hand out a port another process holds on 127.0.0.1 and
+  // the test's requests reach that process; `listen(0, host)` without a
+  // callback isn't listening yet on the next line.
   {
     files: ['**/test/**/*.ts', '**/*.test.ts'],
     ignores: ['apps/ropa-api/test/listen.ts'],
@@ -55,7 +55,8 @@ export default tseslint.config(
         {
           selector:
             "CallExpression[callee.property.name='listen'][arguments.0.value=0][arguments.length<3]",
-          message: 'Start test servers with listenOnLoopback() from apps/ropa-api/test/listen.ts.',
+          message:
+            "Bind test servers to 127.0.0.1 and wait until they listen: the API's listenOnLoopback(), or listen(0, '127.0.0.1', callback).",
         },
       ],
     },

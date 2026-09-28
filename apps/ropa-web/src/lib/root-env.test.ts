@@ -41,13 +41,15 @@ describe('loadRootEnvFile', () => {
     expect(env['ROPA_API_URL']).toBe('http://elsewhere:4000');
   });
 
-  // On Render every variable comes from the service's environment.
-  it('reads nothing in production', () => {
+  // A local `next build` or `next typegen` runs as production and needs the
+  // API's address for the rewrite. The file is never deployed (.env is
+  // gitignored), so on Render and in CI there's nothing to read.
+  it('reads it for a local production build too', () => {
     const env: Record<string, string | undefined> = { NODE_ENV: 'production' };
 
     loadRootEnvFile(file, env);
 
-    expect(env['ROPA_API_URL']).toBeUndefined();
+    expect(env['ROPA_API_URL']).toBe('http://localhost:3000');
   });
 
   it('is fine without a file', () => {

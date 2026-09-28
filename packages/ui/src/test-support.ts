@@ -46,7 +46,8 @@ export function colour(value: string): string {
 /** One computed colour property of an element. */
 export function paint(
   element: Element,
-  property: 'backgroundColor' | 'color' | 'borderTopColor' | 'fill' | 'outlineColor',
+  property:
+    'backgroundColor' | 'color' | 'borderTopColor' | 'borderBottomColor' | 'fill' | 'outlineColor',
 ): string {
   return getComputedStyle(element)[property];
 }

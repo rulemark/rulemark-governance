@@ -41,6 +41,9 @@ jobs:
       JWT_SECRET: ci-secret-long-enough-for-hs256
       TOKEN_MINT_SECRET: ci-mint-secret-long-enough-here
       PRINCIPALS: '[{"sub":"priya.raman","name":"Priya Raman","roles":["editor","approver"]}]'
+      # The web app's rewrite to the API is compiled into its build, and
+      # `next typegen` evaluates it too, so both need the API's address.
+      ROPA_API_URL: http://localhost:3000
 
     steps:
       - uses: actions/checkout@v5

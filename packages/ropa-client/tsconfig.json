@@ -2,7 +2,11 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "rootDir": "src",
-    "outDir": "dist"
+    "outDir": "dist",
+    // fetch, Response and AbortSignal: the client runs in browsers and Node.
+    "lib": ["es2023", "DOM"]
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts", "src/test-support.ts"],
+  "references": [{ "path": "../ropa-schemas" }]
 }
