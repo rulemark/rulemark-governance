@@ -15,6 +15,8 @@ data into TanStack Query. The home page lists the record's activities.
 ```sh
 npm run dev -w apps/ropa-web     # http://localhost:3001 (the API is on 3000)
 npm run test -w apps/ropa-web    # Node tests, and components in Chromium
+npm run test:e2e                 # the smoke test: both apps built, the story seeded
+npm run dev                      # the API (3000) and this app (3001) together
 npm run build -w apps/ropa-web && npm run start -w apps/ropa-web
 ```
 
@@ -22,6 +24,11 @@ npm run build -w apps/ropa-web && npm run start -w apps/ropa-web
   repository-root `.env` locally. Without it, the build stops, and so does
   the server at startup, naming the variable (`src/instrumentation.ts`).
 - **Health:** `GET /healthz`, as the API's.
+- **Smoke test** (`e2e/`, Playwright): starts the built API on 3310 against
+  its own database (`E2E_DATABASE_URL`, else `DATABASE_URL`'s name with
+  `_e2e`), created if missing, migrated and seeded with the story each run,
+  and the built app on 3311. Never reuses a running server: a taken port
+  stops the run.
 - **Components:** run `npx shadcn@latest add <component>` from this directory;
   base components land in `packages/ui`. Then `npm run format`, point the
   new file's `cn` import at `@rulemark/ui/lib/utils` (lint says where), check

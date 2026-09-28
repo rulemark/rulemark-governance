@@ -89,3 +89,52 @@ jobs:
             echo "::error::openapi.json is out of date. Run: npm run openapi:write"
             exit 1
           fi
+
+  # Interface step 1's smoke test (apps/ropa-web/e2e): the built API on a
+  # database with the story replayed, the built web app in front of it, and
+  # Chromium reading the record through the rewrite. Playwright starts both
+  # servers (apps/ropa-web/playwright.config.ts).
+  e2e:
+    runs-on: ubuntu-latest
+    # Two builds, a seed and six tests take a few minutes.
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: ropa
+          POSTGRES_PASSWORD: ropa
+          POSTGRES_DB: ropa
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready --health-interval 10s
+          --health-timeout 5s --health-retries 5
+
+    env:
+      DATABASE_URL: postgres://ropa:ropa@localhost:5432/ropa
+      # The smoke test empties and seeds its database: here, the service's own.
+      E2E_DATABASE_URL: postgres://ropa:ropa@localhost:5432/ropa
+      JWT_SECRET: ci-secret-long-enough-for-hs256
+      TOKEN_MINT_SECRET: ci-mint-secret-long-enough-here
+      PRINCIPALS: '[{"sub":"priya.raman","name":"Priya Raman","roles":["editor","approver"]}]'
+
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - name: Keep the report and traces of a failed run
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            apps/ropa-web/playwright-report/
+            apps/ropa-web/test-results/
+          retention-days: 7

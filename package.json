@@ -18,7 +18,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "npm run test --workspaces --if-present",
-    "dev": "npm run dev -w apps/ropa-api",
+    "dev": "concurrently --kill-others --names api,web --prefix-colors blue,green \"npm run dev -w apps/ropa-api\" \"npm run dev -w apps/ropa-web\"",
     "db:migrate": "tsc --build && npm run db:migrate -w apps/ropa-api",
     "db:seed": "tsc --build && npm run db:seed -w apps/ropa-api --",
     "openapi:write": "tsc --build && npm run openapi:write -w apps/ropa-api",
@@ -27,16 +27,18 @@
     "db:generate": "tsc --build && npm run db:generate -w apps/ropa-api",
     "format:check": "prettier --check .",
     "coverage": "npm run coverage -w apps/ropa-api",
-    "demo:data": "tsc --build && npm run demo:data -w apps/ropa-api"
+    "demo:data": "tsc --build && npm run demo:data -w apps/ropa-api",
+    "test:e2e": "npm run test:e2e -w apps/ropa-web"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "concurrently": "^10.0.5",
     "eslint": "^10.11.0",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "prettier": "^3.9.8",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.70.0",
-    "vitest": "^5.0.2",
-    "eslint-plugin-react-hooks": "^7.1.1"
+    "vitest": "^5.0.2"
   }
 }
