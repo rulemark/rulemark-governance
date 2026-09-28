@@ -147,6 +147,25 @@
   server-rendered; with the API down, a 500 in 8 ms and the error after the
   retries, now in plain words (test first); four more breaks, each caught
 
+### Phase 4: Tests and CI (complete, committed, not pushed)
+- `@playwright/test` 1.63 and `pg` in the web app (dev), `concurrently` at
+  the root
+- The smoke test's database, `ropa_e2e` (or `E2E_DATABASE_URL`), created
+  from the `postgres` database if missing; Playwright's `webServer` creates,
+  migrates, seeds and starts the built API, then builds and starts the web
+  app, which compiles the API's address into its rewrite
+- First runs "exited early": two leftover proxies from another Claude
+  session (Sep 22, another project) held 3200 and 3201, answering 502;
+  left alone, and the test moved to 3310 and 3311 with
+  `reuseExistingServer: false`, so a taken port stops the run
+- Six tests pass (about 9 s after the builds); three breaks (no server
+  prefetch, the rewrite open to every path, no rewrite), each caught
+- `npm run dev` runs both apps; checked on 3400 against `ropa_e2e` (the
+  user's API holds 3000): both served, one Ctrl-C stopped both
+- CI: an `e2e` job beside `check`, its own Postgres service, Chromium,
+  `npm run test:e2e`, the report and traces uploaded on failure; run
+  locally with `CI=1`
+
 ## Test Results
 | Test | Command | Expected | Actual | Status |
 |---|---|---|---|---|
@@ -175,6 +194,11 @@
 | Phase 3 | `npm run check` | 1509 tests pass | 1509 pass (893 api, 262 schemas, 14 audit-log, 243 ui, 20 client, 68 web, 9 dist) | ✅ |
 | Phase 3: the rewrite | build against one stub API, start against another | learn which a rewrite uses | the build's | ✅ |
 | Phase 3: after the switch | `npm run check`; a root build reading only `.env` | 1492 tests pass; built | 1492 pass (51 web, the proxy's 20 gone, 3 rewrite tests in); built | ✅ |
+| Phase 4: smoke | `npm run test:e2e` | 6 pass | 6 pass (9 s, after both builds) | ✅ |
+| Phase 4: breaks | three deliberate breaks | each fails a smoke test | 1, 1 and 2 failures, the intended ones | ✅ |
+| Phase 4: as CI | `CI=1 npm run test:e2e` | 6 pass, GitHub reporter | 6 pass; run summary; report written, ignored by git | ✅ |
+| Phase 4: both apps | `npm run dev` (API on 3400) | both serve; Ctrl-C stops both | as expected | ✅ |
+| Phase 4 | `npm run check` | 1492 tests pass | 1492 pass | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -185,6 +209,7 @@
 | 2026-09-27 | Two API files: `Cannot read properties of null (reading 'port')` | With a host, `listen` binds asynchronously | `listenOnLoopback()` awaits `listening` |
 | 2026-09-27 | `tsc --build`: the inferred type of `cn` can't be named | Declarations need a portable type | Annotated `CnFunction` |
 | 2026-09-27 | The header's tests: `process is not defined` | `next/link` reads `process.env`, which only Next defines | `define: { 'process.env': '{}' }` in the browser project |
+| 2026-09-27 | Playwright: "Process from config.webServer exited early" | 127.0.0.1:3200 answered 502 before the API started: leftover proxies from another session on 3200 and 3201 | Ports 3310 and 3311, `reuseExistingServer: false` |
 | 2026-09-27 | `next dev`: `ROPA_API_URL: Required`, though the root `.env` sets it | `@next/env`'s `loadEnvConfig` returns its cached first load (the app directory's) | `loadRootEnvFile()`, reading the root `.env` with `util.parseEnv`, never overriding |
 | 2026-09-27 | The proxy: `If-None-Match` never gets a 304 | The API answers 304 directly; fetch adds `Cache-Control: no-cache` to conditional requests | Forward the browser's `Cache-Control`, else send `max-age=0` |
 | 2026-09-27 | The page waits 3 s with the API down | The server's prefetch retried twice | No retries on the server |
@@ -197,8 +222,8 @@
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Interface step 1 (the workspace skeleton), Phase 4 (tests and CI) not started; Phases 1, 1b, 2 and 3 done and committed, not pushed |
-| Where am I going? | Playwright and CI, then deploy and docs |
+| Where am I? | Interface step 1 (the workspace skeleton), Phase 5 (deploy and docs) not started; Phases 1 to 4 done and committed, not pushed |
+| Where am I going? | Deploy `ropa-web` on Render and the docs |
 | What's the goal? | A Next.js app and a shadcn component package in the workspace, reading the record through the proxy, tested from the first commit |
 | What have I learned? | See findings.md |
 | What have I done? | The RoPA API is built and deployed (steps 1–5); the story's Parts II and III and the roadmap set the interface as next |

@@ -535,6 +535,29 @@
   The Route Handler was never committed; this entry and the Phase 3 notes
   above describe what it did, if step 2 wants one.
 
+- **Phase 4: the smoke test's own database.** Not the user's `ropa`, and
+  not `ropa_test`, which the API's tests empty on their own schedule:
+  `ropa_e2e`, beside it, created with `pg` from the `postgres` database if
+  missing (the web app can't borrow the API's harness: it never imports the
+  API). In CI it's the fresh service's own database (`E2E_DATABASE_URL`).
+  Each run migrates, resets and seeds it, and builds the web app afresh,
+  since the rewrite compiles in the API's address.
+- **Phase 4: never reuse a server.** `reuseExistingServer` would reuse
+  anything answering on the port, and on macOS something bound to
+  127.0.0.1 alone takes the requests even after our server binds every
+  interface. Two leftover proxies from another session held 3200 and 3201;
+  the test now uses 3310 and 3311 and never reuses, so a taken port stops
+  the run with Playwright's own message. The leftovers were left for the
+  user.
+- **Phase 4: server output.** The webServers' stdout is ignored (the seed
+  prints 71 lines) and stderr shown, so a failing start still explains
+  itself.
+- **Phase 4: `npm run dev`.** `concurrently --kill-others`: the API (3000)
+  and the web app (3001) together, one Ctrl-C for both, and either failing
+  stops the other. A process runner, not the task runner the skeleton
+  decided against (`workspace-skeleton.md` §3.3). A developer whose own API
+  already holds 3000 sets `PORT` (and `ROPA_API_URL`) for the run.
+
 ## Issues encountered
 | Issue | Resolution |
 |---|---|

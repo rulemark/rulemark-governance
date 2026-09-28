@@ -13,7 +13,7 @@ The first step of the interface, the roadmap's next priority
 (`docs/program/roadmap.md`, "Next: the interface, and what clients see").
 
 ## Current Phase
-Phase 4 (tests and CI), not started. Phase 3 (the proxy and the first page) is complete, committed and not pushed; Phases 1, 1b and 2 before it too
+Phase 5 (deploy and docs), not started. Phase 4 (tests and CI) is complete, committed and not pushed; Phases 1 to 3 before it too
 
 ## The stack (decided by the user, 2026-09-27)
 | Concern | Choice |
@@ -167,13 +167,17 @@ neutral.
 
 ### Phase 4: Tests and CI
 - [x] Vitest in both workspaces, in `npm run check` (done in Phases 1 and 2)
-- [ ] Playwright: one smoke test (the home page shows P1–P3 read through the
-      proxy; a write is refused) against the API with the story replayed;
-      locally through `webServer` (API and built web app on the test
-      database), in CI as a job with the Postgres service container (migrate,
-      seed, start both, Chromium only)
-- [ ] Root scripts: `dev` runs both apps; `test:e2e`
-- **Status:** pending
+- [x] Playwright: one smoke file, six tests (the home page lists the story's
+      seven activities, P1–P3 among them; they're in the HTML before any
+      script; the browser reads through the rewrite; a write is refused with
+      the API's 401 and changes nothing; only `/v1` is reachable; `/healthz`)
+      against the built API with the story replayed; locally through
+      `webServer` on its own database (`ropa_e2e`, created if missing) and
+      ports (3310, 3311, never reused), in CI as a job of its own with the
+      Postgres service container, Chromium only, the report kept on failure.
+      Three breaks, each caught
+- [x] Root scripts: `dev` runs both apps (`concurrently`); `test:e2e`
+- **Status:** complete
 
 ### Phase 5: Deploy and docs
 - [ ] `ropa-web` in `render.yaml`: a web service (about $7 a month, accepted),
