@@ -13,7 +13,7 @@ The first step of the interface, the roadmap's next priority
 (`docs/program/roadmap.md`, "Next: the interface, and what clients see").
 
 ## Current Phase
-Phase 3 (the proxy and the first page), not started. Phase 2 (the app) is complete, committed and not pushed; Phases 1 and 1b before it too
+Phase 4 (tests and CI), not started. Phase 3 (the proxy and the first page) is complete, committed and not pushed; Phases 1, 1b and 2 before it too
 
 ## The stack (decided by the user, 2026-09-27)
 | Concern | Choice |
@@ -32,10 +32,13 @@ repo's). TypeScript stays at the repo's 5.9 (see findings).
 ## Where this step sits (proposed interface build order, to confirm)
 1. **The workspace skeleton** (this step): the app, the component package,
    the proxy, one page, tests and CI.
-2. **Access:** sign-in through **Stytch** (the user has a workspace), with
-   users, roles and permissions kept in the database rather than the
-   `PRINCIPALS` environment variable (the data model's F5), and reads that
-   are no longer public by default (story III.1, II.1, II.3).
+2. **Access:** sign-in through **Stytch** (the user has a workspace), real
+   user login with JWTs, and with it how the browser's requests reach the
+   API: the step 1 rewrite passing the user's token through for the API to
+   verify, or a Route Handler or Next's `proxy.ts` attaching a token the
+   server holds. Users, roles and permissions kept in the database rather
+   than the `PRINCIPALS` environment variable (the data model's F5), and
+   reads that are no longer public by default (story III.1, II.1, II.3).
 3. **The record, read:** activities, parties, agreements, review items, and
    the views (report, subprocessors, impact, data map, coverage).
 4. **The record, written:** forms on the shared schemas (`canActivate` and
@@ -130,20 +133,37 @@ neutral.
 - **Status:** complete
 
 ### Phase 3: The proxy and the first page
-- [ ] `/api/ropa/[...path]` as a Route Handler forwarding to `ROPA_API_URL`,
-      passing `If-Match`, `ETag` and problem responses through untouched
-      (`ropa-packages.md` §8.1); reads forwarded anonymously, writes refused
-      with a problem naming step 2 (open question 4)
-- [ ] `@rulemark/ropa-client`'s core (open question 3): an injectable base
+- [x] `/api/ropa/v1/*` reaching ropa-api: **a Next rewrite**, not a Route
+      Handler (the user's choice, after one was built and tested), since
+      step 1 has no credentials to attach; `ETag`, 304s and problems pass
+      through untouched; anonymous writes get the API's own 401 problem;
+      only `/v1`. The rewrite is compiled into the build, so `next build`
+      (and `next typegen`) need `ROPA_API_URL`; CI sets it. Whether step 2
+      keeps a rewrite depends on its sign-in design
+- [x] `@rulemark/ropa-client`'s core (open question 3): an injectable base
       URL, `fetch` and token provider; responses parsed with the shared
-      schemas; `problem+json` as typed errors (`ropa-packages.md` §5.3); `ETag`
-      as `version`, `If-Match` required on writes; the activity list call.
-      Tested on its own, against a stub server
-- [ ] Two instances in the app: the server's (internal host, token) and the
-      browser's (`/api/ropa`, no token); the page's query keys and query
-      functions shared by the server prefetch and the client (open question 2)
-- [ ] The home page lists the activities, with loading and error states
-- **Status:** pending
+      schemas; `problem+json` as typed errors (`ropa-packages.md` §5.3); the
+      activity list call; cancellation. Tested on its own, against a stub
+      server (20 tests). **`ETag` as `version` and `If-Match` required on
+      writes wait for the first call that needs them** (a single read, a
+      write), in step 3 or 4, under open question 3's rule that each screen
+      adds its calls
+- [x] Two instances in the app: the server's (internal host; no token until
+      step 2) and the browser's (`/api/ropa`, no token); the page's query keys
+      and query functions shared by the server prefetch and the client (open
+      question 2); retries only in the browser, only for what might pass
+- [x] The home page lists the activities (C1–C4 and P1–P3), with loading,
+      empty and error states; the table from `shadcn add table`, restyled to
+      the foundations (and `scope="col"` on headers)
+- [x] Found running it: conditional requests through the Route Handler
+      (fetch's `Cache-Control: no-cache`; moot with the rewrite), server
+      retries holding the page back, `next build` needing the packages'
+      `dist/`, and `next dev` failing on the packages' `.js` imports: the
+      packages now import with `.ts` and TypeScript rewrites them
+      (`rewriteRelativeImportExtensions`, the user's choice); with the API
+      down, the list says so in plain words, not Next's "Internal Server
+      Error"
+- **Status:** complete
 
 ### Phase 4: Tests and CI
 - [x] Vitest in both workspaces, in `npm run check` (done in Phases 1 and 2)
@@ -161,7 +181,10 @@ neutral.
       `packages/ui/**` added to the API's `ignoredPaths` (its filter watches
       `packages/**`, so a component change would rebuild the API);
       pushed code-first **once the user gives the go-ahead**, verified by
-      behaviour (the live page lists P1–P3)
+      behaviour (the live page lists P1–P3). Its build command is
+      `npm ci --include=dev && npm run build -w apps/ropa-web` (which compiles
+      the RoPA packages first), its start `npm run start -w apps/ropa-web`,
+      its health check `/healthz`
 - [ ] `workspace-skeleton.md`, `ropa-packages.md` §8, the README
 - **Status:** pending
 
@@ -245,6 +268,8 @@ neutral.
 | **Radius (open question 10):** shadcn's radius steps carry the foundations' values (`sm` 4, `md` 6, `lg` 8, `xl` 12, `2xl` 16px) instead of multiples of `--radius`; components restyled to the spec use the named radii | Interface step 1, Phase 1b |
 | **Control sizes (open question 11):** controls take the foundations' heights (36px default, 32 small, 44 large) and label text, not Nova's (32, 28, 36); the button now, inputs and selects as they're added; the button's `xs` (24px) stays as a size below the spec | Interface step 1, Phase 1b |
 | **Loading Geist (open question 12):** the app loads Geist and Geist Mono with the `geist` package through `next/font`, which self-hosts, preloads and size-matches the fallback, and sets the `--font-geist-*` variables the foundations' stacks read; no Google Fonts request from the browser | Interface step 1, Phase 1b (built in Phase 2) |
+| **How the browser reaches the API (step 1):** a Next rewrite, `/api/ropa/v1/:path*` → `ROPA_API_URL/v1/:path*`, compiled into the build; not a Route Handler, since there are no credentials yet. Anonymous writes get the API's 401. Revisited with step 2's sign-in | Interface step 1, Phase 3 (the user, 2026-09-27) |
+| **Package imports:** `ropa-schemas` and `ropa-client` import each other's files with `.ts`, rewritten to `.js` on emit (`rewriteRelativeImportExtensions`), so Turbopack compiles them from source in development | Interface step 1, Phase 3 (the user, 2026-09-27) |
 | **Deploy in step 1 (open question 6):** `ropa-web` joins the Blueprint as a web service; about $7 a month, accepted 2026-09-27 | Interface step 1 |
 
 ## Errors encountered

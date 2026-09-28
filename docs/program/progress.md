@@ -103,6 +103,50 @@
   user's choice, the block lives in `CLAUDE.md` alone, which Next keeps
   without recreating `AGENTS.md` (checked on a restart)
 
+### Phase 3: The proxy and the first page (complete, committed, not pushed)
+- Read the contract (an Explore agent): `GET /v1/activities`, `{ data,
+  nextCursor }`, 50 a page; problems as `application/problem+json`; reads
+  public by default; the seed's C1–C4 and P1–P3
+- `@rulemark/ropa-client`: configured like `ropa-schemas`; 20 tests first,
+  against a stub HTTP server, then the typed errors and the core with
+  `activities.list`; eight breaks (one uncaught, so a test for filters set
+  to `undefined` was added)
+- The proxy, tests first against a stub API (19): reads, problems, ETag and
+  304, HEAD, cookies and credentials held back, `/v1` only, writes refused,
+  502 and 504; the route handler tested as Next calls it
+- `shadcn add table` from the app (second use of the workflow), restyled to
+  the foundations, 10 tests first; they found shadcn's headers exposed as
+  cells, so `TableHead` defaults to `scope="col"`
+- Queries and the list, tests first: shared keys, the signal, the retry
+  policy, the list's rows, loading, empty, error and retry, and prefetched
+  data shown without a request. Vitest 5's `toHaveTextContent` matches
+  exactly: partial and regex checks are `toMatchTextContent`
+- Ran it against the story (a second API on 3100 over the test database,
+  the user's API and database on 3000 untouched): the server's HTML has all
+  seven rows, the browser makes no request on load; the proxy passes the
+  list, the ETag, a 404 problem, refuses a PUT, and 404s `/healthz`
+- That run found three things, each fixed test-first where a test could
+  show it: `If-None-Match` never got a 304 (fetch adds `Cache-Control:
+  no-cache`); with the API down the page waited 3 s for the server's
+  retries; `next build` used the packages' `dist/`, which nothing built
+- `next dev` then failed: Turbopack won't map the packages' `./x.js`
+  imports to `./x.ts`. The user chose `.ts` specifiers with
+  `rewriteRelativeImportExtensions` (98 in 39 files of `ropa-schemas` and
+  `ropa-client`); the built JavaScript still imports `.js`; `tsx`, Vitest,
+  Turbopack and `tsc` all resolve it; `next dev` served the seven rows
+- Twelve more breaks across the proxy, queries, list and table, each caught
+- The user asked why not Next's rewrites: tested that a rewrite's
+  destination is fixed at build (built against one stub, started against
+  another: the build's won), and agreed the Route Handler's case rested on
+  auth that step 1 doesn't have. Switched: the Route Handler, `proxy.ts` and
+  their tests removed; `ropaRewrites()` and three tests first; CI sets
+  `ROPA_API_URL` (typegen evaluates the rewrite too); the root `.env` is now
+  read whenever it exists, so a local build and typegen find it
+- Against the story again: the list, a query, the ETag, a 304, the API's
+  404 problem, a write's 401 problem, `/api/ropa/healthz` a 404, seven rows
+  server-rendered; with the API down, a 500 in 8 ms and the error after the
+  retries, now in plain words (test first); four more breaks, each caught
+
 ## Test Results
 | Test | Command | Expected | Actual | Status |
 |---|---|---|---|---|
@@ -123,6 +167,14 @@
 | Phase 2: serving | `next start`, then `/healthz`, `/`, `/icon.svg`, screenshots | 200s, Geist, both themes | as expected; the theme survives a reload | ✅ |
 | Phase 2 | `npm run check`; `npm run build` | 1436 tests pass; the build succeeds | 1436 pass (893 api, 262 schemas, 14 audit-log, 233 ui, 25 web, 9 dist); built; 29 web tests with the root `.env` loader | ✅ |
 | Phase 2: development | `npm run dev -w apps/ropa-web`, the root `.env` only | serves on 3001 | first failed (`ROPA_API_URL: Required`); after the fix, `/` and `/healthz` 200 | ✅ |
+| Phase 3: before the code | the new tests | fail on missing modules | client 19/19, proxy and route, table 10/10, queries and list | ✅ |
+| Phase 3: breaks | twenty deliberate breaks | each fails its tests | all caught after one added test | ✅ |
+| Phase 3: against the story | `next start` on 3001, the API on 3100 | seven rows server-rendered; proxy behaviour | as expected, after three fixes (304, server retries, build order) | ✅ |
+| Phase 3: the API down | the page, with 3100 stopped | renders at once, then the error | 200 in ~200 ms, three 502s, the alert at ~3.5 s | ✅ |
+| Phase 3: development | `next dev` and the API's `tsx` dev, after the `.ts` imports | the seven rows | served | ✅ |
+| Phase 3 | `npm run check` | 1509 tests pass | 1509 pass (893 api, 262 schemas, 14 audit-log, 243 ui, 20 client, 68 web, 9 dist) | ✅ |
+| Phase 3: the rewrite | build against one stub API, start against another | learn which a rewrite uses | the build's | ✅ |
+| Phase 3: after the switch | `npm run check`; a root build reading only `.env` | 1492 tests pass; built | 1492 pass (51 web, the proxy's 20 gone, 3 rewrite tests in); built | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -134,13 +186,19 @@
 | 2026-09-27 | `tsc --build`: the inferred type of `cn` can't be named | Declarations need a portable type | Annotated `CnFunction` |
 | 2026-09-27 | The header's tests: `process is not defined` | `next/link` reads `process.env`, which only Next defines | `define: { 'process.env': '{}' }` in the browser project |
 | 2026-09-27 | `next dev`: `ROPA_API_URL: Required`, though the root `.env` sets it | `@next/env`'s `loadEnvConfig` returns its cached first load (the app directory's) | `loadRootEnvFile()`, reading the root `.env` with `util.parseEnv`, never overriding |
+| 2026-09-27 | The proxy: `If-None-Match` never gets a 304 | The API answers 304 directly; fetch adds `Cache-Control: no-cache` to conditional requests | Forward the browser's `Cache-Control`, else send `max-age=0` |
+| 2026-09-27 | The page waits 3 s with the API down | The server's prefetch retried twice | No retries on the server |
+| 2026-09-27 | `next build` without the packages' `dist/`: `Can't resolve '@rulemark/ropa-client'` | Production resolves the `default` condition | The app's `build` runs `tsc --build ../../packages/ropa-client` first |
+| 2026-09-27 | `next dev`: `Can't resolve './client.js'` | Turbopack doesn't map `.js` to `.ts`; `extensionAlias` is webpack-only | `.ts` specifiers in the packages, `rewriteRelativeImportExtensions` (user's choice) |
+| 2026-09-27 | `toHaveTextContent(/…/)` fails on matching text | Vitest 5 made it an exact match | `toMatchTextContent` |
+| 2026-09-27 | `getByRole('columnheader')` finds nothing | shadcn's `<th>` has no `scope`; Chromium exposes it as a cell | `scope="col"` by default |
 | 2026-09-27 | `next build`: Node API (`process.stderr`) not supported in the Edge Runtime | Next compiles `instrumentation.ts` for both runtimes | The Node-only half in `lib/startup.ts`, imported under `process.env.NEXT_RUNTIME === 'nodejs'` |
 
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Interface step 1 (the workspace skeleton), Phase 3 (the proxy and the first page) not started; Phases 1, 1b and 2 done and committed, not pushed |
-| Where am I going? | The proxy and first page, tests and CI, then deploy and docs |
+| Where am I? | Interface step 1 (the workspace skeleton), Phase 4 (tests and CI) not started; Phases 1, 1b, 2 and 3 done and committed, not pushed |
+| Where am I going? | Playwright and CI, then deploy and docs |
 | What's the goal? | A Next.js app and a shadcn component package in the workspace, reading the record through the proxy, tested from the first commit |
 | What have I learned? | See findings.md |
 | What have I done? | The RoPA API is built and deployed (steps 1–5); the story's Parts II and III and the roadmap set the interface as next |

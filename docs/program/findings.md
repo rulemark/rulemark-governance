@@ -461,6 +461,80 @@
   `next.config.ts` turns it off). The user chose `CLAUDE.md` only: with the
   block in `CLAUDE.md` and no `AGENTS.md`, Next updates `CLAUDE.md` alone.
 
+- **Phase 3: the list contract.** `GET /v1/activities` returns
+  `{ data: Activity[], nextCursor }` (`listResponse(Activity)` in
+  `ropa-schemas`; there's no summary type, items are whole activities), 50 a
+  page by default, ordered by creation; filters `role`, `status`,
+  `offering`, `subjectCategory`, `dataCategory`, `party`, `system`,
+  `country`, `special=true`, with a 422 for an unknown reference. Problems
+  are `application/problem+json` with `type` under
+  `https://ropa.example/problems/`. Reads are public unless
+  `REQUIRE_AUTH_FOR_READS`. The seed has seven activities: C1–C4 (Hireloop
+  as controller) and P1–P3 (as processor); the page lists all seven.
+- **Phase 3: the client's scope.** Its core (base URL, injectable `fetch`,
+  token or provider, validation, typed errors, cancellation) and
+  `activities.list`. `ETag` as `version` and `If-Match` required at compile
+  time come with the first single read or write (step 3 or 4); the body
+  already carries `version`. Retries are the app's (TanStack Query's), not
+  the client's, for now. The global `fetch` is looked up per call, so a test
+  or runtime can replace it. `dist/` runs in plain Node.
+- **Phase 3: fetch and conditional requests.** Per the fetch spec, a request
+  with `If-None-Match` (or another conditional header) and no
+  `Cache-Control` of its own is sent with `Cache-Control: no-cache` and
+  `Pragma: no-cache`; Express's `fresh` then never answers 304. The proxy
+  forwards the browser's `Cache-Control` and otherwise sends `max-age=0`.
+  The unit test's stub now decides like Express, which is what caught it.
+- **Phase 3: no retries on the server.** A prefetch that retries holds the
+  whole page back (3 s with the API down). The server's client doesn't
+  retry; the page renders its loading state, and the browser retries twice
+  through the proxy (network errors, 429, 5xx only) before the error.
+- **Phase 3: how Next resolves the workspace packages.** `next dev`
+  (Turbopack) applies the `development` condition, so it compiles
+  `ropa-schemas` and `ropa-client` from source (`transpilePackages` not
+  needed); `next build` doesn't, and uses `dist/`. So the app's `build`
+  compiles the packages first, which Render's build command gets for free.
+  Turbopack has no `extensionAlias` (it's webpack-only, under
+  `experimental`), so the packages' NodeNext-style `./x.js` imports failed in
+  development. They're now `./x.ts`, with `rewriteRelativeImportExtensions`
+  in the base config: emitted JavaScript imports `./x.js` (the API runs
+  `dist/` in plain Node, and `test:dist` passes), declarations keep `./x.ts`
+  (which both bundler and NodeNext consumers resolve to the `.d.ts`). Only
+  the two packages changed; the apps keep `.js` imports.
+- **Phase 3: Next's route announcer is `role="alert"`.** An end-to-end test
+  looking for an alert must filter by its text.
+- **Phase 3: Vitest 5 matchers.** `toHaveTextContent` now matches the whole
+  text exactly; partial and regex checks are `toMatchTextContent`.
+- **Phase 3: `<th>` needs a scope.** Chromium exposed shadcn's headers as
+  cells (no `scope`, and the Vitest locator follows the accessibility
+  tree), so a screen reader may not announce them with their column. The
+  restyled `TableHead` defaults to `scope="col"`.
+- **Phase 3: running it locally without touching the user's data.** The
+  user's API (3000) and database were left alone: a second API on 3100
+  against `ropa_test`, seeded with `db:seed -- --reset`. The API's tests
+  empty `ropa_test` when they finish, so reseed after `npm run check`.
+
+- **Phase 3: a rewrite, not a Route Handler (the user, 2026-09-27).** The
+  Route Handler was built and tested first (reads through, writes refused
+  with a 403, credentials held back, `/v1` only, 502/504 problems). The user
+  asked why not Next's `rewrites`; the case for the handler rested on
+  credentials, and step 1 has none. So `/api/ropa/v1/:path*` is a rewrite
+  to `ROPA_API_URL/v1/:path*` (`src/lib/rewrites.ts`). What changed: an
+  anonymous write reaches the API and gets its 401 problem; an API that's
+  down gives Next's plain 500 (the list says it isn't answering, in plain
+  words); the browser's cookies and headers pass through; conditional
+  requests work as they are (Next's proxy isn't `fetch`). **The destination
+  is compiled into the build**: tested by building against one stub API and
+  starting against another, and the build's won. So `next build` and `next
+  typegen` (which evaluates rewrites too) need `ROPA_API_URL`: CI sets it for
+  the job, locally the root `.env` gives it (now read whenever it exists,
+  production mode included, since it's never deployed), and on Render it's
+  there at build time; changing it means a rebuild, which a Render deploy
+  is. Step 2 decides, with its sign-in, whether the browser's token passes
+  through the rewrite for the API to verify, or a Route Handler or Next's
+  `proxy.ts` (Next 16's name for middleware) attaches one the server holds.
+  The Route Handler was never committed; this entry and the Phase 3 notes
+  above describe what it did, if step 2 wants one.
+
 ## Issues encountered
 | Issue | Resolution |
 |---|---|
