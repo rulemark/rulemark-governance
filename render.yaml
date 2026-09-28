@@ -62,8 +62,11 @@ projects:
             # that was left blank, for no difference in behaviour.
 
             # --include=dev because the build runs tsc, a devDependency, and
-            # NODE_ENV=production makes npm omit those.
-            buildCommand: npm ci --include=dev && npm run build
+            # NODE_ENV=production makes npm omit those. The API's workspace
+            # only (its tsc --build compiles ropa-schemas by reference), not the
+            # root build: that builds every workspace, the web app included,
+            # whose `next build` needs ROPA_API_URL, which the API doesn't have.
+            buildCommand: npm ci --include=dev && npm run build -w apps/ropa-api
 
             # After the build, before the new version goes live, on its own
             # instance. A failure fails the deploy and the previous version
@@ -97,6 +100,8 @@ projects:
               ignoredPaths:
                 - docs/**
                 - apps/ropa-web/**
+                # The web app's component package: nothing the API builds.
+                - packages/ui/**
 
             envVars:
               # Also stops dotenv loading, and hides internal error detail.
