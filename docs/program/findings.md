@@ -558,6 +558,14 @@
   decided against (`workspace-skeleton.md` §3.3). A developer whose own API
   already holds 3000 sets `PORT` (and `ROPA_API_URL`) for the run.
 
+- **Render builds per workspace.** Every service's `buildCommand` builds
+  its own workspace (`npm run build -w apps/<service>`): the root build runs
+  every workspace's, and since interface step 1 that includes the web app's
+  `next build`, which needs `ROPA_API_URL`. `ropa-api` was the one service
+  still on the root build; its deploy of `a9a0200` failed (the previous
+  version kept serving, as Render does). Anything that changes the root
+  build must be checked against `render.yaml` as well as CI.
+
 ## Issues encountered
 | Issue | Resolution |
 |---|---|

@@ -209,6 +209,7 @@
 | 2026-09-27 | Two API files: `Cannot read properties of null (reading 'port')` | With a host, `listen` binds asynchronously | `listenOnLoopback()` awaits `listening` |
 | 2026-09-27 | `tsc --build`: the inferred type of `cn` can't be named | Declarations need a portable type | Annotated `CnFunction` |
 | 2026-09-27 | The header's tests: `process is not defined` | `next/link` reads `process.env`, which only Next defines | `define: { 'process.env': '{}' }` in the browser project |
+| 2026-09-28 | Render: `ropa-api`'s deploy of `a9a0200` failed, `ROPA_API_URL: Required` in `next build` | Its build command was the root `npm run build`, which now builds the web app; Phase 2 changed the root build and checked CI, not Render's commands | `npm run build -w apps/ropa-api`, as the cron job and audit-log do; the previous version kept serving |
 | 2026-09-27 | Playwright: "Process from config.webServer exited early" | 127.0.0.1:3200 answered 502 before the API started: leftover proxies from another session on 3200 and 3201 | Ports 3310 and 3311, `reuseExistingServer: false` |
 | 2026-09-27 | `next dev`: `ROPA_API_URL: Required`, though the root `.env` sets it | `@next/env`'s `loadEnvConfig` returns its cached first load (the app directory's) | `loadRootEnvFile()`, reading the root `.env` with `util.parseEnv`, never overriding |
 | 2026-09-27 | The proxy: `If-None-Match` never gets a 304 | The API answers 304 directly; fetch adds `Cache-Control: no-cache` to conditional requests | Forward the browser's `Cache-Control`, else send `max-age=0` |
