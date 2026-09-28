@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
-import { ProblemDetails, fieldErrorsFromZod } from './errors.js';
+import { ProblemDetails, fieldErrorsFromZod } from './errors.ts';
 
 /** The §1.7 example, parsed as a client would parse it. */
 const EXAMPLE = {

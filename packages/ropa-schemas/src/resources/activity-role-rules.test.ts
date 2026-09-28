@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { ROLE_FIELDS, canActivate, describeRoleRules } from './index.js';
+import { ROLE_FIELDS, canActivate, describeRoleRules } from './index.ts';
 
 /** The rule each role gives each field, straight from DM §5. */
 function rulesOf(role: 'controller' | 'processor') {

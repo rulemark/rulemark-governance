@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { fieldErrorsFromZod } from '../errors.js';
-import { ReportQuery, ReportResponse } from './report.js';
+import { fieldErrorsFromZod } from '../errors.ts';
+import { ReportQuery, ReportResponse } from './report.ts';
 
 describe('ReportResponse.asOf', () => {
   it('echoes the asOf asked for: a date, a timestamp, or null for today', () => {

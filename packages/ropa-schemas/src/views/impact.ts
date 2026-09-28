@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
-import { ACTIVITY_ROLES, AUTHORIZATION_TYPES, ENGAGEMENT_ROLES } from '../enums.js';
-import { AsOf, CountryCode, IsoDateTime, Name, Ref, RegionCode, Uuid } from '../primitives.js';
-import { ActivityRef, TermsRef } from './subprocessors.js';
+import { ACTIVITY_ROLES, AUTHORIZATION_TYPES, ENGAGEMENT_ROLES } from '../enums.ts';
+import { AsOf, CountryCode, IsoDateTime, Name, Ref, RegionCode, Uuid } from '../primitives.ts';
+import { ActivityRef, TermsRef } from './subprocessors.ts';
 
 /**
  * `GET /parties/{ref}/impact` (`ropa-api.md` §5.3): what depends on a vendor,

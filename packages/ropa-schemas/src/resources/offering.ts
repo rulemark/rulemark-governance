@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-import { Identifier, Name, Ref, Slug } from '../primitives.js';
-import { changeNote, optionalSlug, recordMeta } from './common.js';
+import { Identifier, Name, Ref, Slug } from '../primitives.ts';
+import { changeNote, optionalSlug, recordMeta } from './common.ts';
 
 /**
  * DM §3.7. What clients enrol in. `defaultTerms` must reference outbound terms,

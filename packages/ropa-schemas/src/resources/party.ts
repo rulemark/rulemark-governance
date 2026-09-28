@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
-import { PARTY_KINDS } from '../enums.js';
-import { CountryCode, Email, Name, Slug, Url } from '../primitives.js';
-import { changeNote, optionalSlug, recordMeta } from './common.js';
+import { PARTY_KINDS } from '../enums.ts';
+import { CountryCode, Email, Name, Slug, Url } from '../primitives.ts';
+import { changeNote, optionalSlug, recordMeta } from './common.ts';
 
 /** DM §3.5. One `party` table covers us, our clients, our vendors and everyone else. */
 const fields = {

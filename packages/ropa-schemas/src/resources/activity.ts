@@ -11,8 +11,8 @@ import {
   type ClientCoverage,
   type EngagementRole,
   type ScopeMode,
-} from '../enums.js';
-import { fieldErrorsFromZod, type FieldError } from '../errors.js';
+} from '../enums.ts';
+import { fieldErrorsFromZod, type FieldError } from '../errors.ts';
 import {
   Code,
   CountryCode,
@@ -23,7 +23,7 @@ import {
   Ref,
   Text,
   Uuid,
-} from '../primitives.js';
+} from '../primitives.ts';
 import {
   CONTROLLER_ENGAGEMENT_ROLES,
   NOT_YET_SUPPORTED_MESSAGE,
@@ -33,8 +33,8 @@ import {
   forbiddenMessage,
   type RoleField,
   type SupportedActivityRole,
-} from './activity-role-rules.js';
-import { changeNote, recordMeta } from './common.js';
+} from './activity-role-rules.ts';
+import { changeNote, recordMeta } from './common.ts';
 
 /**
  * DM §3.1–§3.4 and §3.8. The activity is a discriminated union on `role`

@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
-import { RENDER_SYSTEM_KINDS, SYSTEM_KINDS } from '../enums.js';
-import { Identifier, MAX_SLUG, Name, Ref, Slug } from '../primitives.js';
-import { changeNote, optionalSlug, recordMeta } from './common.js';
+import { RENDER_SYSTEM_KINDS, SYSTEM_KINDS } from '../enums.ts';
+import { Identifier, MAX_SLUG, Name, Ref, Slug } from '../primitives.ts';
+import { changeNote, optionalSlug, recordMeta } from './common.ts';
 
 /** DM §3.9. Where processing runs. The Architecture Snapshot keeps these in sync. */
 const fields = {

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { AUTHORIZATION_TYPES, TRANSFER_MECHANISMS } from '../enums.js';
+import { AUTHORIZATION_TYPES, TRANSFER_MECHANISMS } from '../enums.ts';
 import {
   AsOf,
   Code,
@@ -10,7 +10,7 @@ import {
   Name,
   Ref,
   Uuid,
-} from '../primitives.js';
+} from '../primitives.ts';
 
 /**
  * `GET /subprocessors` (`ropa-api.md` §5.2): the list a client is owed under

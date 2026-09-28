@@ -7,7 +7,7 @@ import {
   LAWFUL_BASES,
   SPECIAL_CONDITIONS,
   TRANSFER_MECHANISMS,
-} from '../enums.js';
+} from '../enums.ts';
 import {
   AsOf,
   Code,
@@ -21,8 +21,8 @@ import {
   Ref,
   Text,
   Uuid,
-} from '../primitives.js';
-import { SubprocessorsResponse, TermsRef } from './subprocessors.js';
+} from '../primitives.ts';
+import { SubprocessorsResponse, TermsRef } from './subprocessors.ts';
 
 /**
  * `GET /report` (`ropa-api.md` §5.1): the Art. 30 record itself. JSON is the

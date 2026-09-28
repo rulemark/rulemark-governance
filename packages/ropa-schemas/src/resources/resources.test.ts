@@ -16,7 +16,7 @@ import {
   System,
   SystemInput,
   listResponse,
-} from './index.js';
+} from './index.ts';
 
 const UUID = '0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e';
 const TIMESTAMPS = { createdAt: '2026-03-16T10:00:00Z', updatedAt: '2026-03-16T10:00:00Z' };

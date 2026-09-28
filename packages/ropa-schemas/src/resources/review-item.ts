@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { REVIEW_REASONS, REVIEW_SOURCES, REVIEW_STATUSES, REVIEW_TARGET_TYPES } from '../enums.js';
+import { REVIEW_REASONS, REVIEW_SOURCES, REVIEW_STATUSES, REVIEW_TARGET_TYPES } from '../enums.ts';
 import {
   Code,
   Identifier,
@@ -11,7 +11,7 @@ import {
   Ref,
   Text,
   Uuid,
-} from '../primitives.js';
+} from '../primitives.ts';
 
 /**
  * DM §3.11, API §2 (workflow). A review item carries a finding to a person: the

@@ -25,7 +25,7 @@ import {
   Text,
   Url,
   Uuid,
-} from './primitives.js';
+} from './primitives.ts';
 
 describe('Slug', () => {
   it.each(['health', 'standard-dpa-v3', 'hireloop-db', 'ats'])('accepts %s', (value) => {

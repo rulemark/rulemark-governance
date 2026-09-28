@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { FINDING_TYPES } from '../enums.js';
-import { CoverageResponse, FINDING_SEVERITY } from './coverage.js';
+import { FINDING_TYPES } from '../enums.ts';
+import { CoverageResponse, FINDING_SEVERITY } from './coverage.ts';
 
 const id = (n: number) => `0199c3a1-8f2e-7c4d-b8e1-${String(n).padStart(12, '0')}`;
 const p1 = { id: id(1), code: 'P1', name: 'Candidate application management' };

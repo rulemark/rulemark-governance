@@ -5,9 +5,9 @@ import {
   REVIEW_CHANGE_TYPES,
   REVISION_ENTITY_TYPES,
   CHANGE_ENTITY_TYPES,
-} from '../enums.js';
-import { AsOf, IsoDateTime, Ref, Uuid } from '../primitives.js';
-import { ListQuery, listResponse } from './common.js';
+} from '../enums.ts';
+import { AsOf, IsoDateTime, Ref, Uuid } from '../primitives.ts';
+import { ListQuery, listResponse } from './common.ts';
 
 /**
  * `GET /changes` (`ropa-api.md` §2): every change across the record in a time

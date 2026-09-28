@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { CloseReviewItemInput, ReviewItem, ReviewItemInput, ReviewItemsQuery } from './index.js';
+import { CloseReviewItemInput, ReviewItem, ReviewItemInput, ReviewItemsQuery } from './index.ts';
 
 const UUID = '0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e';
 

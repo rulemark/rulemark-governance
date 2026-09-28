@@ -1,15 +1,15 @@
-export * from './common.js';
-export * from './auth.js';
-export * from './party.js';
-export * from './agreement-terms.js';
-export * from './agreement.js';
-export * from './offering.js';
-export * from './system.js';
-export * from './taxonomy.js';
-export * from './activity.js';
-export * from './review-item.js';
-export * from './changes.js';
-export { inputFromActivity } from './activity-input.js';
+export * from './common.ts';
+export * from './auth.ts';
+export * from './party.ts';
+export * from './agreement-terms.ts';
+export * from './agreement.ts';
+export * from './offering.ts';
+export * from './system.ts';
+export * from './taxonomy.ts';
+export * from './activity.ts';
+export * from './review-item.ts';
+export * from './changes.ts';
+export { inputFromActivity } from './activity-input.ts';
 export {
   ROLE_FIELDS,
   canActivate,
@@ -19,4 +19,4 @@ export {
   type RoleField,
   type RoleRules,
   type SupportedActivityRole,
-} from './activity-role-rules.js';
+} from './activity-role-rules.ts';

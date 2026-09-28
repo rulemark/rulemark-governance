@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { fieldErrorsFromZod } from '../errors.js';
-import { SubprocessorsQuery, SubprocessorsResponse } from './subprocessors.js';
+import { fieldErrorsFromZod } from '../errors.ts';
+import { SubprocessorsQuery, SubprocessorsResponse } from './subprocessors.ts';
 
 describe('SubprocessorsResponse.asOf', () => {
   it('echoes the asOf asked for: a date, a timestamp, or null for today', () => {

@@ -1,5 +1,5 @@
-import type { ActivityRole, EngagementRole } from '../enums.js';
-import type { FieldError } from '../errors.js';
+import type { ActivityRole, EngagementRole } from '../enums.ts';
+import type { FieldError } from '../errors.ts';
 
 /**
  * DM §5, rules by role, as data. The activity schemas read their forbidden

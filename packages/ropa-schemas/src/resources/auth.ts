@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-import { PERMISSIONS, PRINCIPAL_ROLES } from '../enums.js';
-import { MAX_TEXT, Name } from '../primitives.js';
+import { PERMISSIONS, PRINCIPAL_ROLES } from '../enums.ts';
+import { MAX_TEXT, Name } from '../primitives.ts';
 
 /**
  * Demo-scale authentication (`ropa-api.md` §1.9): short-lived tokens and

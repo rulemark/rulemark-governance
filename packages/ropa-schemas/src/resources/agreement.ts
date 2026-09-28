@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-import { Identifier, IsoDate, Ref } from '../primitives.js';
-import { changeNote, recordMeta } from './common.js';
+import { Identifier, IsoDate, Ref } from '../primitives.ts';
+import { changeNote, recordMeta } from './common.ts';
 
 /**
  * DM §3.6. A signed agreement between one party and one set of terms.

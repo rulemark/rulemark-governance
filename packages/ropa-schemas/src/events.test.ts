@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { EventEnvelope } from './events.js';
+import { EventEnvelope } from './events.ts';
 
 /**
  * The envelope every consumer of RoPA's events receives (`ropa-api.md` §6).

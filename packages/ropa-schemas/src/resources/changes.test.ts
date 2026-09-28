@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { CHANGE_ENTITY_TYPES, REVISION_ENTITY_TYPES } from '../enums.js';
-import { Change, ChangesQuery, ChangesResponse } from './changes.js';
+import { CHANGE_ENTITY_TYPES, REVISION_ENTITY_TYPES } from '../enums.ts';
+import { Change, ChangesQuery, ChangesResponse } from './changes.ts';
 
 /** `GET /changes` (`ropa-api.md` §2): what changed across the record, and when. */
 

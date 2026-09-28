@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
-import { ENGAGEMENT_ROLES } from '../enums.js';
-import { AsOf, Identifier, IsoDateTime, Ref } from '../primitives.js';
-import { RetentionRule } from '../resources/activity.js';
-import { ActivityRef } from './subprocessors.js';
+import { ENGAGEMENT_ROLES } from '../enums.ts';
+import { AsOf, Identifier, IsoDateTime, Ref } from '../primitives.ts';
+import { RetentionRule } from '../resources/activity.ts';
+import { ActivityRef } from './subprocessors.ts';
 
 /**
  * `GET /data-map` (`ropa-api.md` §5.4): where a subject category's data

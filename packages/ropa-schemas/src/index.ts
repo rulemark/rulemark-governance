@@ -6,10 +6,10 @@
  * needs a database connection, a Node API or the environment, so the package
  * works in a browser as well as on the server.
  */
-export * from './constants.js';
-export * from './enums.js';
-export * from './primitives.js';
-export * from './errors.js';
-export * from './resources/index.js';
-export * from './views/index.js';
-export * from './events.js';
+export * from './constants.ts';
+export * from './enums.ts';
+export * from './primitives.ts';
+export * from './errors.ts';
+export * from './resources/index.ts';
+export * from './views/index.ts';
+export * from './events.ts';

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { SYSTEM_KINDS, type FindingSeverity, type FindingType } from '../enums.js';
+import { SYSTEM_KINDS, type FindingSeverity, type FindingType } from '../enums.ts';
 import {
   CountryCode,
   IsoDate,
@@ -10,7 +10,7 @@ import {
   Ref,
   RegionCode,
   Uuid,
-} from '../primitives.js';
+} from '../primitives.ts';
 
 /**
  * `GET /coverage` (`ropa-api.md` §5.5): where the record and the

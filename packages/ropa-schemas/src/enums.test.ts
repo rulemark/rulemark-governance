@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import * as enums from './enums.js';
+import * as enums from './enums.ts';
 import {
   ACTIVITY_ROLES,
   AGREEMENT_DIRECTIONS,
@@ -20,7 +20,7 @@ import {
   SYSTEM_KINDS,
   TAXONOMY_TYPES,
   TRANSFER_MECHANISMS,
-} from './enums.js';
+} from './enums.ts';
 
 /**
  * These lists are the single definition of each vocabulary: Zod reads them here

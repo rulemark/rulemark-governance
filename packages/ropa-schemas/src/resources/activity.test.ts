@@ -12,7 +12,7 @@ import {
   inputFromActivity,
   validateActivityShape,
   type RoleField,
-} from './index.js';
+} from './index.ts';
 
 const UUID = '0199c3a1-8f2e-7c4d-b8e1-2f3a4b5c6d7e';
 const AGREEMENT = '0199c3a1-8f2e-7c4d-b8e1-9c41aaaa0001';

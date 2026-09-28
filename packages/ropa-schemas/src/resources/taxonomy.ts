@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
-import { DATA_CATEGORY_SPECIALS } from '../enums.js';
-import { Name, Slug, Text } from '../primitives.js';
-import { changeNote, optionalSlug, recordMeta } from './common.js';
+import { DATA_CATEGORY_SPECIALS } from '../enums.ts';
+import { Name, Slug, Text } from '../primitives.ts';
+import { changeNote, optionalSlug, recordMeta } from './common.ts';
 
 /**
  * DM §3.10. The shared vocabularies. The DSAR tracker and the Subprocessor

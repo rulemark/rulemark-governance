@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../constants.js';
-import { Cursor, IsoDateTime, MAX_TEXT, Slug, Uuid } from '../primitives.js';
+import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../constants.ts';
+import { Cursor, IsoDateTime, MAX_TEXT, Slug, Uuid } from '../primitives.ts';
 
 /**
  * Input and Output are separate schemas for every record, because the API

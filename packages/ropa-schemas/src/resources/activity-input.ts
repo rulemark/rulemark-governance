@@ -1,4 +1,4 @@
-import type { Activity } from './activity.js';
+import type { Activity } from './activity.ts';
 
 /**
  * An activity as the API returns it (`Activity`), turned back into the body a

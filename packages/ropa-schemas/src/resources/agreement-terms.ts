@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
-import { AGREEMENT_DIRECTIONS, AUTHORIZATION_TYPES } from '../enums.js';
-import { Name, RegionCode, Slug, Url } from '../primitives.js';
-import { changeNote, optionalSlug, recordMeta } from './common.js';
+import { AGREEMENT_DIRECTIONS, AUTHORIZATION_TYPES } from '../enums.ts';
+import { Name, RegionCode, Slug, Url } from '../primitives.ts';
+import { changeNote, optionalSlug, recordMeta } from './common.ts';
 
 /**
  * DM §3.6. The terms document, split from the signed agreement because 400

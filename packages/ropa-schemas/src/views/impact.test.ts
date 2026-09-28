@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { ImpactQuery, ImpactResponse } from './impact.js';
+import { ImpactQuery, ImpactResponse } from './impact.ts';
 
 const id = (n: number) => `0199c3a1-8f2e-7c4d-b8e1-${String(n).padStart(12, '0')}`;
 

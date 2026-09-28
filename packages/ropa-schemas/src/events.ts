@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-import { EVENT_TYPES } from './enums.js';
-import { IsoDateTime, Uuid } from './primitives.js';
+import { EVENT_TYPES } from './enums.ts';
+import { IsoDateTime, Uuid } from './primitives.ts';
 
 /**
  * The envelope every consumer of RoPA's events receives (`ropa-api.md` §6),
