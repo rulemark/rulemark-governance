@@ -13,7 +13,7 @@ The first step of the interface, the roadmap's next priority
 (`docs/program/roadmap.md`, "Next: the interface, and what clients see").
 
 ## Current Phase
-Phase 5 (deploy and docs), not started. Phase 4 (tests and CI) is complete, committed and not pushed; Phases 1 to 3 before it too
+Phase 5 (deploy and docs), not started. Phases 1 to 4 are complete, pushed (the user pushes: auto mode blocks Claude's pushes) and live in `ropa-api` since 2026-09-28 (`e44ff25`, after a failed deploy fixed in `render.yaml`); `ropa-web` isn't on Render yet
 
 ## The stack (decided by the user, 2026-09-27)
 | Concern | Choice |
@@ -181,15 +181,20 @@ neutral.
 
 ### Phase 5: Deploy and docs
 - [ ] `ropa-web` in `render.yaml`: a web service (about $7 a month, accepted),
-      its own build filter, `ROPA_API_URL` from `ropa-api`'s `hostport`;
-      `packages/ui/**` added to the API's `ignoredPaths` (its filter watches
-      `packages/**`, so a component change would rebuild the API);
-      pushed code-first **once the user gives the go-ahead**, verified by
-      behaviour (the live page lists P1–P3). Its build command is
-      `npm ci --include=dev && npm run build -w apps/ropa-web` (which compiles
-      the RoPA packages first), its start `npm run start -w apps/ropa-web`,
-      its health check `/healthz`
-- [ ] `workspace-skeleton.md`, `ropa-packages.md` §8, the README
+      its own build filter (`apps/ropa-web/**`, `packages/**`,
+      `package*.json`), `ROPA_API_URL` from `ropa-api`'s `hostport`. **The
+      rewrite compiles `ROPA_API_URL` in at build time**: check the
+      `fromService` value is there during Render's build, not only at
+      runtime. Build `npm ci --include=dev && npm run build -w apps/ropa-web`
+      (compiles the RoPA packages first; never the root build), start
+      `npm run start -w apps/ropa-web`, health check `/healthz`. The user
+      pushes, code first; a Blueprint sync creating a service may need a
+      Manual Sync; verified by behaviour (the live page lists the activities)
+- [x] `packages/ui/**` in the API's `ignoredPaths` (done in `e44ff25`)
+- [ ] Docs: `workspace-skeleton.md`, `ropa-packages.md` §5 (the client as
+      built, `actor` gone) and §8.1 (a rewrite in step 1, the mechanism
+      revisited with step 2's sign-in), the README's getting-started
+      (`npm run dev`, `npm run test:e2e`, the web app)
 - **Status:** pending
 
 ## Open questions

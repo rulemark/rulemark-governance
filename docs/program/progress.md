@@ -16,7 +16,7 @@
   permissions in the database; Vitest browser mode and a seeded Playwright
   smoke test; `ropa-web` deployed in this step (about $7 a month)
 
-### Phase 1: The component package (complete, committed, not pushed)
+### Phase 1: The component package (complete, pushed and deployed 2026-09-28)
 - Generated shadcn's monorepo scaffold (`init --monorepo --base base --preset
   nova`) in a scratch directory, to see exactly what it makes for the
   package, and ported `components.json`, `globals.css` and `postcss.config`
@@ -32,7 +32,7 @@
   for `.tsx` (checked with a conditional hook), Prettier on the generated
   files, root Vitest 5.0.1 → 5.0.2, Chromium installed in CI
 
-### Phase 1b: The Rulemark theme (complete, committed, not pushed)
+### Phase 1b: The Rulemark theme (complete, pushed and deployed 2026-09-28)
 - The user added `packages/ui/ux/`: `rulemark-colors.css` (tokens v1) and
   seven logo SVGs, to be the global theme
 - Settled open questions 7–9, one at a time: the Rulemark file's
@@ -69,7 +69,7 @@
 - Tests first (76 failing, then 47 with the undefined-token guard), built,
   ten deliberate breaks
 
-### Phase 2: The app (complete, committed, not pushed)
+### Phase 2: The app (complete, pushed and deployed 2026-09-28)
 - `apps/ropa-web` on Next.js 16.3.6 and React 19.3: the TypeScript, Next,
   PostCSS and shadcn configuration; `next.config.ts` loading the root `.env`
   in development, compiling `@rulemark/ui`, rooted at the workspace
@@ -103,7 +103,7 @@
   user's choice, the block lives in `CLAUDE.md` alone, which Next keeps
   without recreating `AGENTS.md` (checked on a restart)
 
-### Phase 3: The proxy and the first page (complete, committed, not pushed)
+### Phase 3: The proxy and the first page (complete, pushed and deployed 2026-09-28)
 - Read the contract (an Explore agent): `GET /v1/activities`, `{ data,
   nextCursor }`, 50 a page; problems as `application/problem+json`; reads
   public by default; the seed's C1–C4 and P1–P3
@@ -147,7 +147,7 @@
   server-rendered; with the API down, a 500 in 8 ms and the error after the
   retries, now in plain words (test first); four more breaks, each caught
 
-### Phase 4: Tests and CI (complete, committed, not pushed)
+### Phase 4: Tests and CI (complete, pushed and deployed 2026-09-28)
 - `@playwright/test` 1.63 and `pg` in the web app (dev), `concurrently` at
   the root
 - The smoke test's database, `ropa_e2e` (or `E2E_DATABASE_URL`), created
@@ -165,6 +165,19 @@
 - CI: an `e2e` job beside `check`, its own Postgres service, Chromium,
   `npm run test:e2e`, the report and traces uploaded on failure; run
   locally with `CI=1`
+
+### Push and deploy (2026-09-28)
+- Claude's `git push` was denied by auto mode; the user pushed `a9a0200`
+  (code first), CI passed both jobs, the `e2e` job's first run on GitHub:
+  6 passed
+- `ropa-api`'s Render build failed: its `buildCommand` was the root build,
+  which now runs the web app's `next build` (`ROPA_API_URL: Required`). The
+  previous version kept serving (uptime 36810 s). Fixed in `e44ff25`
+  (`-w apps/ropa-api`, and `packages/ui/**` ignored), reproduced locally
+  from clean without the variable (built, 6 dist tests); the user pushed it
+  and ran a Manual Deploy, since a `render.yaml`-only commit triggers none
+- Live: uptime 109 s, `/v1/activities` lists C1–C4 and P1–P3, a 404 answers
+  as `problem+json`: the `.ts`-import schemas run in production
 
 ## Test Results
 | Test | Command | Expected | Actual | Status |
@@ -199,6 +212,9 @@
 | Phase 4: as CI | `CI=1 npm run test:e2e` | 6 pass, GitHub reporter | 6 pass; run summary; report written, ignored by git | ✅ |
 | Phase 4: both apps | `npm run dev` (API on 3400) | both serve; Ctrl-C stops both | as expected | ✅ |
 | Phase 4 | `npm run check` | 1492 tests pass | 1492 pass | ✅ |
+| Push | CI on `a9a0200` | `check` and `e2e` pass | both pass; `e2e` 6 passed on GitHub | ✅ |
+| Deploy | Render build of `ropa-api` | builds | failed (root build ran `next build`); fixed in `e44ff25` | ❌→✅ |
+| Live | `ropa-api` after the Manual Deploy | a new instance, the record served | uptime 109 s; seven activities; a 404 problem | ✅ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -223,8 +239,8 @@
 ## 5-Question Reboot Check
 | Question | Answer |
 |---|---|
-| Where am I? | Interface step 1 (the workspace skeleton), Phase 5 (deploy and docs) not started; Phases 1 to 4 done and committed, not pushed |
+| Where am I? | Interface step 1 (the workspace skeleton), Phase 5 (deploy and docs) not started; Phases 1 to 4 done, pushed, and live in `ropa-api` (2026-09-28) |
 | Where am I going? | Deploy `ropa-web` on Render and the docs |
-| What's the goal? | A Next.js app and a shadcn component package in the workspace, reading the record through the proxy, tested from the first commit |
+| What's the goal? | A Next.js app and a shadcn component package in the workspace, reading the record through a rewrite to the API, tested from the first commit, deployed as `ropa-web` |
 | What have I learned? | See findings.md |
-| What have I done? | The RoPA API is built and deployed (steps 1–5); the story's Parts II and III and the roadmap set the interface as next |
+| What have I done? | The RoPA API is built and deployed (steps 1–5); interface step 1's Phases 1–4: `@rulemark/ui` with the Rulemark theme, `apps/ropa-web` on Next.js, `@rulemark/ropa-client`'s core, the home page through a rewrite, the Playwright smoke test in CI |
